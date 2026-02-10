@@ -72,3 +72,58 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# JetBrains IDE (Rider)
+.idea/
+
+# Rider auto-generated plugin
+Plugins/Developer/RiderLink/
+
+# macOS
+.DS_Store
+*.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Crashlytics / Crash Reports
+Crashes/
+CrashReportClient/*
+
+# Local user config (machine specific)
+Config/UserEngine.ini
+Config/UserEditor.ini
+Config/UserGame.ini
+Config/UserInput.ini
+Config/UserLayout.ini
+Config/UserScalability.ini
+
+# Content Hot Reload
+HotReload/
+
+# Automation / Testing
+Automation/*
+
+# Packaging temp files
+*.pak.bak
+*.utoc
+*.ucas
+
+# Script generated files
+Script/*
+
+# FileOpenOrder (cook optimization cache)
+Build/FileOpenOrder/
