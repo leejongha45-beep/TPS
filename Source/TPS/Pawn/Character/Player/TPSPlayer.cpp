@@ -6,9 +6,9 @@
 ATPSPlayer::ATPSPlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UTPSCMC>(ACharacter::CharacterMovementComponentName))
 {
-	bUseControllerRotationPitch = false;
-	bUseControllerRotationRoll = false;
-	bUseControllerRotationYaw = false;
+	bUseControllerRotationPitch = true;
+	bUseControllerRotationRoll = true;
+	bUseControllerRotationYaw = true;
 
 	CreateDefaultComponents();
 }
@@ -22,7 +22,7 @@ void ATPSPlayer::PostInitializeComponents()
 		CachedCMC = Cast<UTPSCMC>(GetCharacterMovement());
 		if (ensure(CachedCMC))
 		{
-			CachedCMC->SetOrientRotationToMovement(true);
+			CachedCMC->SetOrientRotationToMovement(false);
 			CachedCMC->SetMaxWalkSpeed(500.f);
 		}
 	}
