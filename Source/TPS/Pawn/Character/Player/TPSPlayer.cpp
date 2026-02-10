@@ -6,8 +6,8 @@
 ATPSPlayer::ATPSPlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UTPSCMC>(ACharacter::CharacterMovementComponentName))
 {
-	bUseControllerRotationPitch = true;
-	bUseControllerRotationRoll = true;
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = true;
 
 	CreateDefaultComponents();
