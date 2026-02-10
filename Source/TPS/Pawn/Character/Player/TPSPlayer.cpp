@@ -51,3 +51,18 @@ void ATPSPlayer::CreateDefaultComponents()
 		}
 	}
 }
+
+void ATPSPlayer::Move(const FVector2D& InputVector)
+{
+	if (InputVector.IsZero()) return;
+
+	const FRotator ControlRotation = GetControlRotation();
+	const FRotator YawRotation(0.0f, ControlRotation.Yaw, 0.0f);
+
+	FRotationMatrix ControllerYawMatrix(YawRotation); 
+	const FVector ForwardDir = ControllerYawMatrix.GetUnitAxis(EAxis::X);
+	const FVector RightDir = ControllerYawMatrix.GetUnitAxis(EAxis::Y);
+
+	AddMovementInput(ForwardDir, InputVector.X);
+	AddMovementInput(RightDir, InputVector.Y);
+}

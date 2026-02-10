@@ -14,15 +14,22 @@ public:
 
 protected:
 	virtual void SetupInputComponent() override;
+	virtual void OnPossess(APawn* InPawn) override;
 
 #pragma region Input
 	void Look(const struct FInputActionValue& InputValue);
+	void MoveInput(const struct FInputActionValue& InputValue);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputMappingContext> DefaultMappingContextAsset;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputAction> LookActionAsset;
-	
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<class UInputAction> MoveActionAsset;
+
+	UPROPERTY()
+	TScriptInterface<class IMoveable> MoveableInterface;
 #pragma endregion
 };
