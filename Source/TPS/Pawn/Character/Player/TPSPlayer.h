@@ -8,4 +8,7 @@ UCLASS()
 class TPS_API ATPSPlayer : public ACharacter
 {
 	GENERATED_BODY()
+
+public:
+	ATPSPlayer(const FObjectInitializer& ObjectInitializer);
 };
