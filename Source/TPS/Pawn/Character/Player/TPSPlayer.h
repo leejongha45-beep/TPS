@@ -20,15 +20,20 @@ protected:
 
 #pragma region Component
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "Camera")
+	UPROPERTY(VisibleDefaultsOnly, Category = "Component|Camera")
 	TObjectPtr<class USpringArmComponent> SpringArmComponentInst;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "Camera")
+	UPROPERTY(VisibleDefaultsOnly, Category = "Component|Camera")
 	TObjectPtr<class UCameraComponent> CameraComponentInst;
 
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Camera")
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Action")
 	TObjectPtr<class UTPSCMC> CachedCMC;
+	
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|State")
+	TObjectPtr<class UTPSPlayerStateComponent> StateComponentInst;
 #pragma endregion
 
+	virtual void StartMove() override;
 	virtual void Move(const FVector2D& InputVector) override;
+	virtual void StopMove() override;
 };

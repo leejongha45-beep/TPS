@@ -1,7 +1,8 @@
 #include "Pawn/Character/Player/TPSPlayer.h"
-#include "Component/Action/TPSCMC.h"
-#include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Component/Action/TPSCMC.h"
+#include "Component/Data/TPSPlayerStateComponent.h"
+#include "GameFramework/SpringArmComponent.h"
 
 ATPSPlayer::ATPSPlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UTPSCMC>(ACharacter::CharacterMovementComponentName))
@@ -50,6 +51,25 @@ void ATPSPlayer::CreateDefaultComponents()
 			}
 		}
 	}
+	
+	if (!StateComponentInst)
+	{
+		StateComponentInst = CreateDefaultSubobject<UTPSPlayerStateComponent>(TEXT("StateComponent"));
+		if (ensure(StateComponentInst))
+		{
+			StateComponentInst->ClearState();
+			StateComponentInst->AddState(EActionState::Idle);
+		}
+	}
+}
+
+void ATPSPlayer::StartMove()
+{
+	if (ensure(StateComponentInst))
+	{
+		StateComponentInst->RemoveState(EActionState::Idle);
+		StateComponentInst->AddState(EActionState::Moving);
+	}
 }
 
 void ATPSPlayer::Move(const FVector2D& InputVector)
@@ -59,10 +79,19 @@ void ATPSPlayer::Move(const FVector2D& InputVector)
 	const FRotator ControlRotation = GetControlRotation();
 	const FRotator YawRotation(0.0f, ControlRotation.Yaw, 0.0f);
 
-	FRotationMatrix ControllerYawMatrix(YawRotation); 
+	FRotationMatrix ControllerYawMatrix(YawRotation);
 	const FVector ForwardDir = ControllerYawMatrix.GetUnitAxis(EAxis::X);
 	const FVector RightDir = ControllerYawMatrix.GetUnitAxis(EAxis::Y);
 
 	AddMovementInput(ForwardDir, InputVector.X);
 	AddMovementInput(RightDir, InputVector.Y);
+}
+
+void ATPSPlayer::StopMove()
+{
+	if (ensure(StateComponentInst))
+	{
+		StateComponentInst->RemoveState(EActionState::Moving);
+		StateComponentInst->AddState(EActionState::Idle);
+	}
 }

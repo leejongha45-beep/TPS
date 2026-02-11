@@ -6,6 +6,7 @@
 
 ATPSPlayerController::ATPSPlayerController()
 {
+	SetShowMouseCursor(false);
 }
 
 void ATPSPlayerController::SetupInputComponent()
@@ -33,7 +34,9 @@ void ATPSPlayerController::SetupInputComponent()
 
 		if (ensure(MoveActionAsset))
 		{
+			pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartMoveInput);
 			pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Triggered, this, &ATPSPlayerController::MoveInput);
+			pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopMoveInput);
 		}
 	}
 }
@@ -48,6 +51,13 @@ void ATPSPlayerController::OnPossess(APawn* InPawn)
 	}
 }
 
+void ATPSPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	SetInputMode(FInputModeGameOnly());
+}
+
 void ATPSPlayerController::Look(const FInputActionValue& InputValue)
 {
 	const FVector2D LookValue = InputValue.Get<FVector2D>();
@@ -56,12 +66,28 @@ void ATPSPlayerController::Look(const FInputActionValue& InputValue)
 	AddPitchInput(LookValue.Y);
 }
 
+void ATPSPlayerController::StartMoveInput(const FInputActionValue& InputValue)
+{
+	if (ensure(MoveableInterface))
+	{
+		MoveableInterface->StartMove();
+	}
+}
+
 void ATPSPlayerController::MoveInput(const FInputActionValue& InputValue)
 {
 	const FVector2D InputVector = InputValue.Get<FVector2D>();
 
-	if (MoveableInterface)
+	if (ensure(MoveableInterface))
 	{
 		MoveableInterface->Move(InputVector);
+	}
+}
+
+void ATPSPlayerController::StopMoveInput(const FInputActionValue& InputValue)
+{
+	if (ensure(MoveableInterface))
+	{
+		MoveableInterface->StopMove();
 	}
 }
