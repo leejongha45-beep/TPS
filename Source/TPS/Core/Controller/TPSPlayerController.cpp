@@ -25,7 +25,7 @@ void ATPSPlayerController::SetupInputComponent()
 	}
 
 	// ActionBinding
-	UEnhancedInputComponent* pEnhancedInput = Cast<UEnhancedInputComponent>(InputComponent);
+	UEnhancedInputComponent* pEnhancedInput = CastChecked<UEnhancedInputComponent>(InputComponent);
 	if (pEnhancedInput)
 	{
 		if (ensure(LookActionAsset))

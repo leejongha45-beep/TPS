@@ -107,7 +107,14 @@ void ATPSPlayer::StopMove()
 	if (ensure(StateComponentInst))
 	{
 		StateComponentInst->RemoveState(EActionState::Moving);
+		
+		if (StateComponentInst->HasState(EActionState::Sprinting))
+		{
+			StopSprint();
+		}
+		
 		StateComponentInst->AddState(EActionState::Idle);
+		
 	}
 }
 

@@ -6,8 +6,6 @@
 void UTPSPlayerCoreAnimInstance::NativeBeginPlay()
 {
 	Super::NativeBeginPlay();
-
-	GroundSpeed = 0.f;
 	
 	if (!OwnerRef.Get())
 	{
