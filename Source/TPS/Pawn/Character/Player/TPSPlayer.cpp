@@ -1,6 +1,7 @@
 #include "Pawn/Character/Player/TPSPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Component/Action/TPSCMC.h"
+#include "Component/Action/TPSCameraControlComponent.h"
 #include "Component/Data/TPSPlayerStateComponent.h"
 #include "Component/Data/TPSPlayerStatusComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -31,6 +32,11 @@ void ATPSPlayer::PostInitializeComponents()
 				CachedCMC->SetMaxWalkSpeed(StatusComponentInst->GetDefaultWalkSpeed());
 			}
 		}
+	}
+
+	if (ensure(CameraControlComponentInst))
+	{
+		CameraControlComponentInst->Initialize(SpringArmComponentInst, CameraComponentInst);
 	}
 }
 
@@ -75,6 +81,11 @@ void ATPSPlayer::CreateDefaultComponents()
 			StatusComponentInst->SetDefaultSprintSpeed(700.f);
 			StatusComponentInst->SetDefaultWalkSpeed(500.f);
 		}
+	}
+
+	if (!CameraControlComponentInst)
+	{
+		CameraControlComponentInst = CreateDefaultSubobject<UTPSCameraControlComponent>(TEXT("CameraControlComponent"));
 	}
 }
 
@@ -144,3 +155,22 @@ void ATPSPlayer::StopSprint()
 	
 	StateComponentInst->RemoveState(EActionState::Sprinting);
 }
+
+void ATPSPlayer::StartAim()
+{
+	if (ensure(CameraControlComponentInst) && ensure(StateComponentInst))
+	{
+		CameraControlComponentInst->StartADS();
+		StateComponentInst->AddState(EActionState::Aiming);
+	}
+}
+
+void ATPSPlayer::StopAim()
+{
+	if (ensure(CameraControlComponentInst) && ensure(StateComponentInst))
+	{
+		CameraControlComponentInst->StopADS();
+		StateComponentInst->RemoveState(EActionState::Aiming);
+	}
+}
+
