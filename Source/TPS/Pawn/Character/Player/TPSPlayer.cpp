@@ -2,6 +2,7 @@
 #include "Camera/CameraComponent.h"
 #include "Component/Action/TPSCMC.h"
 #include "Component/Data/TPSPlayerStateComponent.h"
+#include "Component/Data/TPSPlayerStatusComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
 ATPSPlayer::ATPSPlayer(const FObjectInitializer& ObjectInitializer)
@@ -24,7 +25,11 @@ void ATPSPlayer::PostInitializeComponents()
 		if (ensure(CachedCMC))
 		{
 			CachedCMC->SetOrientRotationToMovement(false);
-			CachedCMC->SetMaxWalkSpeed(500.f);
+
+			if (ensure(StatusComponentInst))
+			{
+				CachedCMC->SetMaxWalkSpeed(StatusComponentInst->GetDefaultWalkSpeed());
+			}
 		}
 	}
 }
@@ -51,7 +56,7 @@ void ATPSPlayer::CreateDefaultComponents()
 			}
 		}
 	}
-	
+
 	if (!StateComponentInst)
 	{
 		StateComponentInst = CreateDefaultSubobject<UTPSPlayerStateComponent>(TEXT("StateComponent"));
@@ -59,6 +64,16 @@ void ATPSPlayer::CreateDefaultComponents()
 		{
 			StateComponentInst->ClearState();
 			StateComponentInst->AddState(EActionState::Idle);
+		}
+	}
+
+	if (!StatusComponentInst)
+	{
+		StatusComponentInst = CreateDefaultSubobject<UTPSPlayerStatusComponent>(TEXT("StatusComponent"));
+		if (ensure(StatusComponentInst))
+		{
+			StatusComponentInst->SetDefaultSprintSpeed(700.f);
+			StatusComponentInst->SetDefaultWalkSpeed(500.f);
 		}
 	}
 }
@@ -94,4 +109,31 @@ void ATPSPlayer::StopMove()
 		StateComponentInst->RemoveState(EActionState::Moving);
 		StateComponentInst->AddState(EActionState::Idle);
 	}
+}
+
+void ATPSPlayer::StartSprint()
+{
+	if (!ensure(StateComponentInst)) return;
+
+	if (!StateComponentInst->HasState(EActionState::Moving)) return;
+
+	if (ensure(CachedCMC) && ensure(StatusComponentInst))
+	{
+		CachedCMC->UpdateSprintSpeed(StatusComponentInst->GetDefaultSprintSpeed());
+		StateComponentInst->AddState(EActionState::Sprinting);
+	}
+}
+
+void ATPSPlayer::StopSprint()
+{
+	if (!ensure(StateComponentInst)) return;
+
+	if (!StateComponentInst->HasState(EActionState::Sprinting)) return;
+	
+	if (ensure(CachedCMC) && ensure(StatusComponentInst))
+	{
+		CachedCMC->UpdateSprintSpeed(StatusComponentInst->GetDefaultWalkSpeed());
+	}
+	
+	StateComponentInst->RemoveState(EActionState::Sprinting);
 }

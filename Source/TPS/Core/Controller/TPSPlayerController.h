@@ -22,6 +22,8 @@ protected:
 	void StartMoveInput(const struct FInputActionValue& InputValue);
 	void MoveInput(const struct FInputActionValue& InputValue);
 	void StopMoveInput(const struct FInputActionValue& InputValue);
+	void StartSprintInput(const struct FInputActionValue& InputValue);
+	void StopSprintInput(const struct FInputActionValue& InputValue);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputMappingContext> DefaultMappingContextAsset;
@@ -32,7 +34,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputAction> MoveActionAsset;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<class UInputAction> SprintActionAsset;
+	
 	UPROPERTY()
 	TScriptInterface<class IMoveable> MoveableInterface;
+
+	UPROPERTY()
+	TScriptInterface<class ISprintable> SprintableInterface;
 #pragma endregion
 };

@@ -3,10 +3,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Utils/Interface/Action/Moveable.h"
+#include "Utils/Interface/Action/Sprintable.h"
 #include "TPSPlayer.generated.h"
 
 UCLASS()
-class TPS_API ATPSPlayer : public ACharacter, public IMoveable
+class TPS_API ATPSPlayer : public ACharacter, public IMoveable, public ISprintable
 {
 	GENERATED_BODY()
 
@@ -28,12 +29,18 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Action")
 	TObjectPtr<class UTPSCMC> CachedCMC;
-	
+
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|State")
 	TObjectPtr<class UTPSPlayerStateComponent> StateComponentInst;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Status")
+	TObjectPtr<class UTPSPlayerStatusComponent> StatusComponentInst;
 #pragma endregion
 
 	virtual void StartMove() override;
 	virtual void Move(const FVector2D& InputVector) override;
 	virtual void StopMove() override;
+
+	virtual void StartSprint() override;
+	virtual void StopSprint() override;
 };

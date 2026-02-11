@@ -3,6 +3,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "Utils/Interface/Action/Moveable.h"
+#include "Utils/Interface/Action/Sprintable.h"
 
 ATPSPlayerController::ATPSPlayerController()
 {
@@ -38,6 +39,12 @@ void ATPSPlayerController::SetupInputComponent()
 			pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Triggered, this, &ATPSPlayerController::MoveInput);
 			pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopMoveInput);
 		}
+
+		if (ensure(SprintActionAsset))
+		{
+			pEnhancedInput->BindAction(SprintActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartSprintInput);
+			pEnhancedInput->BindAction(SprintActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopSprintInput);
+		}
 	}
 }
 
@@ -48,6 +55,7 @@ void ATPSPlayerController::OnPossess(APawn* InPawn)
 	if (ensure(InPawn))
 	{
 		MoveableInterface = InPawn;
+		SprintableInterface = InPawn;
 	}
 }
 
@@ -89,5 +97,21 @@ void ATPSPlayerController::StopMoveInput(const FInputActionValue& InputValue)
 	if (ensure(MoveableInterface))
 	{
 		MoveableInterface->StopMove();
+	}
+}
+
+void ATPSPlayerController::StartSprintInput(const FInputActionValue& InputValue)
+{
+	if (ensure(SprintableInterface))
+	{
+		SprintableInterface->StartSprint();
+	}
+}
+
+void ATPSPlayerController::StopSprintInput(const FInputActionValue& InputValue)
+{
+	if (ensure(SprintableInterface))
+	{
+		SprintableInterface->StopSprint();
 	}
 }

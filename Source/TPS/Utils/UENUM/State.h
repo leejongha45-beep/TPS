@@ -10,6 +10,7 @@ enum class EActionState : uint8
 	Idle    = 1 << 0, // 1
 	Moving  = 1 << 1, // 2
 	Jumping = 1 << 2, // 4
-	Falling = 1 << 3, // 8
+	Falling   = 1 << 3, // 8
+	Sprinting = 1 << 4, // 16
 };
 ENUM_CLASS_FLAGS(EActionState);
