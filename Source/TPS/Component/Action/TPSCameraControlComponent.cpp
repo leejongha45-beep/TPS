@@ -44,6 +44,17 @@ void UTPSCameraControlComponent::Initialize(USpringArmComponent* InSpringArm, UC
 {
 	SpringArmRef = InSpringArm;
 	CameraRef = InCamera;
+
+	if (ensure(SpringArmRef))
+	{
+		SpringArmRef->SocketOffset = DefaultSocketOffset;
+		SpringArmRef->TargetArmLength = DefaultArmLength;
+	}
+
+	if (ensure(CameraRef))
+	{
+		CameraRef->SetFieldOfView(DefaultFOV);
+	}
 }
 
 void UTPSCameraControlComponent::StartADS()

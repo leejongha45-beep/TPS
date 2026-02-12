@@ -4,6 +4,7 @@
 #include "Component/Action/TPSCameraControlComponent.h"
 #include "Component/Data/TPSPlayerStateComponent.h"
 #include "Component/Data/TPSPlayerStatusComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
 ATPSPlayer::ATPSPlayer(const FObjectInitializer& ObjectInitializer)
@@ -14,6 +15,16 @@ ATPSPlayer::ATPSPlayer(const FObjectInitializer& ObjectInitializer)
 	bUseControllerRotationYaw = true;
 
 	CreateDefaultComponents();
+}
+
+void ATPSPlayer::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (DefaultAnimLayerClass)
+	{
+		LinkAnimLayer(DefaultAnimLayerClass);
+	}
 }
 
 void ATPSPlayer::PostInitializeComponents()
@@ -48,7 +59,7 @@ void ATPSPlayer::CreateDefaultComponents()
 		if (ensure(SpringArmComponentInst))
 		{
 			SpringArmComponentInst->SetupAttachment(RootComponent);
-			SpringArmComponentInst->TargetArmLength = 300.0f;
+			SpringArmComponentInst->SetRelativeLocation(FVector(0.f, 20.f, 60.f));
 			SpringArmComponentInst->bUsePawnControlRotation = true;
 
 			if (!CameraComponentInst)
@@ -58,11 +69,18 @@ void ATPSPlayer::CreateDefaultComponents()
 				{
 					CameraComponentInst->SetupAttachment(SpringArmComponentInst);
 					CameraComponentInst->bUsePawnControlRotation = false;
+					
+					if (!CameraControlComponentInst)
+					{
+						CameraControlComponentInst = CreateDefaultSubobject<UTPSCameraControlComponent>(TEXT("CameraControlComponent"));
+						ensure(CameraControlComponentInst);
+					}
 				}
 			}
 		}
 	}
 
+	
 	if (!StateComponentInst)
 	{
 		StateComponentInst = CreateDefaultSubobject<UTPSPlayerStateComponent>(TEXT("StateComponent"));
@@ -82,10 +100,34 @@ void ATPSPlayer::CreateDefaultComponents()
 			StatusComponentInst->SetDefaultWalkSpeed(500.f);
 		}
 	}
+}
 
-	if (!CameraControlComponentInst)
+void ATPSPlayer::OnJumped_Implementation()
+{
+	Super::OnJumped_Implementation();
+
+	if (ensure(StateComponentInst))
 	{
-		CameraControlComponentInst = CreateDefaultSubobject<UTPSCameraControlComponent>(TEXT("CameraControlComponent"));
+		StateComponentInst->AddState(EActionState::Jumping);
+	}
+}
+
+void ATPSPlayer::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode)
+{
+	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
+
+	if (!ensure(StateComponentInst) || !ensure(CachedCMC)) return;
+
+	const EMovementMode CurrentMode = CachedCMC->MovementMode;
+
+	if (CurrentMode == MOVE_Falling)
+	{
+		StateComponentInst->AddState(EActionState::Falling);
+	}
+	else if (PrevMovementMode == MOVE_Falling && CurrentMode == MOVE_Walking)
+	{
+		StateComponentInst->RemoveState(EActionState::Falling);
+		StateComponentInst->RemoveState(EActionState::Jumping);
 	}
 }
 
@@ -118,14 +160,13 @@ void ATPSPlayer::StopMove()
 	if (ensure(StateComponentInst))
 	{
 		StateComponentInst->RemoveState(EActionState::Moving);
-		
+
 		if (StateComponentInst->HasState(EActionState::Sprinting))
 		{
 			StopSprint();
 		}
-		
+
 		StateComponentInst->AddState(EActionState::Idle);
-		
 	}
 }
 
@@ -133,7 +174,7 @@ void ATPSPlayer::StartSprint()
 {
 	if (!ensure(StateComponentInst)) return;
 
-	if (!StateComponentInst->HasState(EActionState::Moving)) return;
+	if (!StateComponentInst->HasState(EActionState::Moving) || StateComponentInst->HasState(EActionState::Aiming)) return;
 
 	if (ensure(CachedCMC) && ensure(StatusComponentInst))
 	{
@@ -147,12 +188,12 @@ void ATPSPlayer::StopSprint()
 	if (!ensure(StateComponentInst)) return;
 
 	if (!StateComponentInst->HasState(EActionState::Sprinting)) return;
-	
+
 	if (ensure(CachedCMC) && ensure(StatusComponentInst))
 	{
 		CachedCMC->UpdateSprintSpeed(StatusComponentInst->GetDefaultWalkSpeed());
 	}
-	
+
 	StateComponentInst->RemoveState(EActionState::Sprinting);
 }
 
@@ -162,6 +203,11 @@ void ATPSPlayer::StartAim()
 	{
 		CameraControlComponentInst->StartADS();
 		StateComponentInst->AddState(EActionState::Aiming);
+
+		if (StateComponentInst->HasState(EActionState::Sprinting))
+		{
+			StopSprint();
+		}
 	}
 }
 
@@ -174,3 +220,28 @@ void ATPSPlayer::StopAim()
 	}
 }
 
+void ATPSPlayer::StartJump()
+{
+	Jump();
+}
+
+void ATPSPlayer::StopJump()
+{
+	StopJumping();
+}
+
+void ATPSPlayer::LinkAnimLayer(TSubclassOf<UAnimInstance> InClass)
+{
+	if (!InClass || InClass == CurrentAnimLayerClass) return;
+
+	GetMesh()->LinkAnimClassLayers(InClass);
+	CurrentAnimLayerClass = InClass;
+}
+
+void ATPSPlayer::UnlinkAnimLayer()
+{
+	if (!CurrentAnimLayerClass) return;
+
+	GetMesh()->UnlinkAnimClassLayers(CurrentAnimLayerClass);
+	CurrentAnimLayerClass = nullptr;
+}

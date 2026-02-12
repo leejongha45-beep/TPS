@@ -47,10 +47,10 @@ protected:
 	float ADSFOV = 65.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "ADS")
-	FVector DefaultSocketOffset = FVector::ZeroVector;
+	FVector DefaultSocketOffset = FVector(0.f, 50.f, 40.f);
 
 	UPROPERTY(EditDefaultsOnly, Category = "ADS")
-	FVector ADSSocketOffset = FVector(0.f, 60.f, 0.f);
+	FVector ADSSocketOffset = FVector(0.f, 60.f, 15.f);
 
 	UPROPERTY(EditDefaultsOnly, Category = "ADS")
 	float DefaultArmLength = 300.f;
