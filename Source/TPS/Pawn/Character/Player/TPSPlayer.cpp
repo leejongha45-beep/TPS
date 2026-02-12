@@ -12,7 +12,7 @@ ATPSPlayer::ATPSPlayer(const FObjectInitializer& ObjectInitializer)
 {
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
-	bUseControllerRotationYaw = true;
+	bUseControllerRotationYaw = false;
 
 	CreateDefaultComponents();
 }
@@ -208,6 +208,8 @@ void ATPSPlayer::StartAim()
 		{
 			StopSprint();
 		}
+		
+		bUseControllerRotationYaw = true;
 	}
 }
 
@@ -217,6 +219,8 @@ void ATPSPlayer::StopAim()
 	{
 		CameraControlComponentInst->StopADS();
 		StateComponentInst->RemoveState(EActionState::Aiming);
+		
+		bUseControllerRotationYaw = false;
 	}
 }
 
