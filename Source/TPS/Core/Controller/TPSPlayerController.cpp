@@ -2,7 +2,9 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Utils/Interface/Action/Aimable.h"
 #include "Utils/Interface/Action/Moveable.h"
+#include "Utils/Interface/Action/Jumpable.h"
 #include "Utils/Interface/Action/Sprintable.h"
 
 ATPSPlayerController::ATPSPlayerController()
@@ -45,6 +47,18 @@ void ATPSPlayerController::SetupInputComponent()
 			pEnhancedInput->BindAction(SprintActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartSprintInput);
 			pEnhancedInput->BindAction(SprintActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopSprintInput);
 		}
+
+		if (ensure(AimActionAsset))
+		{
+			pEnhancedInput->BindAction(AimActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartAimInput);
+			pEnhancedInput->BindAction(AimActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopAimInput);
+		}
+
+		if (ensure(JumpActionAsset))
+		{
+			pEnhancedInput->BindAction(JumpActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartJumpInput);
+			pEnhancedInput->BindAction(JumpActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopJumpInput);
+		}
 	}
 }
 
@@ -56,6 +70,8 @@ void ATPSPlayerController::OnPossess(APawn* InPawn)
 	{
 		MoveableInterface = InPawn;
 		SprintableInterface = InPawn;
+		AimableInterface = InPawn;
+		JumpableInterface = InPawn;
 	}
 }
 
@@ -113,5 +129,37 @@ void ATPSPlayerController::StopSprintInput(const FInputActionValue& InputValue)
 	if (ensure(SprintableInterface))
 	{
 		SprintableInterface->StopSprint();
+	}
+}
+
+void ATPSPlayerController::StartAimInput(const FInputActionValue& InputValue)
+{
+	if (ensure(AimableInterface))
+	{
+		AimableInterface->StartAim();
+	}
+}
+
+void ATPSPlayerController::StopAimInput(const FInputActionValue& InputValue)
+{
+	if (ensure(AimableInterface))
+	{
+		AimableInterface->StopAim();
+	}
+}
+
+void ATPSPlayerController::StartJumpInput(const FInputActionValue& InputValue)
+{
+	if (ensure(JumpableInterface))
+	{
+		JumpableInterface->StartJump();
+	}
+}
+
+void ATPSPlayerController::StopJumpInput(const FInputActionValue& InputValue)
+{
+	if (ensure(JumpableInterface))
+	{
+		JumpableInterface->StopJump();
 	}
 }
