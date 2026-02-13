@@ -44,10 +44,28 @@ protected:
 	uint8 bIsEquipping : 1 = false;
 
 	UPROPERTY(BlueprintReadOnly, Category="Status")
+	uint8 bIsPlayingEquipMontage : 1 = false;
+
+	UPROPERTY(BlueprintReadOnly, Category="Status")
 	uint8 bIsFalling : 1 = false;
 
 	UPROPERTY(BlueprintReadOnly, Category="Status")
 	float GroundDistance = 0.f;
+
+#pragma region EquipMontage
+	UPROPERTY(EditDefaultsOnly, Category="Montage|Equip")
+	TObjectPtr<UAnimMontage> EquipMontageAsset;
+
+	UPROPERTY(EditDefaultsOnly, Category="Montage|Equip")
+	TObjectPtr<UAnimMontage> UnequipMontageAsset;
+
+	TWeakObjectPtr<class UTPSEquipComponent> EquipComponentRef;
+
+	void PlayEquipMontage(bool bEquip);
+
+	UFUNCTION()
+	void OnEquipMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+#pragma endregion
 
 public:
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
@@ -67,6 +85,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	bool GetIsEquipping() const { return bIsEquipping; }
+
+	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
+	bool GetIsPlayingEquipMontage() const { return bIsPlayingEquipMontage; }
 
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	bool GetIsFalling() const { return bIsFalling; }

@@ -1,6 +1,7 @@
 ﻿#include "TPSPlayerCoreAnimInstance.h"
 
 #include "KismetAnimationLibrary.h"
+#include "Component/Action/TPSEquipComponent.h"
 #include "Component/Data/TPSPlayerStateComponent.h"
 #include "Pawn/Character/Player/TPSPlayer.h"
 
@@ -15,6 +16,13 @@ void UTPSPlayerCoreAnimInstance::NativeInitializeAnimation()
 		{
 			StateComponentRef = OwnerRef->GetStateComponent();
 			ensure(StateComponentRef.Get());
+
+			UTPSEquipComponent* pEquipComp = OwnerRef->FindComponentByClass<UTPSEquipComponent>();
+			if (ensure(pEquipComp))
+			{
+				EquipComponentRef = pEquipComp;
+				pEquipComp->OnEquipMontagePlayDelegate.AddUObject(this, &UTPSPlayerCoreAnimInstance::PlayEquipMontage);
+			}
 		}
 	}
 }
@@ -79,4 +87,39 @@ void UTPSPlayerCoreAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeco
 	FRotator DeltaRotation = (CachedAimRotation - CachedActorRotation).GetNormalized();
 	AimPitch = DeltaRotation.Pitch;
 	AimYaw = DeltaRotation.Yaw;
+}
+
+void UTPSPlayerCoreAnimInstance::PlayEquipMontage(bool bEquip)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[PlayEquipMontage] Called. bEquip: %s"), bEquip ? TEXT("true") : TEXT("false"));
+
+	UAnimMontage* pMontage = bEquip ? EquipMontageAsset : UnequipMontageAsset;
+	if (!ensure(pMontage))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[PlayEquipMontage] Montage is null!"));
+		return;
+	}
+
+	bIsPlayingEquipMontage = true;
+
+	const float PlayResult = Montage_Play(pMontage);
+	UE_LOG(LogTemp, Warning, TEXT("[PlayEquipMontage] Montage_Play result: %f"), PlayResult);
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &UTPSPlayerCoreAnimInstance::OnEquipMontageEnded);
+	Montage_SetEndDelegate(EndDelegate, pMontage);
+}
+
+void UTPSPlayerCoreAnimInstance::OnEquipMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[OnEquipMontageEnded] bInterrupted: %s"), bInterrupted ? TEXT("true") : TEXT("false"));
+
+	UTPSEquipComponent* pEquipComp = EquipComponentRef.Get();
+	if (!ensure(pEquipComp)) return;
+
+	if (!bInterrupted)
+	{
+		pEquipComp->OnMontageFinished(!bIsEquipping);
+	}
+	bIsPlayingEquipMontage = false;
 }

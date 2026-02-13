@@ -34,6 +34,7 @@ protected:
 	virtual void OnJumped_Implementation() override;
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 
+	void BindDelegate();
 	void CreateDefaultComponents();
 
 #pragma region Component
@@ -55,6 +56,9 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Camera")
 	TObjectPtr<class UTPSCameraControlComponent> CameraControlComponentInst;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Action")
+	TObjectPtr<class UTPSEquipComponent> EquipComponentInst;
 #pragma endregion
 
 #pragma region AnimLayer
@@ -90,6 +94,10 @@ protected:
 
 	virtual void Equip() override;
 	virtual void Unequip() override;
+#pragma endregion
+
+#pragma region EquipCallback
+	void OnEquipStateChanged(bool bIsEquipped);
 #pragma endregion
 
 #pragma region AimRotation

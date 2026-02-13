@@ -114,7 +114,7 @@ void UTPSCameraControlComponent::Interpolate_Tick(float DeltaTime)
 		float NewLength = FMath::FInterpTo(CurrentLength, TargetArmLength, DeltaTime, ADSInterpRate);
 		SpringArmRef->TargetArmLength = NewLength;
 
-		if (CurrentOffset.Equals(TargetSocketOffset, 0.1f) && FMath::IsNearlyEqual(NewLength, TargetArmLength, 0.1f))
+		if (NewOffset.Equals(TargetSocketOffset, 0.1f) && FMath::IsNearlyEqual(NewLength, TargetArmLength, 0.1f))
 		{
 			bFinished_S = true;
 		}

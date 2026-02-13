@@ -18,6 +18,8 @@ public:
 	UTPSCMC();
 
 	FORCEINLINE void SetOrientRotationToMovement(bool bInput) { bOrientRotationToMovement = bInput; }
+	
+	FORCEINLINE void SetRotationRate(const FRotator& InputRate) { RotationRate = InputRate; }
 
 	FORCEINLINE void SetMaxWalkSpeed(int32 InputSpeed) { MaxWalkSpeed = InputSpeed; }
 

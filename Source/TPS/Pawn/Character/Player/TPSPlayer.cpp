@@ -2,6 +2,7 @@
 #include "Animation/Player/TPSLinkedAnimInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Component/Action/TPSCameraControlComponent.h"
+#include "Component/Action/TPSEquipComponent.h"
 #include "Component/Action/TPSCMC.h"
 #include "Component/Data/TPSPlayerStateComponent.h"
 #include "Component/Data/TPSPlayerStatusComponent.h"
@@ -46,6 +47,7 @@ void ATPSPlayer::PostInitializeComponents()
 		if (ensure(CachedCMC))
 		{
 			CachedCMC->SetOrientRotationToMovement(true);
+			CachedCMC->SetRotationRate(FRotator(0.f, 700.f, 0.f));
 
 			if (ensure(StatusComponentInst))
 			{
@@ -58,6 +60,8 @@ void ATPSPlayer::PostInitializeComponents()
 	{
 		CameraControlComponentInst->Initialize(SpringArmComponentInst, CameraComponentInst);
 	}
+
+	BindDelegate();
 }
 
 void ATPSPlayer::CreateDefaultComponents()
@@ -109,6 +113,12 @@ void ATPSPlayer::CreateDefaultComponents()
 			StatusComponentInst->SetDefaultWalkSpeed(500.f);
 		}
 	}
+
+	if (!EquipComponentInst)
+	{
+		EquipComponentInst = CreateDefaultSubobject<UTPSEquipComponent>(TEXT("EquipComponent"));
+		ensure(EquipComponentInst);
+	}
 }
 
 void ATPSPlayer::RegisterActorTickFunctions(bool bRegister)
@@ -156,6 +166,14 @@ void ATPSPlayer::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 Pre
 	{
 		StateComponentInst->RemoveState(EActionState::Falling);
 		StateComponentInst->RemoveState(EActionState::Jumping);
+	}
+}
+
+void ATPSPlayer::BindDelegate()
+{
+	if (ensure(EquipComponentInst))
+	{
+		EquipComponentInst->OnEquipStateChangedDelegate.AddUObject(this, &ATPSPlayer::OnEquipStateChanged);
 	}
 }
 
@@ -303,43 +321,43 @@ void ATPSPlayer::StopJump()
 
 void ATPSPlayer::Equip()
 {
-	if (!ensure(StateComponentInst)) return;
+	if (!ensure(StateComponentInst) || !ensure(EquipComponentInst)) return;
 
-	if (StateComponentInst->HasState(EActionState::Equipping))
-	{
-		Unequip();
-		return;
-	}
-
-	StateComponentInst->AddState(EActionState::Equipping);
-
-	if (ensure(CachedCMC))
-	{
-		CachedCMC->SetOrientRotationToMovement(false);
-	}
-
-	SetInterpolateTickEnabled(true);
-	LinkAnimLayer(RifleHipFireAnimLayerClass);
+	const bool bIsCurrentlyEquipped = StateComponentInst->HasState(EActionState::Equipping);
+	EquipComponentInst->RequestToggle(bIsCurrentlyEquipped);
 }
 
 void ATPSPlayer::Unequip()
 {
-	if (!ensure(StateComponentInst)) return;
+	if (!ensure(StateComponentInst) || !ensure(EquipComponentInst)) return;
 
-	if (StateComponentInst->HasState(EActionState::Aiming))
+	if (StateComponentInst->HasState(EActionState::Equipping))
 	{
-		StopAim();
+		EquipComponentInst->RequestToggle(true);
 	}
+}
 
-	StateComponentInst->RemoveState(EActionState::Equipping);
-	
-	if (ensure(CachedCMC))
+void ATPSPlayer::OnEquipStateChanged(bool bIsEquipped)
+{
+	if (!ensure(StateComponentInst) || !ensure(CachedCMC)) return;
+
+	if (bIsEquipped)
 	{
+		StateComponentInst->AddState(EActionState::Equipping);
+		SetInterpolateTickEnabled(true);
+		CachedCMC->SetOrientRotationToMovement(false);
+	}
+	else
+	{
+		if (StateComponentInst->HasState(EActionState::Aiming))
+		{
+			StopAim();
+		}
+
+		StateComponentInst->RemoveState(EActionState::Equipping);
 		CachedCMC->SetOrientRotationToMovement(true);
+		bUseControllerRotationYaw = false;
 	}
-	
-	bUseControllerRotationYaw = false;
-	LinkAnimLayer(UnArmedAnimLayerClass);
 }
 
 void ATPSPlayer::LinkAnimLayer(TSubclassOf<UTPSLinkedAnimInstance> InClass)
