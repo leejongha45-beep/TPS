@@ -20,12 +20,7 @@ public:
 	ATPSPlayer(const FObjectInitializer& ObjectInitializer);
 
 	FORCEINLINE class UTPSPlayerStateComponent* GetStateComponent() const { return StateComponentInst; }
-
-	UFUNCTION(BlueprintCallable, Category="Animation")
-	void LinkAnimLayer(TSubclassOf<class UTPSLinkedAnimInstance> InClass);
-
-	UFUNCTION(BlueprintCallable, Category="Animation")
-	void UnlinkAnimLayer();
+	FORCEINLINE class UTPSAnimLayerComponent* GetAnimLayerComponent() const { return AnimLayerComponentInst; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -59,23 +54,9 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Action")
 	TObjectPtr<class UTPSEquipComponent> EquipComponentInst;
-#pragma endregion
 
-#pragma region AnimLayer
-	UPROPERTY(EditDefaultsOnly, Category = "Animation")
-	TSubclassOf<class UTPSLinkedAnimInstance> UnArmedAnimLayerClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Animation")
-	TSubclassOf<class UTPSLinkedAnimInstance> DefaultAnimLayerClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Animation")
-	TSubclassOf<class UTPSLinkedAnimInstance> RifleHipFireAnimLayerClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Animation")
-	TSubclassOf<class UTPSLinkedAnimInstance> RifleADSAnimLayerClass;
-	
-	UPROPERTY(Transient)
-	TSubclassOf<class UTPSLinkedAnimInstance> CurrentAnimLayerClass;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Animation")
+	TObjectPtr<class UTPSAnimLayerComponent> AnimLayerComponentInst;
 #pragma endregion
 
 #pragma region ControllerCallback

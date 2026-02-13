@@ -1,5 +1,5 @@
-﻿#include "Animation/Notify/TPSAnimNotify_EquipLayerSwitch.h"
-#include "Pawn/Character/Player/TPSPlayer.h"
+#include "Animation/Notify/TPSAnimNotify_EquipLayerSwitch.h"
+#include "Component/Action/TPSAnimLayerComponent.h"
 
 void UTPSAnimNotify_EquipLayerSwitch::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
@@ -7,9 +7,9 @@ void UTPSAnimNotify_EquipLayerSwitch::Notify(USkeletalMeshComponent* MeshComp, U
 
 	if (!ensure(MeshComp)) return;
 
-	ATPSPlayer* pPlayer = Cast<ATPSPlayer>(MeshComp->GetOwner());
-	if (ensure(pPlayer))
+	UTPSAnimLayerComponent* AnimLayerComp = MeshComp->GetOwner()->FindComponentByClass<UTPSAnimLayerComponent>();
+	if (ensure(AnimLayerComp))
 	{
-		pPlayer->LinkAnimLayer(TargetAnimLayerClass);
+		AnimLayerComp->LinkAnimLayer(TargetAnimLayerClass);
 	}
 }

@@ -1,6 +1,6 @@
 #include "Pawn/Character/Player/TPSPlayer.h"
-#include "Animation/Player/TPSLinkedAnimInstance.h"
 #include "Camera/CameraComponent.h"
+#include "Component/Action/TPSAnimLayerComponent.h"
 #include "Component/Action/TPSCameraControlComponent.h"
 #include "Component/Action/TPSEquipComponent.h"
 #include "Component/Action/TPSCMC.h"
@@ -31,9 +31,9 @@ void ATPSPlayer::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (UnArmedAnimLayerClass)
+	if (ensure(AnimLayerComponentInst))
 	{
-		LinkAnimLayer(UnArmedAnimLayerClass);
+		AnimLayerComponentInst->LinkAnimLayer(AnimLayerComponentInst->GetUnArmedLayerClass());
 	}
 }
 
@@ -118,6 +118,12 @@ void ATPSPlayer::CreateDefaultComponents()
 	{
 		EquipComponentInst = CreateDefaultSubobject<UTPSEquipComponent>(TEXT("EquipComponent"));
 		ensure(EquipComponentInst);
+	}
+
+	if (!AnimLayerComponentInst)
+	{
+		AnimLayerComponentInst = CreateDefaultSubobject<UTPSAnimLayerComponent>(TEXT("AnimLayerComponent"));
+		ensure(AnimLayerComponentInst);
 	}
 }
 
@@ -265,7 +271,7 @@ void ATPSPlayer::StartAim()
 		}
 
 		SetInterpolateTickEnabled(true);
-		LinkAnimLayer(RifleADSAnimLayerClass);
+		AnimLayerComponentInst->LinkAnimLayer(AnimLayerComponentInst->GetRifleADSLayerClass());
 	}
 }
 
@@ -281,7 +287,7 @@ void ATPSPlayer::StopAim()
 		StateComponentInst->RemoveState(EActionState::Aiming);
 
 		SetInterpolateTickEnabled(false);
-		LinkAnimLayer(RifleHipFireAnimLayerClass);
+		AnimLayerComponentInst->LinkAnimLayer(AnimLayerComponentInst->GetRifleHipFireLayerClass());
 	}
 }
 
@@ -360,18 +366,3 @@ void ATPSPlayer::OnEquipStateChanged(bool bIsEquipped)
 	}
 }
 
-void ATPSPlayer::LinkAnimLayer(TSubclassOf<UTPSLinkedAnimInstance> InClass)
-{
-	if (!InClass || InClass == CurrentAnimLayerClass) return;
-
-	GetMesh()->LinkAnimClassLayers(InClass);
-	CurrentAnimLayerClass = InClass;
-}
-
-void ATPSPlayer::UnlinkAnimLayer()
-{
-	if (!CurrentAnimLayerClass) return;
-
-	GetMesh()->UnlinkAnimClassLayers(CurrentAnimLayerClass);
-	CurrentAnimLayerClass = nullptr;
-}
