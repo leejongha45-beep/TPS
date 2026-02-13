@@ -3,13 +3,15 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Utils/Interface/Action/Aimable.h"
+#include "Utils/Interface/Action/Jumpable.h"
 #include "Utils/Interface/Action/Moveable.h"
 #include "Utils/Interface/Action/Sprintable.h"
-#include "Utils/Interface/Action/Jumpable.h"
+#include "Utils/Interface/Data/Interpolable.h"
+#include "Utils/TickFunctions/FInterpolateTickFunction.h"
 #include "TPSPlayer.generated.h"
 
 UCLASS()
-class TPS_API ATPSPlayer : public ACharacter, public IMoveable, public ISprintable, public IAimable, public IJumpable
+class TPS_API ATPSPlayer : public ACharacter, public IMoveable, public ISprintable, public IAimable, public IJumpable, public IInterpolable
 {
 	GENERATED_BODY()
 
@@ -27,6 +29,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
+	virtual void RegisterActorTickFunctions(bool bRegister) override;
 	virtual void OnJumped_Implementation() override;
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 
@@ -73,4 +76,14 @@ protected:
 
 	virtual void StartJump() override;
 	virtual void StopJump() override;
+
+#pragma region AimRotation
+	virtual void Interpolate_Tick(float DeltaTime) override;
+	void SetInterpolateTickEnabled(bool bEnabled);
+
+	FInterpolateTickFunction InterpolateTickFunction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Aim")
+	float AimRotationInterpSpeed = 10.f;
+#pragma endregion
 };

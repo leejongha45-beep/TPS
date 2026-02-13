@@ -7,12 +7,19 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(AimTickLog, Warning, All);
+DEFINE_LOG_CATEGORY(AimTickLog);
+
 ATPSPlayer::ATPSPlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UTPSCMC>(ACharacter::CharacterMovementComponentName))
 {
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = false;
+
+	InterpolateTickFunction.bCanEverTick = true;
+	InterpolateTickFunction.bStartWithTickEnabled = false;
+	InterpolateTickFunction.TickGroup = TG_PrePhysics;
 
 	CreateDefaultComponents();
 }
@@ -36,7 +43,7 @@ void ATPSPlayer::PostInitializeComponents()
 		CachedCMC = Cast<UTPSCMC>(GetCharacterMovement());
 		if (ensure(CachedCMC))
 		{
-			CachedCMC->SetOrientRotationToMovement(false);
+			CachedCMC->SetOrientRotationToMovement(true);
 
 			if (ensure(StatusComponentInst))
 			{
@@ -99,6 +106,22 @@ void ATPSPlayer::CreateDefaultComponents()
 			StatusComponentInst->SetDefaultSprintSpeed(700.f);
 			StatusComponentInst->SetDefaultWalkSpeed(500.f);
 		}
+	}
+}
+
+void ATPSPlayer::RegisterActorTickFunctions(bool bRegister)
+{
+	Super::RegisterActorTickFunctions(bRegister);
+
+	if (bRegister)
+	{
+		InterpolateTickFunction.Target = this;
+		InterpolateTickFunction.RegisterTickFunction(GetLevel());
+		InterpolateTickFunction.SetTickFunctionEnable(InterpolateTickFunction.bStartWithTickEnabled);
+	}
+	else
+	{
+		InterpolateTickFunction.UnRegisterTickFunction();
 	}
 }
 
@@ -208,8 +231,13 @@ void ATPSPlayer::StartAim()
 		{
 			StopSprint();
 		}
-		
-		bUseControllerRotationYaw = true;
+
+		if (ensure(CachedCMC))
+		{
+			CachedCMC->SetOrientRotationToMovement(false);
+		}
+
+		SetInterpolateTickEnabled(true);
 	}
 }
 
@@ -219,9 +247,39 @@ void ATPSPlayer::StopAim()
 	{
 		CameraControlComponentInst->StopADS();
 		StateComponentInst->RemoveState(EActionState::Aiming);
-		
+
 		bUseControllerRotationYaw = false;
+		SetInterpolateTickEnabled(false);
+
+		if (ensure(CachedCMC))
+		{
+			CachedCMC->SetOrientRotationToMovement(true);
+		}
 	}
+}
+
+void ATPSPlayer::Interpolate_Tick(float DeltaTime)
+{
+	const FRotator CurrentRotation = GetActorRotation();
+	const FRotator ControlRot = GetControlRotation();
+	const FRotator TargetRotation(CurrentRotation.Pitch, ControlRot.Yaw, CurrentRotation.Roll);
+
+	const FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, AimRotationInterpSpeed);
+	SetActorRotation(NewRotation);
+
+	if (FMath::IsNearlyEqual(FRotator::NormalizeAxis(NewRotation.Yaw), FRotator::NormalizeAxis(TargetRotation.Yaw), 1.f))
+	{
+		bUseControllerRotationYaw = true;
+		SetInterpolateTickEnabled(false);
+	}
+}
+
+void ATPSPlayer::SetInterpolateTickEnabled(bool bEnabled)
+{
+	if (InterpolateTickFunction.IsTickFunctionEnabled() == bEnabled) return;
+
+	InterpolateTickFunction.SetTickFunctionEnable(bEnabled);
+	UE_LOG(AimTickLog, Warning, TEXT("[SetInterpolateTickEnabled] %s"), bEnabled ? TEXT("Enabled") : TEXT("Disabled"));
 }
 
 void ATPSPlayer::StartJump()
