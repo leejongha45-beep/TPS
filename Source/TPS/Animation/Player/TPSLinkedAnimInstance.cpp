@@ -13,6 +13,7 @@ void UTPSLinkedAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 		AimPitch = CoreInst->GetAimPitch();
 		AimYaw = CoreInst->GetAimYaw();
 		bIsAiming = CoreInst->GetIsAiming();
+		bIsEquipping = CoreInst->GetIsEquipping();
 		bIsFalling = CoreInst->GetIsFalling();
 		GroundDistance = CoreInst->GetGroundDistance();
 	}

@@ -39,6 +39,7 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	if (ensure(pStateComp))
 	{
 		bIsAiming = pStateComp->HasState(EActionState::Aiming);
+		bIsEquipping = pStateComp->HasState(EActionState::Equipping);
 		bIsFalling = pStateComp->HasState(EActionState::Falling);
 	}
 

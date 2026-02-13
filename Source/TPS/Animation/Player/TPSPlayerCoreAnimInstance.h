@@ -38,10 +38,13 @@ protected:
 	float AimYaw = 0.f;
 
 	UPROPERTY(BlueprintReadOnly, Category="Aim")
-	bool bIsAiming = false;
+	uint8 bIsAiming : 1 = false;
 
 	UPROPERTY(BlueprintReadOnly, Category="Status")
-	bool bIsFalling = false;
+	uint8 bIsEquipping : 1 = false;
+
+	UPROPERTY(BlueprintReadOnly, Category="Status")
+	uint8 bIsFalling : 1 = false;
 
 	UPROPERTY(BlueprintReadOnly, Category="Status")
 	float GroundDistance = 0.f;
@@ -61,6 +64,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	bool GetIsAiming() const { return bIsAiming; }
+
+	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
+	bool GetIsEquipping() const { return bIsEquipping; }
 
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	bool GetIsFalling() const { return bIsFalling; }

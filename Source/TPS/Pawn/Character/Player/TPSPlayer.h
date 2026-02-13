@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Utils/Interface/Action/Aimable.h"
+#include "Utils/Interface/Action/Equippable.h"
 #include "Utils/Interface/Action/Jumpable.h"
 #include "Utils/Interface/Action/Moveable.h"
 #include "Utils/Interface/Action/Sprintable.h"
@@ -11,7 +12,7 @@
 #include "TPSPlayer.generated.h"
 
 UCLASS()
-class TPS_API ATPSPlayer : public ACharacter, public IMoveable, public ISprintable, public IAimable, public IJumpable, public IInterpolable
+class TPS_API ATPSPlayer : public ACharacter, public IMoveable, public ISprintable, public IAimable, public IJumpable, public IEquippable, public IInterpolable
 {
 	GENERATED_BODY()
 
@@ -21,7 +22,7 @@ public:
 	FORCEINLINE class UTPSPlayerStateComponent* GetStateComponent() const { return StateComponentInst; }
 
 	UFUNCTION(BlueprintCallable, Category="Animation")
-	void LinkAnimLayer(TSubclassOf<UAnimInstance> InClass);
+	void LinkAnimLayer(TSubclassOf<class UTPSLinkedAnimInstance> InClass);
 
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void UnlinkAnimLayer();
@@ -58,12 +59,22 @@ protected:
 
 #pragma region AnimLayer
 	UPROPERTY(EditDefaultsOnly, Category = "Animation")
-	TSubclassOf<UAnimInstance> DefaultAnimLayerClass;
+	TSubclassOf<class UTPSLinkedAnimInstance> UnArmedAnimLayerClass;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	TSubclassOf<class UTPSLinkedAnimInstance> DefaultAnimLayerClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	TSubclassOf<class UTPSLinkedAnimInstance> RifleHipFireAnimLayerClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	TSubclassOf<class UTPSLinkedAnimInstance> RifleADSAnimLayerClass;
+	
 	UPROPERTY(Transient)
-	TSubclassOf<UAnimInstance> CurrentAnimLayerClass;
+	TSubclassOf<class UTPSLinkedAnimInstance> CurrentAnimLayerClass;
 #pragma endregion
 
+#pragma region ControllerCallback
 	virtual void StartMove() override;
 	virtual void Move(const FVector2D& InputVector) override;
 	virtual void StopMove() override;
@@ -76,6 +87,10 @@ protected:
 
 	virtual void StartJump() override;
 	virtual void StopJump() override;
+
+	virtual void Equip() override;
+	virtual void Unequip() override;
+#pragma endregion
 
 #pragma region AimRotation
 	virtual void Interpolate_Tick(float DeltaTime) override;

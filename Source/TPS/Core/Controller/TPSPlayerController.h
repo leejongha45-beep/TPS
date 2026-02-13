@@ -19,15 +19,21 @@ protected:
 
 #pragma region Input
 	void Look(const struct FInputActionValue& InputValue);
+	
 	void StartMoveInput(const struct FInputActionValue& InputValue);
 	void MoveInput(const struct FInputActionValue& InputValue);
 	void StopMoveInput(const struct FInputActionValue& InputValue);
+	
 	void StartSprintInput(const struct FInputActionValue& InputValue);
 	void StopSprintInput(const struct FInputActionValue& InputValue);
+	
 	void StartAimInput(const struct FInputActionValue& InputValue);
 	void StopAimInput(const struct FInputActionValue& InputValue);
+	
 	void StartJumpInput(const struct FInputActionValue& InputValue);
 	void StopJumpInput(const struct FInputActionValue& InputValue);
+	
+	void EquipInput(const struct FInputActionValue& InputValue);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputMappingContext> DefaultMappingContextAsset;
@@ -47,6 +53,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputAction> JumpActionAsset;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<class UInputAction> EquipActionAsset;
+
 	UPROPERTY()
 	TScriptInterface<class IMoveable> MoveableInterface;
 
@@ -58,5 +67,8 @@ protected:
 
 	UPROPERTY()
 	TScriptInterface<class IJumpable> JumpableInterface;
+
+	UPROPERTY()
+	TScriptInterface<class IEquippable> EquippableInterface;
 #pragma endregion
 };

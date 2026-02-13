@@ -13,5 +13,6 @@ enum class EActionState : uint8
 	Falling   = 1 << 3, // 8
 	Sprinting = 1 << 4, // 16
 	Aiming    = 1 << 5, // 32
+	Equipping = 1 << 6, // 64
 };
 ENUM_CLASS_FLAGS(EActionState);
