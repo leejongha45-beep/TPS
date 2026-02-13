@@ -1,4 +1,5 @@
 ﻿#include "Component/Action/TPSEquipComponent.h"
+#include "GameFramework/Character.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(EquipLog, Log, All);
 DEFINE_LOG_CATEGORY(EquipLog);
@@ -22,4 +23,24 @@ void UTPSEquipComponent::OnMontageFinished(bool bNewEquippedState)
 	UE_LOG(EquipLog, Log, TEXT("[OnMontageFinished] Equipped: %s"), bNewEquippedState ? TEXT("true") : TEXT("false"));
 
 	OnEquipStateChangedDelegate.Broadcast(bNewEquippedState);
+}
+
+void UTPSEquipComponent::AttachWeapon()
+{
+	if (!ensure(WeaponInterface)) return;
+
+	const ACharacter* pOwnerCharacter = Cast<ACharacter>(GetOwner());
+	if (!ensure(pOwnerCharacter)) return;
+
+	WeaponInterface->Attach(pOwnerCharacter->GetMesh());
+}
+
+void UTPSEquipComponent::DetachWeapon()
+{
+	if (!ensure(WeaponInterface)) return;
+
+	const ACharacter* pOwnerCharacter = Cast<ACharacter>(GetOwner());
+	if (!ensure(pOwnerCharacter)) return;
+
+	WeaponInterface->Detach(pOwnerCharacter->GetMesh());
 }

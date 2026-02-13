@@ -22,6 +22,7 @@ public:
 	FORCEINLINE class UTPSPlayerStateComponent* GetStateComponent() const { return StateComponentInst; }
 	FORCEINLINE class UTPSAnimLayerComponent* GetAnimLayerComponent() const { return AnimLayerComponentInst; }
 
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Utils/Interface/Action/Attachable.h"
 #include "TPSEquipComponent.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnEquipMontagePlay, bool /* bEquip */);
@@ -15,12 +16,18 @@ class TPS_API UTPSEquipComponent : public UActorComponent
 public:
 	void RequestToggle(bool bIsCurrentlyEquipped);
 	void OnMontageFinished(bool bNewEquippedState);
+	void AttachWeapon();
+	void DetachWeapon();
 
 	FORCEINLINE bool GetIsTransitioning() const { return bIsTransitioning; }
+	FORCEINLINE void SetWeaponInterface(TScriptInterface<IAttachable> InWeapon) { WeaponInterface = InWeapon; }
 
 	FOnEquipMontagePlay OnEquipMontagePlayDelegate;
 	FOnEquipStateChanged OnEquipStateChangedDelegate;
 
 protected:
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TScriptInterface<IAttachable> WeaponInterface;
+
 	uint8 bIsTransitioning : 1 = false;
 };
