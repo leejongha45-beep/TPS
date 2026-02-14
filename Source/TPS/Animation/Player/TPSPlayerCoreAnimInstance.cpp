@@ -80,8 +80,11 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	PreviousControllerYaw = CurrentControllerYaw;
 
-	// 상체 블렌드 가중치
-	UpperBodyBlendWeight = bIsEquipping ? 1.f : 0.f;
+	// 상체 블렌드 가중치 (장착 상태이거나 장착/해제 몽타주 재생 중)
+	const bool bIsPlayingEquipMontage =
+		(EquipMontageAsset && Montage_IsPlaying(EquipMontageAsset)) ||
+		(UnequipMontageAsset && Montage_IsPlaying(UnequipMontageAsset));
+	UpperBodyBlendWeight = (bIsEquipping || bIsPlayingEquipMontage) ? 1.f : 0.f;
 
 	// GroundDistance: 라인 트레이스(물리 월드 접근) → 게임 스레드 전용
 	if (bIsFalling)
