@@ -1,6 +1,7 @@
 #include "Core/GameMode/TPSGameModeBase.h"
 
 #include "Core/Controller/TPSPlayerController.h"
+#include "GameFramework/HUD.h"
 #include "Pawn/Character/Player/TPSPlayer.h"
 
 ATPSGameModeBase::ATPSGameModeBase()

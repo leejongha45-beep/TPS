@@ -20,5 +20,5 @@ protected:
 	TSubclassOf<class ATPSPlayerController> BP_PlayerControllerClass;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Classes")
-	TSubclassOf<class ATPSPlayerController> BP_HUDClass;
+	TSubclassOf<class AHUD> BP_HUDClass;
 };
