@@ -42,7 +42,7 @@ protected:
 	TObjectPtr<class UCameraComponent> CameraComponentInst;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Action")
-	TObjectPtr<class UTPSCMC> CachedCMC;
+	TObjectPtr<class UTPSCMC> CMCInst;
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|State")
 	TObjectPtr<class UTPSPlayerStateComponent> StateComponentInst;

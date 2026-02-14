@@ -1,13 +1,13 @@
 #include "Pawn/Character/Player/TPSPlayer.h"
 #include "Camera/CameraComponent.h"
-#include "Component/Data/TPSAnimLayerComponent.h"
-#include "Component/Action/TPSCameraControlComponent.h"
-#include "Component/Action/TPSEquipComponent.h"
-#include "Component/Action/TPSCMC.h"
-#include "Component/Data/TPSPlayerStateComponent.h"
-#include "Component/Data/TPSPlayerStatusComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Component/Action/TPSCMC.h"
+#include "Component/Action/TPSCameraControlComponent.h"
+#include "Component/Action/TPSEquipComponent.h"
+#include "Component/Data/TPSAnimLayerComponent.h"
+#include "Component/Data/TPSPlayerStateComponent.h"
+#include "Component/Data/TPSPlayerStatusComponent.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(AimTickLog, Warning, All);
 
@@ -41,17 +41,17 @@ void ATPSPlayer::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (!CachedCMC)
+	if (!CMCInst)
 	{
-		CachedCMC = Cast<UTPSCMC>(GetCharacterMovement());
-		if (ensure(CachedCMC))
+		CMCInst = Cast<UTPSCMC>(GetCharacterMovement());
+		if (ensure(CMCInst))
 		{
-			CachedCMC->SetOrientRotationToMovement(true);
-			CachedCMC->SetRotationRate(FRotator(0.f, 700.f, 0.f));
+			CMCInst->SetOrientRotationToMovement(true);
+			CMCInst->SetRotationRate(FRotator(0.f, 700.f, 0.f));
 
 			if (ensure(StatusComponentInst))
 			{
-				CachedCMC->SetMaxWalkSpeed(StatusComponentInst->GetDefaultWalkSpeed());
+				CMCInst->SetMaxWalkSpeed(StatusComponentInst->GetDefaultWalkSpeed());
 			}
 		}
 	}
@@ -160,9 +160,9 @@ void ATPSPlayer::OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 Pre
 {
 	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
 
-	if (!ensure(StateComponentInst) || !ensure(CachedCMC)) return;
+	if (!ensure(StateComponentInst) || !ensure(CMCInst)) return;
 
-	const EMovementMode CurrentMode = CachedCMC->MovementMode;
+	const EMovementMode CurrentMode = CMCInst->MovementMode;
 
 	if (CurrentMode == MOVE_Falling)
 	{
@@ -228,9 +228,9 @@ void ATPSPlayer::StartSprint()
 
 	if (!StateComponentInst->HasState(EActionState::Moving) || StateComponentInst->HasState(EActionState::Aiming)) return;
 
-	if (ensure(CachedCMC) && ensure(StatusComponentInst))
+	if (ensure(CMCInst) && ensure(StatusComponentInst))
 	{
-		CachedCMC->UpdateSprintSpeed(StatusComponentInst->GetDefaultSprintSpeed());
+		CMCInst->UpdateSprintSpeed(StatusComponentInst->GetDefaultSprintSpeed());
 		StateComponentInst->AddState(EActionState::Sprinting);
 	}
 }
@@ -241,9 +241,9 @@ void ATPSPlayer::StopSprint()
 
 	if (!StateComponentInst->HasState(EActionState::Sprinting)) return;
 
-	if (ensure(CachedCMC) && ensure(StatusComponentInst))
+	if (ensure(CMCInst) && ensure(StatusComponentInst))
 	{
-		CachedCMC->UpdateSprintSpeed(StatusComponentInst->GetDefaultWalkSpeed());
+		CMCInst->UpdateSprintSpeed(StatusComponentInst->GetDefaultWalkSpeed());
 	}
 
 	StateComponentInst->RemoveState(EActionState::Sprinting);
@@ -265,9 +265,9 @@ void ATPSPlayer::StartAim()
 			StopSprint();
 		}
 
-		if (ensure(CachedCMC))
+		if (ensure(CMCInst))
 		{
-			CachedCMC->SetOrientRotationToMovement(false);
+			CMCInst->SetOrientRotationToMovement(false);
 		}
 
 		SetInterpolateTickEnabled(true);
@@ -345,13 +345,13 @@ void ATPSPlayer::Unequip()
 
 void ATPSPlayer::OnEquipStateChanged(bool bIsEquipped)
 {
-	if (!ensure(StateComponentInst) || !ensure(CachedCMC)) return;
+	if (!ensure(StateComponentInst) || !ensure(CMCInst)) return;
 
 	if (bIsEquipped)
 	{
 		StateComponentInst->AddState(EActionState::Equipping);
+		CMCInst->SetOrientRotationToMovement(false);
 		SetInterpolateTickEnabled(true);
-		CachedCMC->SetOrientRotationToMovement(false);
 	}
 	else
 	{
@@ -361,8 +361,7 @@ void ATPSPlayer::OnEquipStateChanged(bool bIsEquipped)
 		}
 
 		StateComponentInst->RemoveState(EActionState::Equipping);
-		CachedCMC->SetOrientRotationToMovement(true);
+		CMCInst->SetOrientRotationToMovement(true);
 		bUseControllerRotationYaw = false;
 	}
 }
-

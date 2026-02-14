@@ -6,9 +6,6 @@
 #include "Utils/TickFunctions/FInterpolateTickFunction.h"
 #include "TPSCMC.generated.h"
 
-/**
- *
- */
 UCLASS()
 class TPS_API UTPSCMC : public UCharacterMovementComponent, public IInterpolable
 {
@@ -41,7 +38,7 @@ protected:
 
 	float InterpTargetSpeed = 0.f;
 
-	UPROPERTY(EditDefaultsOnly, Category="Rate")
+	UPROPERTY(EditDefaultsOnly, Category = "Rate")
 	float SpeedInterpRate = 5.f;
 #pragma endregion
 };

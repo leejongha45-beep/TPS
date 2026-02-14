@@ -63,19 +63,27 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	const float CurrentControllerYaw = pOwner->GetControlRotation().Yaw;
 	const float ControllerYawDelta = FRotator::NormalizeAxis(CurrentControllerYaw - PreviousControllerYaw);
 
-	switch (RootYawOffsetMode)
+	if (bIsEquipping)
 	{
-	case ERootYawOffsetMode::Accumulate:
-		// Idle — 컨트롤러 회전의 역방향으로 누적
-		RootYawOffset = FRotator::NormalizeAxis(RootYawOffset - ControllerYawDelta);
-		break;
-	case ERootYawOffsetMode::BlendOut:
-		// Jog — 부드럽게 0으로 보간
+		// 장착 상태: RootYawOffset을 0으로 보간 (카메라 방향 고정)
 		RootYawOffset = FMath::FInterpTo(RootYawOffset, 0.f, DeltaSeconds, 10.f);
-		break;
-	case ERootYawOffsetMode::Hold:
-		// Start — 현재 값 유지
-		break;
+	}
+	else
+	{
+		switch (RootYawOffsetMode)
+		{
+		case ERootYawOffsetMode::Accumulate:
+			// Idle — 컨트롤러 회전의 역방향으로 누적
+			RootYawOffset = FRotator::NormalizeAxis(RootYawOffset - ControllerYawDelta);
+			break;
+		case ERootYawOffsetMode::BlendOut:
+			// Jog — 부드럽게 0으로 보간
+			RootYawOffset = FMath::FInterpTo(RootYawOffset, 0.f, DeltaSeconds, 10.f);
+			break;
+		case ERootYawOffsetMode::Hold:
+			// Start — 현재 값 유지
+			break;
+		}
 	}
 
 	PreviousControllerYaw = CurrentControllerYaw;

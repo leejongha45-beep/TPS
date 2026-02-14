@@ -10,9 +10,6 @@ class UJumpable : public UInterface
 	GENERATED_BODY()
 };
 
-/**
- *
- */
 class TPS_API IJumpable
 {
 	GENERATED_BODY()

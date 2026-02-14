@@ -1,6 +1,6 @@
 #include "Component/Data/TPSAnimLayerComponent.h"
-#include "Animation/Player/TPSLinkedAnimInstance.h"
 #include "GameFramework/Character.h"
+#include "Animation/Player/TPSLinkedAnimInstance.h"
 
 UTPSAnimLayerComponent::UTPSAnimLayerComponent()
 {

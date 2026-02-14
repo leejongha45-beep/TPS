@@ -10,9 +10,6 @@ class USprintable : public UInterface
 	GENERATED_BODY()
 };
 
-/**
- * 
- */
 class TPS_API ISprintable
 {
 	GENERATED_BODY()

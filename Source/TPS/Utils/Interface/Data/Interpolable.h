@@ -10,9 +10,6 @@ class UInterpolable : public UInterface
 	GENERATED_BODY()
 };
 
-/**
- * 
- */
 class TPS_API IInterpolable
 {
 	GENERATED_BODY()

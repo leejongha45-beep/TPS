@@ -14,45 +14,45 @@ class TPS_API UTPSLinkedAnimInstance : public UAnimInstance
 protected:
 	virtual void NativeThreadSafeUpdateAnimation(float DeltaSeconds) override;
 
-	UPROPERTY(BlueprintReadOnly, Category="Status")
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	float GroundSpeed = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category="Status")
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	float Direction = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category="Aim")
+	UPROPERTY(BlueprintReadOnly, Category = "Aim")
 	float AimPitch = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category="Aim")
+	UPROPERTY(BlueprintReadOnly, Category = "Aim")
 	float AimYaw = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category="Aim")
+	UPROPERTY(BlueprintReadOnly, Category = "Aim")
 	uint8 bIsAiming : 1 = false;
 
-	UPROPERTY(BlueprintReadOnly, Category="Status")
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	uint8 bIsEquipping : 1 = false;
 
-	UPROPERTY(BlueprintReadOnly, Category="Status")
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	uint8 bIsFalling : 1 = false;
 
-	UPROPERTY(BlueprintReadOnly, Category="Status")
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	float GroundDistance = 0.f;
 
 	// === Turn in Place ===
-	UPROPERTY(BlueprintReadOnly, Category="TurnInPlace")
+	UPROPERTY(BlueprintReadOnly, Category = "TurnInPlace")
 	float RootYawOffset = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category="TurnInPlace")
+	UPROPERTY(BlueprintReadOnly, Category = "TurnInPlace")
 	float AimYawRate = 0.f;
 
 	// === Locomotion ===
-	UPROPERTY(BlueprintReadOnly, Category="Locomotion")
+	UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
 	uint8 bHasAcceleration : 1 = false;
 
-	UPROPERTY(BlueprintReadOnly, Category="Locomotion")
+	UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
 	float LocalVelocityDirectionAngle = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category="Locomotion")
+	UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
 	uint8 bIsMovingForward : 1 = false;
 
 public:

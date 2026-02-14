@@ -5,9 +5,6 @@
 #include "Utils/UENUM/RootYawOffsetMode.h"
 #include "TPSPlayerCoreAnimInstance.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class TPS_API UTPSPlayerCoreAnimInstance : public UAnimInstance
 {
@@ -26,62 +23,62 @@ protected:
 	FRotator CachedActorRotation = FRotator::ZeroRotator;
 	FRotator CachedAimRotation = FRotator::ZeroRotator;
 
-	UPROPERTY(BlueprintReadOnly, Category="Status")
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	float GroundSpeed = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category="Status")
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	float Direction = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category="Aim")
+	UPROPERTY(BlueprintReadOnly, Category = "Aim")
 	float AimPitch = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category="Aim")
+	UPROPERTY(BlueprintReadOnly, Category = "Aim")
 	float AimYaw = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category="Aim")
+	UPROPERTY(BlueprintReadOnly, Category = "Aim")
 	uint8 bIsAiming : 1 = false;
 
-	UPROPERTY(BlueprintReadOnly, Category="Status")
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	uint8 bIsEquipping : 1 = false;
 
-	UPROPERTY(BlueprintReadOnly, Category="Status")
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	uint8 bIsFalling : 1 = false;
 
-	UPROPERTY(BlueprintReadOnly, Category="Status")
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	float GroundDistance = 0.f;
 
 	// === Turn in Place ===
-	UPROPERTY(BlueprintReadOnly, Category="TurnInPlace")
+	UPROPERTY(BlueprintReadOnly, Category = "TurnInPlace")
 	float RootYawOffset = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category="TurnInPlace")
+	UPROPERTY(BlueprintReadOnly, Category = "TurnInPlace")
 	ERootYawOffsetMode RootYawOffsetMode = ERootYawOffsetMode::BlendOut;
 
-	UPROPERTY(BlueprintReadOnly, Category="TurnInPlace")
+	UPROPERTY(BlueprintReadOnly, Category = "TurnInPlace")
 	float AimYawRate = 0.f;
 
 	// === Locomotion ===
-	UPROPERTY(BlueprintReadOnly, Category="Locomotion")
+	UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
 	uint8 bHasAcceleration : 1 = false;
 
-	UPROPERTY(BlueprintReadOnly, Category="Locomotion")
+	UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
 	float LocalVelocityDirectionAngle = 0.f;
 
-	UPROPERTY(BlueprintReadOnly, Category="Locomotion")
+	UPROPERTY(BlueprintReadOnly, Category = "Locomotion")
 	uint8 bIsMovingForward : 1 = false;
 
 	// === Upper Body ===
-	UPROPERTY(BlueprintReadOnly, Category="Status")
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	float UpperBodyBlendWeight = 0.f;
 
 	// 이전 프레임 캐시 (게임 스레드 전용)
 	float PreviousControllerYaw = 0.f;
 
 #pragma region EquipMontage
-	UPROPERTY(EditDefaultsOnly, Category="Montage|Equip")
+	UPROPERTY(EditDefaultsOnly, Category = "Montage|Equip")
 	TObjectPtr<UAnimMontage> EquipMontageAsset;
 
-	UPROPERTY(EditDefaultsOnly, Category="Montage|Equip")
+	UPROPERTY(EditDefaultsOnly, Category = "Montage|Equip")
 	TObjectPtr<UAnimMontage> UnequipMontageAsset;
 
 	TWeakObjectPtr<class UTPSEquipComponent> EquipComponentRef;
