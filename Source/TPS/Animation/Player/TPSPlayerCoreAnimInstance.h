@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "Utils/UENUM/RootYawOffsetMode.h"
 #include "TPSPlayerCoreAnimInstance.generated.h"
 
 /**
@@ -49,6 +50,33 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category="Status")
 	float GroundDistance = 0.f;
 
+	// === Turn in Place ===
+	UPROPERTY(BlueprintReadOnly, Category="TurnInPlace")
+	float RootYawOffset = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, Category="TurnInPlace")
+	ERootYawOffsetMode RootYawOffsetMode = ERootYawOffsetMode::BlendOut;
+
+	UPROPERTY(BlueprintReadOnly, Category="TurnInPlace")
+	float AimYawRate = 0.f;
+
+	// === Locomotion ===
+	UPROPERTY(BlueprintReadOnly, Category="Locomotion")
+	uint8 bHasAcceleration : 1 = false;
+
+	UPROPERTY(BlueprintReadOnly, Category="Locomotion")
+	float LocalVelocityDirectionAngle = 0.f;
+
+	UPROPERTY(BlueprintReadOnly, Category="Locomotion")
+	uint8 bIsMovingForward : 1 = false;
+
+	// === Upper Body ===
+	UPROPERTY(BlueprintReadOnly, Category="Status")
+	float UpperBodyBlendWeight = 0.f;
+
+	// 이전 프레임 캐시 (게임 스레드 전용)
+	float PreviousControllerYaw = 0.f;
+
 #pragma region EquipMontage
 	UPROPERTY(EditDefaultsOnly, Category="Montage|Equip")
 	TObjectPtr<UAnimMontage> EquipMontageAsset;
@@ -88,4 +116,29 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	float GetGroundDistance() const { return GroundDistance; }
+
+	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
+	float GetRootYawOffset() const { return RootYawOffset; }
+
+	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
+	ERootYawOffsetMode GetRootYawOffsetMode() const { return RootYawOffsetMode; }
+
+	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
+	float GetAimYawRate() const { return AimYawRate; }
+
+	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
+	bool GetHasAcceleration() const { return bHasAcceleration; }
+
+	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
+	float GetLocalVelocityDirectionAngle() const { return LocalVelocityDirectionAngle; }
+
+	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
+	bool GetIsMovingForward() const { return bIsMovingForward; }
+
+	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
+	float GetUpperBodyBlendWeight() const { return UpperBodyBlendWeight; }
+
+	// Linked Layer에서 호출 — 스테이트 전환 시 모드 변경
+	UFUNCTION(BlueprintCallable, Category="Animation", meta=(BlueprintThreadSafe))
+	void SetRootYawOffsetMode(ERootYawOffsetMode InMode);
 };

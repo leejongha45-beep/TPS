@@ -16,6 +16,13 @@ void UTPSLinkedAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 		bIsEquipping = CoreInst->GetIsEquipping();
 		bIsFalling = CoreInst->GetIsFalling();
 		GroundDistance = CoreInst->GetGroundDistance();
+
+		// 신규 미러링
+		RootYawOffset = CoreInst->GetRootYawOffset();
+		AimYawRate = CoreInst->GetAimYawRate();
+		bHasAcceleration = CoreInst->GetHasAcceleration();
+		LocalVelocityDirectionAngle = CoreInst->GetLocalVelocityDirectionAngle();
+		bIsMovingForward = CoreInst->GetIsMovingForward();
 	}
 }
 

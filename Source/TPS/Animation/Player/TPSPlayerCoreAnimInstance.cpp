@@ -1,6 +1,7 @@
 ﻿#include "TPSPlayerCoreAnimInstance.h"
 
 #include "KismetAnimationLibrary.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Component/Action/TPSEquipComponent.h"
 #include "Component/Data/TPSPlayerStateComponent.h"
 #include "Pawn/Character/Player/TPSPlayer.h"
@@ -51,6 +52,37 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		bIsFalling = pStateComp->HasState(EActionState::Falling);
 	}
 
+	// 가속 감지
+	const UCharacterMovementComponent* CMC = pOwner->GetCharacterMovement();
+	if (CMC)
+	{
+		bHasAcceleration = !CMC->GetCurrentAcceleration().IsNearlyZero();
+	}
+
+	// Root Yaw Offset (Turn in Place)
+	const float CurrentControllerYaw = pOwner->GetControlRotation().Yaw;
+	const float ControllerYawDelta = FRotator::NormalizeAxis(CurrentControllerYaw - PreviousControllerYaw);
+
+	switch (RootYawOffsetMode)
+	{
+	case ERootYawOffsetMode::Accumulate:
+		// Idle — 컨트롤러 회전의 역방향으로 누적
+		RootYawOffset = FRotator::NormalizeAxis(RootYawOffset - ControllerYawDelta);
+		break;
+	case ERootYawOffsetMode::BlendOut:
+		// Jog — 부드럽게 0으로 보간
+		RootYawOffset = FMath::FInterpTo(RootYawOffset, 0.f, DeltaSeconds, 10.f);
+		break;
+	case ERootYawOffsetMode::Hold:
+		// Start — 현재 값 유지
+		break;
+	}
+
+	PreviousControllerYaw = CurrentControllerYaw;
+
+	// 상체 블렌드 가중치
+	UpperBodyBlendWeight = bIsEquipping ? 1.f : 0.f;
+
 	// GroundDistance: 라인 트레이스(물리 월드 접근) → 게임 스레드 전용
 	if (bIsFalling)
 	{
@@ -84,9 +116,25 @@ void UTPSPlayerCoreAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeco
 	GroundSpeed = CachedVelocity.Size2D();
 	Direction = UKismetAnimationLibrary::CalculateDirection(CachedVelocity, CachedActorRotation);
 
+	// AimYaw/AimPitch + AimYawRate
+	const float PreviousAimYaw = AimYaw;
 	FRotator DeltaRotation = (CachedAimRotation - CachedActorRotation).GetNormalized();
 	AimPitch = DeltaRotation.Pitch;
 	AimYaw = DeltaRotation.Yaw;
+	AimYawRate = (DeltaSeconds > SMALL_NUMBER)
+		? FMath::Abs(FRotator::NormalizeAxis(AimYaw - PreviousAimYaw)) / DeltaSeconds
+		: 0.f;
+
+	// 이동 방향 각도
+	if (GroundSpeed > 5.f)
+	{
+		LocalVelocityDirectionAngle = Direction;
+		bIsMovingForward = FMath::Abs(LocalVelocityDirectionAngle) < 60.f;
+	}
+	else
+	{
+		bIsMovingForward = false;
+	}
 }
 
 void UTPSPlayerCoreAnimInstance::PlayEquipMontage(bool bEquip)
@@ -113,4 +161,9 @@ void UTPSPlayerCoreAnimInstance::OnEquipMontageEnded(UAnimMontage* Montage, bool
 	}
 
 	pEquipComp->OnMontageFinished(!bIsEquipping);
+}
+
+void UTPSPlayerCoreAnimInstance::SetRootYawOffsetMode(ERootYawOffsetMode InMode)
+{
+	RootYawOffsetMode = InMode;
 }
