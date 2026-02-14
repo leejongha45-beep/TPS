@@ -34,6 +34,7 @@ protected:
 	void StopJumpInput(const struct FInputActionValue& InputValue);
 	
 	void EquipInput(const struct FInputActionValue& InputValue);
+	void InteractInput(const struct FInputActionValue& InputValue);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputMappingContext> DefaultMappingContextAsset;
@@ -56,6 +57,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputAction> EquipActionAsset;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<class UInputAction> InteractActionAsset;
+
 	UPROPERTY()
 	TScriptInterface<class IMoveable> MoveableInterface;
 
@@ -70,5 +74,8 @@ protected:
 
 	UPROPERTY()
 	TScriptInterface<class IEquippable> EquippableInterface;
+
+	UPROPERTY()
+	TScriptInterface<class IInteractable> InteractableInterface;
 #pragma endregion
 };

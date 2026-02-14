@@ -8,6 +8,7 @@
 #include "Component/Data/TPSAnimLayerComponent.h"
 #include "Component/Data/TPSPlayerStateComponent.h"
 #include "Component/Data/TPSPlayerStatusComponent.h"
+#include "Component/Action/TPSPlayerInteractionComponent.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(AimTickLog, Warning, All);
 
@@ -124,6 +125,12 @@ void ATPSPlayer::CreateDefaultComponents()
 	{
 		AnimLayerComponentInst = CreateDefaultSubobject<UTPSAnimLayerComponent>(TEXT("AnimLayerComponent"));
 		ensure(AnimLayerComponentInst);
+	}
+
+	if (!InteractionComponentInst)
+	{
+		InteractionComponentInst = CreateDefaultSubobject<UTPSPlayerInteractionComponent>(TEXT("InteractionComponent"));
+		ensure(InteractionComponentInst);
 	}
 }
 
@@ -340,6 +347,14 @@ void ATPSPlayer::Unequip()
 	if (StateComponentInst->HasState(EActionState::Equipping))
 	{
 		EquipComponentInst->RequestToggle(true);
+	}
+}
+
+void ATPSPlayer::Interact()
+{
+	if (ensure(InteractionComponentInst))
+	{
+		InteractionComponentInst->HandleInteraction();
 	}
 }
 

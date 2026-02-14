@@ -7,12 +7,14 @@
 #include "Utils/Interface/Action/Jumpable.h"
 #include "Utils/Interface/Action/Moveable.h"
 #include "Utils/Interface/Action/Sprintable.h"
+#include "Utils/Interface/Action/Interactable.h"
 #include "Utils/Interface/Data/Interpolable.h"
 #include "Utils/TickFunctions/FInterpolateTickFunction.h"
 #include "TPSPlayer.generated.h"
 
 UCLASS()
-class TPS_API ATPSPlayer : public ACharacter, public IMoveable, public ISprintable, public IAimable, public IJumpable, public IEquippable, public IInterpolable
+class TPS_API ATPSPlayer
+	: public ACharacter, public IMoveable, public ISprintable, public IAimable, public IJumpable, public IEquippable, public IInterpolable, public IInteractable
 {
 	GENERATED_BODY()
 
@@ -21,7 +23,7 @@ public:
 
 	FORCEINLINE class UTPSPlayerStateComponent* GetStateComponent() const { return StateComponentInst; }
 	FORCEINLINE class UTPSAnimLayerComponent* GetAnimLayerComponent() const { return AnimLayerComponentInst; }
-
+	FORCEINLINE class UTPSPlayerInteractionComponent* GetInteractionComponent() const { return InteractionComponentInst; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -58,6 +60,9 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Animation")
 	TObjectPtr<class UTPSAnimLayerComponent> AnimLayerComponentInst;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Interaction")
+	TObjectPtr<class UTPSPlayerInteractionComponent> InteractionComponentInst;
 #pragma endregion
 
 #pragma region ControllerCallback
@@ -76,6 +81,8 @@ protected:
 
 	virtual void Equip() override;
 	virtual void Unequip() override;
+
+	virtual void Interact() override;
 #pragma endregion
 
 #pragma region EquipCallback
