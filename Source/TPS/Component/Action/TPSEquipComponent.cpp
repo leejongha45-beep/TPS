@@ -25,6 +25,13 @@ void UTPSEquipComponent::OnMontageFinished(bool bNewEquippedState)
 	OnEquipStateChangedDelegate.Broadcast(bNewEquippedState);
 }
 
+void UTPSEquipComponent::OnMontageInterrupted()
+{
+	bIsTransitioning = false;
+
+	UE_LOG(EquipLog, Warning, TEXT("[OnMontageInterrupted] Equip montage was interrupted, transitioning unlocked"));
+}
+
 void UTPSEquipComponent::AttachWeapon()
 {
 	if (!ensure(WeaponInterface)) return;

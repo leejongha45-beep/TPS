@@ -16,6 +16,7 @@ class TPS_API UTPSEquipComponent : public UActorComponent
 public:
 	void RequestToggle(bool bIsCurrentlyEquipped);
 	void OnMontageFinished(bool bNewEquippedState);
+	void OnMontageInterrupted();
 	void AttachWeapon();
 	void DetachWeapon();
 

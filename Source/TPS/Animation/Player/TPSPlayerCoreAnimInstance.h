@@ -44,9 +44,6 @@ protected:
 	uint8 bIsEquipping : 1 = false;
 
 	UPROPERTY(BlueprintReadOnly, Category="Status")
-	uint8 bIsPlayingEquipMontage : 1 = false;
-
-	UPROPERTY(BlueprintReadOnly, Category="Status")
 	uint8 bIsFalling : 1 = false;
 
 	UPROPERTY(BlueprintReadOnly, Category="Status")
@@ -85,9 +82,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	bool GetIsEquipping() const { return bIsEquipping; }
-
-	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
-	bool GetIsPlayingEquipMontage() const { return bIsPlayingEquipMontage; }
 
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	bool GetIsFalling() const { return bIsFalling; }

@@ -1,6 +1,6 @@
 #include "Pawn/Character/Player/TPSPlayer.h"
 #include "Camera/CameraComponent.h"
-#include "Component/Action/TPSAnimLayerComponent.h"
+#include "Component/Data/TPSAnimLayerComponent.h"
 #include "Component/Action/TPSCameraControlComponent.h"
 #include "Component/Action/TPSEquipComponent.h"
 #include "Component/Action/TPSCMC.h"

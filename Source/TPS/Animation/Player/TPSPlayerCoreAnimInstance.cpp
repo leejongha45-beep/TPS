@@ -91,19 +91,10 @@ void UTPSPlayerCoreAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeco
 
 void UTPSPlayerCoreAnimInstance::PlayEquipMontage(bool bEquip)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[PlayEquipMontage] Called. bEquip: %s"), bEquip ? TEXT("true") : TEXT("false"));
-
 	UAnimMontage* pMontage = bEquip ? EquipMontageAsset : UnequipMontageAsset;
-	if (!ensure(pMontage))
-	{
-		UE_LOG(LogTemp, Error, TEXT("[PlayEquipMontage] Montage is null!"));
-		return;
-	}
+	if (!ensure(pMontage)) return;
 
-	bIsPlayingEquipMontage = true;
-
-	const float PlayResult = Montage_Play(pMontage);
-	UE_LOG(LogTemp, Warning, TEXT("[PlayEquipMontage] Montage_Play result: %f"), PlayResult);
+	Montage_Play(pMontage);
 
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &UTPSPlayerCoreAnimInstance::OnEquipMontageEnded);
@@ -112,14 +103,14 @@ void UTPSPlayerCoreAnimInstance::PlayEquipMontage(bool bEquip)
 
 void UTPSPlayerCoreAnimInstance::OnEquipMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[OnEquipMontageEnded] bInterrupted: %s"), bInterrupted ? TEXT("true") : TEXT("false"));
-
 	UTPSEquipComponent* pEquipComp = EquipComponentRef.Get();
 	if (!ensure(pEquipComp)) return;
 
-	if (!bInterrupted)
+	if (bInterrupted)
 	{
-		pEquipComp->OnMontageFinished(!bIsEquipping);
+		pEquipComp->OnMontageInterrupted();
+		return;
 	}
-	bIsPlayingEquipMontage = false;
+
+	pEquipComp->OnMontageFinished(!bIsEquipping);
 }

@@ -76,6 +76,7 @@ DerivedDataCache/*
 # Claude Code
 .claude/
 CLAUDE.md
+ANIMATION_PLAN.md
 
 # JetBrains IDE (Rider)
 .idea/

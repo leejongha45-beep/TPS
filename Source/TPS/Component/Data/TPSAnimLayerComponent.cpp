@@ -1,4 +1,4 @@
-#include "Component/Action/TPSAnimLayerComponent.h"
+#include "Component/Data/TPSAnimLayerComponent.h"
 #include "Animation/Player/TPSLinkedAnimInstance.h"
 #include "GameFramework/Character.h"
 
