@@ -1,6 +1,6 @@
 ﻿#include "Actor/ItemBox/TPSItemBox.h"
 #include "Component/Action/TPSPlayerInteractionComponent.h"
-#include "Component/Action/TPSItemBoxInteractionComponent.h"
+#include "Actor/ItemBox/TPSItemBoxInteractionComponent.h"
 #include "Pawn/Character/Player/TPSPlayer.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"

@@ -1,4 +1,4 @@
-﻿#include "Component/Action/TPSItemBoxInteractionComponent.h"
+﻿#include "Actor/ItemBox/TPSItemBoxInteractionComponent.h"
 #include "UI/Widget/ItemBox/TPSItemBoxWidget.h"
 #include "Actor/ItemBox/TPSItemBox.h"
 #include "Blueprint/UserWidget.h"
