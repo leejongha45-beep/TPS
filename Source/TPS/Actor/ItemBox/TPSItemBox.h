@@ -7,6 +7,14 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogItemBox, Log, All);
 
+UENUM()
+enum class EItemType : uint8
+{
+	Pistol,
+	Rifle,
+	Shotgun
+};
+
 UCLASS()
 class TPS_API ATPSItemBox : public AActor, public IInteractable
 {
@@ -16,6 +24,8 @@ public:
 	ATPSItemBox();
 
 	FORCEINLINE const TScriptInterface<class IInteractable>& GetInteractableInterface() const { return InteractableInterface; }
+
+	void SpawnItem(EItemType TargetItem);
 
 protected:
 	virtual void Interact() override;
@@ -37,7 +47,13 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Component|Interaction")
 	TObjectPtr<class UTPSItemBoxInteractionComponent> InteractionComponentInst;
-	
+
 	UPROPERTY()
 	TScriptInterface<class IInteractable> InteractableInterface;
+
+	UPROPERTY(EditDefaultsOnly, Category="Weapon")
+	TArray<TSubclassOf<class AActor>> ItemClassArray;
+	
+	UPROPERTY(VisibleDefaultsOnly, Category="Weapon|Rifle")
+	TObjectPtr<class AActor> SpawnedWeapon;
 };

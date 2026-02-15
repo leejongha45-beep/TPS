@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
 #include "Actor/ItemBox/TPSItemBox.h"
+#include "Blueprint/UserWidget.h"
 #include "TPSItemBoxWidget.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogItemBoxWidget, Log, All);
@@ -14,7 +14,7 @@ class TPS_API UTPSItemBoxWidget : public UUserWidget
 
 public:
 	FORCEINLINE void SetOwningItemBox(class ATPSItemBox* InItemBox) { OwningItemBoxRef = InItemBox; }
-	FORCEINLINE void SetInteractionComponent(class UTPSPlayerInteractionComponent* InComponent) { InteractionComponentRef = InComponent; }
+	FORCEINLINE void SetOwningPlayer(class ATPSPlayer* InPlayer) { OwningPlayerRef = InPlayer; }
 
 protected:
 	virtual void NativeConstruct() override;
@@ -26,6 +26,12 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UButton> CloseButton;
 
+	UFUNCTION()
+	void OnRifleButtonClicked();
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UButton> RifleButton;
+
 	TWeakObjectPtr<class ATPSItemBox> OwningItemBoxRef;
-	TWeakObjectPtr<class UTPSPlayerInteractionComponent> InteractionComponentRef;
+	TWeakObjectPtr<class ATPSPlayer> OwningPlayerRef;
 };

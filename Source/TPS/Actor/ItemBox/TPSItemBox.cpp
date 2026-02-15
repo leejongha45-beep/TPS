@@ -48,6 +48,22 @@ ATPSItemBox::ATPSItemBox()
 	}
 }
 
+void ATPSItemBox::SpawnItem(EItemType TargetItem)
+{
+	int32 ItemIndex = static_cast<int32>(TargetItem);
+
+	if (ensure(ItemClassArray.IsValidIndex(ItemIndex)))
+	{
+		if (!ensure(ItemClassArray[ItemIndex])) return;
+
+		if (!SpawnedWeapon)
+		{
+			SpawnedWeapon = GetWorld()->SpawnActor<AActor>(ItemClassArray[ItemIndex]);
+			ensure(SpawnedWeapon);
+		}
+	}
+}
+
 void ATPSItemBox::Interact()
 {
 	if (ensure(InteractionComponentInst))

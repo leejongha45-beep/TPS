@@ -31,7 +31,7 @@ void UTPSItemBoxInteractionComponent::ToggleItemBox(bool bInput, APlayerControll
 			ATPSPlayer* pPlayer = Cast<ATPSPlayer>(pItemBox->GetInteractableInterface().GetObject());
 			if (ensure(pPlayer))
 			{
-				ItemBoxWidgetInst->SetInteractionComponent(pPlayer->GetInteractionComponent());
+				ItemBoxWidgetInst->SetOwningPlayer(pPlayer);
 			}
 
 			ItemBoxWidgetInst->AddToViewport();
