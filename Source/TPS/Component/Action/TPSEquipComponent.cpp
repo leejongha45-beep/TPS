@@ -2,13 +2,17 @@
 #include "GameFramework/Character.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(EquipLog, Log, All);
+
 DEFINE_LOG_CATEGORY(EquipLog);
 
 void UTPSEquipComponent::RequestToggle(bool bIsCurrentlyEquipped)
 {
+	if (!ensure(WeaponInterface)) return;
+
 	if (bIsTransitioning) return;
 
 	bIsTransitioning = true;
+
 
 	const bool bEquip = !bIsCurrentlyEquipped;
 	UE_LOG(EquipLog, Log, TEXT("[RequestToggle] Request: %s"), bEquip ? TEXT("Equip") : TEXT("Unequip"));

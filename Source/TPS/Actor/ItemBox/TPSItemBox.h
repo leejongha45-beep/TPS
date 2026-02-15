@@ -8,7 +8,7 @@
 DECLARE_LOG_CATEGORY_EXTERN(LogItemBox, Log, All);
 
 UENUM()
-enum class EItemType : uint8
+enum class EWeaponType : uint8
 {
 	Pistol,
 	Rifle,
@@ -25,7 +25,7 @@ public:
 
 	FORCEINLINE const TScriptInterface<class IInteractable>& GetInteractableInterface() const { return InteractableInterface; }
 
-	void SpawnItem(EItemType TargetItem);
+	void SpawnWeapon(EWeaponType TargetWeapon);
 
 protected:
 	virtual void Interact() override;
@@ -52,8 +52,8 @@ protected:
 	TScriptInterface<class IInteractable> InteractableInterface;
 
 	UPROPERTY(EditDefaultsOnly, Category="Weapon")
-	TArray<TSubclassOf<class AActor>> ItemClassArray;
-	
-	UPROPERTY(VisibleDefaultsOnly, Category="Weapon|Rifle")
-	TObjectPtr<class AActor> SpawnedWeapon;
+	TArray<TSubclassOf<class ATPSWeaponBase>> ItemClassArray;
+
+	UPROPERTY(VisibleDefaultsOnly, Category="Weapon")
+	TObjectPtr<class ATPSWeaponBase> SpawnedWeapon;
 };

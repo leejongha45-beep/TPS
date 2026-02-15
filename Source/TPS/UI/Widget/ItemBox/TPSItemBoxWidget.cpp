@@ -62,6 +62,6 @@ void UTPSItemBoxWidget::OnRifleButtonClicked()
 	ATPSItemBox* pOwnerItemBox = OwningItemBoxRef.Get();
 	if (ensure(pOwnerItemBox))
 	{
-		pOwnerItemBox->SpawnItem(EItemType::Rifle);
+		pOwnerItemBox->SpawnWeapon(EWeaponType::Rifle);
 	}
 }

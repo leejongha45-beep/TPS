@@ -1,5 +1,7 @@
 ﻿#include "Actor/ItemBox/TPSItemBox.h"
 #include "Actor/ItemBox/TPSItemBoxInteractionComponent.h"
+#include "Component/Action/TPSEquipComponent.h"
+#include "Weapon/TPSWeaponBase.h"
 #include "Component/Action/TPSPlayerInteractionComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -48,9 +50,9 @@ ATPSItemBox::ATPSItemBox()
 	}
 }
 
-void ATPSItemBox::SpawnItem(EItemType TargetItem)
+void ATPSItemBox::SpawnWeapon(EWeaponType TargetWeapon)
 {
-	int32 ItemIndex = static_cast<int32>(TargetItem);
+	int32 ItemIndex = static_cast<int32>(TargetWeapon);
 
 	if (ensure(ItemClassArray.IsValidIndex(ItemIndex)))
 	{
@@ -58,8 +60,18 @@ void ATPSItemBox::SpawnItem(EItemType TargetItem)
 
 		if (!SpawnedWeapon)
 		{
-			SpawnedWeapon = GetWorld()->SpawnActor<AActor>(ItemClassArray[ItemIndex]);
-			ensure(SpawnedWeapon);
+			ATPSPlayer* pPlayer = Cast<ATPSPlayer>(InteractableInterface.GetObject());
+			if (!ensure(pPlayer)) return;
+
+			SpawnedWeapon = GetWorld()->SpawnActor<ATPSWeaponBase>(ItemClassArray[ItemIndex]);
+			if (!ensure(SpawnedWeapon)) return;
+
+			SpawnedWeapon->Detach(pPlayer->GetMesh());
+
+			UTPSEquipComponent* pEquipComponent = pPlayer->GetEquipComponent();
+			if (!ensure(pEquipComponent)) return;
+
+			pEquipComponent->SetWeaponInterface(SpawnedWeapon);
 		}
 	}
 }
@@ -71,11 +83,10 @@ void ATPSItemBox::Interact()
 		if (ensure(InteractableInterface))
 		{
 			ATPSPlayer* pPlayer = Cast<ATPSPlayer>(InteractableInterface.GetObject());
-			if (ensure(pPlayer))
-			{
-				APlayerController* pController = Cast<APlayerController>(pPlayer->GetController());
-				InteractionComponentInst->ToggleItemBox(!InteractionComponentInst->GetIsOpen(), pController);
-			}
+			if (!ensure(pPlayer)) return;
+
+			APlayerController* pController = Cast<APlayerController>(pPlayer->GetController());
+			InteractionComponentInst->ToggleItemBox(!InteractionComponentInst->GetIsOpen(), pController);
 		}
 	}
 }
