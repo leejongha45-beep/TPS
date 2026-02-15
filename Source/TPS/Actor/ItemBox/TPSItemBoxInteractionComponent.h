@@ -10,9 +10,9 @@ class TPS_API UTPSItemBoxInteractionComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	void ToggleItemBox();
+	void ToggleItemBox(bool bInput, APlayerController* InputController);
 
-	FORCEINLINE bool GetIsOpen() const { return bIsOpen; }
+	FORCEINLINE bool GetIsOpen() const { return bIsOpening; }
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
@@ -21,5 +21,5 @@ protected:
 	UPROPERTY()
 	TObjectPtr<class UTPSItemBoxWidget> ItemBoxWidgetInst;
 
-	uint8 bIsOpen : 1 = false;
+	uint8 bIsOpening : 1 = false;
 };

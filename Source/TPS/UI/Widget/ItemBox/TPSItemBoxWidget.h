@@ -14,9 +14,11 @@ class TPS_API UTPSItemBoxWidget : public UUserWidget
 
 public:
 	FORCEINLINE void SetOwningItemBox(class ATPSItemBox* InItemBox) { OwningItemBoxRef = InItemBox; }
+	FORCEINLINE void SetInteractionComponent(class UTPSPlayerInteractionComponent* InComponent) { InteractionComponentRef = InComponent; }
 
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 
 	UFUNCTION()
 	void OnCloseButtonClicked();
@@ -25,4 +27,5 @@ protected:
 	TObjectPtr<class UButton> CloseButton;
 
 	TWeakObjectPtr<class ATPSItemBox> OwningItemBoxRef;
+	TWeakObjectPtr<class UTPSPlayerInteractionComponent> InteractionComponentRef;
 };

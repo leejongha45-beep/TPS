@@ -1,9 +1,9 @@
 ﻿#include "Component/Action/TPSPlayerInteractionComponent.h"
-#include "Utils/Interface/Action/Interactable.h"
+#include "Blueprint/UserWidget.h"
 #include "Component/Data/TPSPlayerStateComponent.h"
 #include "Pawn/Character/Player/TPSPlayer.h"
 #include "UI/Widget/Interaction/TPSInteractionPromptWidget.h"
-#include "Blueprint/UserWidget.h"
+#include "Utils/Interface/Action/Interactable.h"
 
 void UTPSPlayerInteractionComponent::HandleInteraction()
 {
@@ -46,7 +46,7 @@ void UTPSPlayerInteractionComponent::ClearCurrentTarget(AActor* InTarget)
 void UTPSPlayerInteractionComponent::OpenInteraction()
 {
 	AActor* pTargetActor = CurrentTargetRef.Get();
-	if (!pTargetActor) return;
+	if (!ensure(pTargetActor)) return;
 
 	IInteractable* pInteractable = Cast<IInteractable>(pTargetActor);
 	if (!ensure(pInteractable)) return;
@@ -80,13 +80,12 @@ void UTPSPlayerInteractionComponent::OpenInteraction()
 void UTPSPlayerInteractionComponent::CloseInteraction()
 {
 	AActor* pTargetActor = CurrentTargetRef.Get();
-	if (ensure(pTargetActor))
+	if (!ensure(pTargetActor)) return;
+
+	IInteractable* pInteractable = Cast<IInteractable>(pTargetActor);
+	if (ensure(pInteractable))
 	{
-		IInteractable* pInteractable = Cast<IInteractable>(pTargetActor);
-		if (ensure(pInteractable))
-		{
-			pInteractable->Interact();
-		}
+		pInteractable->Interact();
 	}
 
 	ATPSPlayer* pPlayer = Cast<ATPSPlayer>(GetOwner());

@@ -15,9 +15,20 @@ class TPS_API ATPSItemBox : public AActor, public IInteractable
 public:
 	ATPSItemBox();
 
-	virtual void Interact() override;
+	FORCEINLINE const TScriptInterface<class IInteractable>& GetInteractableInterface() const { return InteractableInterface; }
 
 protected:
+	virtual void Interact() override;
+
+	UFUNCTION()
+	void OnBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	                       UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+	                       bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	                     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
 	UPROPERTY(VisibleDefaultsOnly, Category = "Component|Collision")
 	TObjectPtr<class UBoxComponent> BoxCollisionInst;
 
@@ -26,13 +37,7 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Component|Interaction")
 	TObjectPtr<class UTPSItemBoxInteractionComponent> InteractionComponentInst;
-
-	UFUNCTION()
-	void OnBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-		bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-	void OnBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	
+	UPROPERTY()
+	TScriptInterface<class IInteractable> InteractableInterface;
 };
