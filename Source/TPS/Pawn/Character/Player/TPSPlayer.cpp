@@ -186,7 +186,10 @@ void ATPSPlayer::BindDelegate()
 {
 	if (ensure(EquipComponentInst))
 	{
-		EquipComponentInst->OnEquipStateChangedDelegate.AddUObject(this, &ATPSPlayer::OnEquipStateChanged);
+		if (!EquipComponentInst->OnEquipStateChangedDelegate.IsBoundToObject(this))
+		{
+			EquipComponentInst->OnEquipStateChangedDelegate.AddUObject(this, &ATPSPlayer::OnEquipStateChanged);
+		}
 	}
 }
 

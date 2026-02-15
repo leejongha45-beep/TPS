@@ -29,8 +29,15 @@ ATPSItemBox::ATPSItemBox()
 			BoxCollisionInst->SetCollisionProfileName(TEXT("Trigger"));
 			BoxCollisionInst->SetBoxExtent(FVector(150.f, 150.f, 100.f));
 
-			BoxCollisionInst->OnComponentBeginOverlap.AddDynamic(this, &ATPSItemBox::OnBoxBeginOverlap);
-			BoxCollisionInst->OnComponentEndOverlap.AddDynamic(this, &ATPSItemBox::OnBoxEndOverlap);
+			if (!BoxCollisionInst->OnComponentBeginOverlap.IsBound())
+			{
+				BoxCollisionInst->OnComponentBeginOverlap.AddDynamic(this, &ATPSItemBox::OnBoxBeginOverlap);
+			}
+
+			if (!BoxCollisionInst->OnComponentEndOverlap.IsBound())
+			{
+				BoxCollisionInst->OnComponentEndOverlap.AddDynamic(this, &ATPSItemBox::OnBoxEndOverlap);
+			}
 		}
 	}
 

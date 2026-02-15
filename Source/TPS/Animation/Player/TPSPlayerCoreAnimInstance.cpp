@@ -22,7 +22,10 @@ void UTPSPlayerCoreAnimInstance::NativeInitializeAnimation()
 			if (ensure(pEquipComp))
 			{
 				EquipComponentRef = pEquipComp;
-				pEquipComp->OnEquipMontagePlayDelegate.AddUObject(this, &UTPSPlayerCoreAnimInstance::PlayEquipMontage);
+				if (!pEquipComp->OnEquipMontagePlayDelegate.IsBoundToObject(this))
+				{
+					pEquipComp->OnEquipMontagePlayDelegate.AddUObject(this, &UTPSPlayerCoreAnimInstance::PlayEquipMontage);
+				}
 			}
 		}
 	}
