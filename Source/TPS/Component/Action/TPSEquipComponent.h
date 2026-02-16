@@ -15,15 +15,15 @@ class TPS_API UTPSEquipComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	FORCEINLINE bool GetIsEquipTransitioning() const { return bIsEquipTransitioning; }
+	FORCEINLINE void SetWeaponInterface(TScriptInterface<IAttachable> InWeapon) { WeaponInterface = InWeapon; }
+	FORCEINLINE ATPSWeaponBase* GetWeaponActor() const { return Cast<ATPSWeaponBase>(WeaponInterface.GetObject()); }
+
 	void RequestToggle(bool bIsCurrentlyEquipped);
 	void OnMontageFinished(bool bNewEquippedState);
 	void OnMontageInterrupted();
 	void AttachWeapon();
 	void DetachWeapon();
-
-	FORCEINLINE bool GetIsTransitioning() const { return bIsTransitioning; }
-	FORCEINLINE void SetWeaponInterface(TScriptInterface<IAttachable> InWeapon) { WeaponInterface = InWeapon; }
-	FORCEINLINE ATPSWeaponBase* GetWeaponActor() const { return Cast<ATPSWeaponBase>(WeaponInterface.GetObject()); }
 
 	FOnEquipMontagePlay OnEquipMontagePlayDelegate;
 	FOnEquipStateChanged OnEquipStateChangedDelegate;
@@ -32,5 +32,5 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TScriptInterface<IAttachable> WeaponInterface;
 
-	uint8 bIsTransitioning : 1 = false;
+	uint8 bIsEquipTransitioning : 1 = false;
 };

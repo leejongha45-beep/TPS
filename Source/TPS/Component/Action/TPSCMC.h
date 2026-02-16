@@ -18,7 +18,7 @@ public:
 	
 	FORCEINLINE void SetRotationRate(const FRotator& InputRate) { RotationRate = InputRate; }
 
-	FORCEINLINE void SetMaxWalkSpeed(int32 InputSpeed) { MaxWalkSpeed = InputSpeed; }
+	FORCEINLINE void SetMaxWalkSpeed(float InputSpeed) { MaxWalkSpeed = InputSpeed; }
 
 protected:
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;

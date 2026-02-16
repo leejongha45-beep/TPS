@@ -31,53 +31,50 @@ void ATPSPlayerController::SetupInputComponent()
 
 	// ActionBinding
 	UEnhancedInputComponent* pEnhancedInput = CastChecked<UEnhancedInputComponent>(InputComponent);
-	if (pEnhancedInput)
+	if (ensure(LookActionAsset))
 	{
-		if (ensure(LookActionAsset))
-		{
-			pEnhancedInput->BindAction(LookActionAsset, ETriggerEvent::Triggered, this, &ATPSPlayerController::Look);
-		}
+		pEnhancedInput->BindAction(LookActionAsset, ETriggerEvent::Triggered, this, &ATPSPlayerController::Look);
+	}
 
-		if (ensure(MoveActionAsset))
-		{
-			pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartMoveInput);
-			pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Triggered, this, &ATPSPlayerController::MoveInput);
-			pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopMoveInput);
-		}
+	if (ensure(MoveActionAsset))
+	{
+		pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartMoveInput);
+		pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Triggered, this, &ATPSPlayerController::MoveInput);
+		pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopMoveInput);
+	}
 
-		if (ensure(SprintActionAsset))
-		{
-			pEnhancedInput->BindAction(SprintActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartSprintInput);
-			pEnhancedInput->BindAction(SprintActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopSprintInput);
-		}
+	if (ensure(SprintActionAsset))
+	{
+		pEnhancedInput->BindAction(SprintActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartSprintInput);
+		pEnhancedInput->BindAction(SprintActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopSprintInput);
+	}
 
-		if (ensure(AimActionAsset))
-		{
-			pEnhancedInput->BindAction(AimActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartAimInput);
-			pEnhancedInput->BindAction(AimActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopAimInput);
-		}
+	if (ensure(AimActionAsset))
+	{
+		pEnhancedInput->BindAction(AimActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartAimInput);
+		pEnhancedInput->BindAction(AimActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopAimInput);
+	}
 
-		if (ensure(JumpActionAsset))
-		{
-			pEnhancedInput->BindAction(JumpActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartJumpInput);
-			pEnhancedInput->BindAction(JumpActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopJumpInput);
-		}
+	if (ensure(JumpActionAsset))
+	{
+		pEnhancedInput->BindAction(JumpActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartJumpInput);
+		pEnhancedInput->BindAction(JumpActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopJumpInput);
+	}
 
-		if (ensure(EquipActionAsset))
-		{
-			pEnhancedInput->BindAction(EquipActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::EquipInput);
-		}
+	if (ensure(EquipActionAsset))
+	{
+		pEnhancedInput->BindAction(EquipActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::EquipInput);
+	}
 
-		if (ensure(InteractActionAsset))
-		{
-			pEnhancedInput->BindAction(InteractActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::InteractInput);
-		}
+	if (ensure(InteractActionAsset))
+	{
+		pEnhancedInput->BindAction(InteractActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::InteractInput);
+	}
 
-		if (ensure(FireActionAsset))
-		{
-			pEnhancedInput->BindAction(FireActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartFireInput);
-			pEnhancedInput->BindAction(FireActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopFireInput);
-		}
+	if (ensure(FireActionAsset))
+	{
+		pEnhancedInput->BindAction(FireActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartFireInput);
+		pEnhancedInput->BindAction(FireActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopFireInput);
 	}
 }
 
@@ -87,20 +84,20 @@ void ATPSPlayerController::OnPossess(APawn* InPawn)
 
 	if (ensure(InPawn))
 	{
-		MoveableInterface = InPawn;
-		SprintableInterface = InPawn;
-		AimableInterface = InPawn;
-		JumpableInterface = InPawn;
-		EquippableInterface = InPawn;
-		InteractableInterface = InPawn;
-		FireableInterface = InPawn;
+		if (!MoveableInterface) MoveableInterface = InPawn;
+		if (!SprintableInterface) SprintableInterface = InPawn;
+		if (!AimableInterface) AimableInterface = InPawn;
+		if (!JumpableInterface) JumpableInterface = InPawn;
+		if (!EquippableInterface) EquippableInterface = InPawn;
+		if (!InteractableInterface) InteractableInterface = InPawn;
+		if (!FireableInterface) FireableInterface = InPawn;
 	}
 }
 
 void ATPSPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	SetInputMode(FInputModeGameOnly());
 }
 

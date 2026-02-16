@@ -39,6 +39,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon|Socket")
 	FName MuzzleSocketName = TEXT("Muzzle");
 
+	// 충돌 범위 (공격 범위)
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon|Fire")
 	float FireInterval = 0.1f;
 

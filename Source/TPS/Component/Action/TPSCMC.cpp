@@ -29,7 +29,10 @@ void UTPSCMC::RegisterComponentTickFunctions(bool bRegister)
 	}
 	else
 	{
-		InterpolateTickFunction.UnRegisterTickFunction();
+		if (InterpolateTickFunction.IsTickFunctionRegistered())
+		{
+			InterpolateTickFunction.UnRegisterTickFunction();
+		}
 	}
 }
 

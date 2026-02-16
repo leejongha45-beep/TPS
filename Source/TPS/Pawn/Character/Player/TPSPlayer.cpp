@@ -296,7 +296,10 @@ void ATPSPlayer::StartAim()
 		}
 
 		SetInterpolateTickEnabled(true);
-		AnimLayerComponentInst->LinkAnimLayer(AnimLayerComponentInst->GetRifleADSLayerClass());
+		if (ensure(AnimLayerComponentInst))
+		{
+			AnimLayerComponentInst->LinkAnimLayer(AnimLayerComponentInst->GetRifleADSLayerClass());
+		}
 	}
 }
 
@@ -312,7 +315,11 @@ void ATPSPlayer::StopAim()
 		StateComponentInst->RemoveState(EActionState::Aiming);
 
 		SetInterpolateTickEnabled(false);
-		AnimLayerComponentInst->LinkAnimLayer(AnimLayerComponentInst->GetRifleHipFireLayerClass());
+
+		if (AnimLayerComponentInst)
+		{
+			AnimLayerComponentInst->LinkAnimLayer(AnimLayerComponentInst->GetRifleHipFireLayerClass());
+		}
 	}
 }
 
@@ -353,7 +360,7 @@ void ATPSPlayer::StopJump()
 void ATPSPlayer::Equip()
 {
 	if (!ensure(StateComponentInst) || !ensure(EquipComponentInst)) return;
-	
+
 	if (StateComponentInst->HasState(EActionState::Firing))
 	{
 		StopFire();

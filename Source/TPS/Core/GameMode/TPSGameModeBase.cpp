@@ -6,17 +6,17 @@
 
 ATPSGameModeBase::ATPSGameModeBase()
 {
-	if (ensure(BP_PlayerClass))
+	if (BP_PlayerClass)
 	{
 		DefaultPawnClass = BP_PlayerClass;
 	}
 
-	if (ensure(BP_PlayerControllerClass))
+	if (BP_PlayerControllerClass)
 	{
 		PlayerControllerClass = BP_PlayerControllerClass;
 	}
 	
-	if (ensure(BP_HUDClass))
+	if (BP_HUDClass)
 	{
 		HUDClass = BP_HUDClass;
 	}

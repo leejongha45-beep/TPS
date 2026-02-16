@@ -18,7 +18,7 @@ void UTPSPlayerCoreAnimInstance::NativeInitializeAnimation()
 			StateComponentRef = OwnerRef->GetStateComponent();
 			ensure(StateComponentRef.Get());
 
-			UTPSEquipComponent* pEquipComp = OwnerRef->FindComponentByClass<UTPSEquipComponent>();
+			UTPSEquipComponent* pEquipComp = OwnerRef->GetEquipComponent();
 			if (ensure(pEquipComp))
 			{
 				EquipComponentRef = pEquipComp;
@@ -169,6 +169,7 @@ void UTPSPlayerCoreAnimInstance::OnEquipMontageEnded(UAnimMontage* Montage, bool
 	UTPSEquipComponent* pEquipComp = EquipComponentRef.Get();
 	if (!ensure(pEquipComp)) return;
 
+	// 중간에 끊길 경우
 	if (bInterrupted)
 	{
 		pEquipComp->OnMontageInterrupted();

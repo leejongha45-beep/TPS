@@ -7,7 +7,10 @@ void UTPSAnimNotify_WeaponAttach::Notify(USkeletalMeshComponent* MeshComp, UAnim
 
 	if (!ensure(MeshComp)) return;
 
-	UTPSEquipComponent* pEquipComp = MeshComp->GetOwner()->FindComponentByClass<UTPSEquipComponent>();
+	AActor* pOwner = MeshComp->GetOwner();
+	if (!ensure(pOwner)) return;
+
+	UTPSEquipComponent* pEquipComp = pOwner->FindComponentByClass<UTPSEquipComponent>();
 	if (ensure(pEquipComp))
 	{
 		if (bAttach)

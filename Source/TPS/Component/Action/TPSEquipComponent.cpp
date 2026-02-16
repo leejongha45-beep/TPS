@@ -9,9 +9,9 @@ void UTPSEquipComponent::RequestToggle(bool bIsCurrentlyEquipped)
 {
 	if (!ensure(WeaponInterface)) return;
 
-	if (bIsTransitioning) return;
+	if (bIsEquipTransitioning) return;
 
-	bIsTransitioning = true;
+	bIsEquipTransitioning = true;
 
 
 	const bool bEquip = !bIsCurrentlyEquipped;
@@ -22,7 +22,7 @@ void UTPSEquipComponent::RequestToggle(bool bIsCurrentlyEquipped)
 
 void UTPSEquipComponent::OnMontageFinished(bool bNewEquippedState)
 {
-	bIsTransitioning = false;
+	bIsEquipTransitioning = false;
 
 	UE_LOG(EquipLog, Log, TEXT("[OnMontageFinished] Equipped: %s"), bNewEquippedState ? TEXT("true") : TEXT("false"));
 
@@ -31,7 +31,7 @@ void UTPSEquipComponent::OnMontageFinished(bool bNewEquippedState)
 
 void UTPSEquipComponent::OnMontageInterrupted()
 {
-	bIsTransitioning = false;
+	bIsEquipTransitioning = false;
 
 	UE_LOG(EquipLog, Warning, TEXT("[OnMontageInterrupted] Equip montage was interrupted, transitioning unlocked"));
 }

@@ -51,6 +51,7 @@ void UTPSPlayerInteractionComponent::OpenInteraction()
 	IInteractable* pInteractable = Cast<IInteractable>(pTargetActor);
 	if (!ensure(pInteractable)) return;
 
+	// 상호작용할 액터의 Interact호출 함으로써 결합도 완화
 	pInteractable->Interact();
 
 	HidePrompt();
@@ -80,7 +81,11 @@ void UTPSPlayerInteractionComponent::OpenInteraction()
 void UTPSPlayerInteractionComponent::CloseInteraction()
 {
 	AActor* pTargetActor = CurrentTargetRef.Get();
-	if (!ensure(pTargetActor)) return;
+	if (!ensure(pTargetActor))
+	{
+		bIsInteracting = false;
+		return;
+	}
 
 	IInteractable* pInteractable = Cast<IInteractable>(pTargetActor);
 	if (ensure(pInteractable))

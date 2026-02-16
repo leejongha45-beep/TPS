@@ -27,6 +27,7 @@ protected:
 	UPROPERTY()
 	TArray<TObjectPtr<class ATPSProjectileBase>> Pool;
 
+	UPROPERTY()
 	TSubclassOf<class ATPSProjectileBase> LoadedProjectileClass;
 
 	FTimerHandle DeferredSpawnTimerHandle;

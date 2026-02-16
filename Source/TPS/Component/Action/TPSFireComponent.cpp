@@ -1,11 +1,11 @@
 #include "TPSFireComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+#include "Core/Subsystem/TPSProjectilePoolSubsystem.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
 #include "Weapon/TPSWeaponBase.h"
 #include "Weapon/Projectile/TPSProjectileBase.h"
-#include "Core/Subsystem/TPSProjectilePoolSubsystem.h"
-#include "NiagaraFunctionLibrary.h"
-#include "NiagaraSystem.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(FireLog, Log, All);
 
@@ -30,9 +30,10 @@ void UTPSFireComponent::StartFire(ATPSWeaponBase* InWeapon)
 
 	OnFireStateChangedDelegate.Broadcast(true);
 
-
+	// 일단 한발쏘고
 	FireOnce();
 
+	// 연사
 	GetWorld()->GetTimerManager().SetTimer(
 		FireTimerHandle, this, &UTPSFireComponent::FireOnce,
 		InWeapon->GetFireInterval(), true);
@@ -47,6 +48,7 @@ void UTPSFireComponent::StopFire()
 	GetWorld()->GetTimerManager().ClearTimer(FireTimerHandle);
 	bIsFiring = false;
 
+	WeaponRef.Reset();
 	OnFireStateChangedDelegate.Broadcast(false);
 
 	UE_LOG(FireLog, Log, TEXT("[StopFire] Firing stopped."));
@@ -95,6 +97,7 @@ FVector UTPSFireComponent::CalculateShotDirection(const FVector& InMuzzleLocatio
 	FHitResult HitResult;
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(GetOwner());
+	QueryParams.AddIgnoredActor(WeaponRef.Get());
 
 	const bool bHit = GetWorld()->LineTraceSingleByChannel(
 		HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);

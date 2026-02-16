@@ -36,7 +36,10 @@ void UTPSCameraControlComponent::RegisterComponentTickFunctions(bool bRegister)
 	}
 	else
 	{
-		InterpolateTickFunction.UnRegisterTickFunction();
+		if (InterpolateTickFunction.IsTickFunctionRegistered())
+		{
+			InterpolateTickFunction.UnRegisterTickFunction();
+		}
 	}
 }
 
@@ -126,13 +129,13 @@ void UTPSCameraControlComponent::Interpolate_Tick(float DeltaTime)
 		{
 			CameraRef->SetFieldOfView(TargetFOV);
 		}
-		
+
 		if (ensure(SpringArmRef))
 		{
 			SpringArmRef->SocketOffset = TargetSocketOffset;
 			SpringArmRef->TargetArmLength = TargetArmLength;
 		}
-		
+
 		SetInterpolateTickEnabled(false);
 	}
 }
