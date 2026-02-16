@@ -4,22 +4,28 @@
 #include "Components/ActorComponent.h"
 #include "TPSFireComponent.generated.h"
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnFireStateChanged, bool /* bIsFiring */);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class TPS_API UTPSFireComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
 public:
-	void StartFire();
+	void StartFire(class ATPSWeaponBase* InWeapon);
 	void StopFire();
 
 	FORCEINLINE bool GetIsFiring() const { return bIsFiring; }
+
+	FOnFireStateChanged OnFireStateChangedDelegate;
 
 protected:
 	void FireOnce();
 	FVector CalculateShotDirection(const FVector& InMuzzleLocation) const;
 	void SpawnMuzzleEffect(const FTransform& InMuzzleTransform);
-	void ActivateProjectileFromPool(const FTransform& InMuzzleTransform, const FVector& InDirection);
+	void ActivateProjectileFromPool(const FTransform& InMuzzleTransform, const FVector& InDirection, class ATPSWeaponBase* InWeapon);
+
+	TWeakObjectPtr<class ATPSWeaponBase> WeaponRef;
 
 	FTimerHandle FireTimerHandle;
 

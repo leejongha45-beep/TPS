@@ -48,6 +48,15 @@ void ATPSProjectileBase::ActivateProjectile(const FTransform& InMuzzleTransform,
 {
 	Damage = InDamage;
 
+	if (ensure(CollisionComponentInst))
+	{
+		CollisionComponentInst->MoveIgnoreActors.Empty();
+		if (GetInstigator())
+		{
+			CollisionComponentInst->MoveIgnoreActors.Add(GetInstigator());
+		}
+	}
+
 	SetActorLocationAndRotation(InMuzzleTransform.GetLocation(), InDirection.Rotation());
 	SetActorHiddenInGame(false);
 	SetActorEnableCollision(true);
@@ -91,10 +100,12 @@ void ATPSProjectileBase::DeactivateProjectile()
 void ATPSProjectileBase::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (OtherActor && OtherActor != GetInstigator())
+	if (!OtherActor || OtherActor == GetInstigator() || OtherActor == GetOwner())
 	{
-		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, nullptr);
+		return;
 	}
+
+	UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, nullptr);
 
 	if (ImpactEffectAsset)
 	{

@@ -1,8 +1,6 @@
 #include "TPSFireComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/PlayerController.h"
-#include "Component/Data/TPSPlayerStateComponent.h"
-#include "Component/Action/TPSEquipComponent.h"
 #include "Weapon/TPSWeaponBase.h"
 #include "Weapon/Projectile/TPSProjectileBase.h"
 #include "Core/Subsystem/TPSProjectilePoolSubsystem.h"
@@ -13,36 +11,33 @@ DECLARE_LOG_CATEGORY_EXTERN(FireLog, Log, All);
 
 DEFINE_LOG_CATEGORY(FireLog);
 
-void UTPSFireComponent::StartFire()
+void UTPSFireComponent::StartFire(ATPSWeaponBase* InWeapon)
 {
 	if (bIsFiring) return;
+	if (!ensure(InWeapon)) return;
 
-	ACharacter* pOwnerCharacter = Cast<ACharacter>(GetOwner());
-	if (!ensure(pOwnerCharacter)) return;
-
-	UTPSPlayerStateComponent* pStateComp = pOwnerCharacter->FindComponentByClass<UTPSPlayerStateComponent>();
-	if (!ensure(pStateComp)) return;
-
-	if (!pStateComp->HasState(EActionState::Equipping)) return;
-
-	UTPSEquipComponent* pEquipComp = pOwnerCharacter->FindComponentByClass<UTPSEquipComponent>();
-	if (!ensure(pEquipComp)) return;
-
-	ATPSWeaponBase* pWeapon = pEquipComp->GetWeaponActor();
-	if (!ensure(pWeapon)) return;
-
-	if (!pWeapon->HasAmmo()) return;
+	if (!WeaponRef.Get())
+	{
+		WeaponRef = InWeapon;
+		ATPSWeaponBase* pWeapon = WeaponRef.Get();
+		if (ensure(pWeapon))
+		{
+			if (!pWeapon->HasAmmo()) return;
+		}
+	}
 
 	bIsFiring = true;
-	pStateComp->AddState(EActionState::Firing);
+
+	OnFireStateChangedDelegate.Broadcast(true);
+
 
 	FireOnce();
 
 	GetWorld()->GetTimerManager().SetTimer(
 		FireTimerHandle, this, &UTPSFireComponent::FireOnce,
-		pWeapon->GetFireInterval(), true);
+		InWeapon->GetFireInterval(), true);
 
-	UE_LOG(FireLog, Log, TEXT("[StartFire] Firing started. FireInterval: %.3f"), pWeapon->GetFireInterval());
+	UE_LOG(FireLog, Log, TEXT("[StartFire] Firing started. FireInterval: %.3f"), InWeapon->GetFireInterval());
 }
 
 void UTPSFireComponent::StopFire()
@@ -52,36 +47,14 @@ void UTPSFireComponent::StopFire()
 	GetWorld()->GetTimerManager().ClearTimer(FireTimerHandle);
 	bIsFiring = false;
 
-	ACharacter* pOwnerCharacter = Cast<ACharacter>(GetOwner());
-	if (ensure(pOwnerCharacter))
-	{
-		UTPSPlayerStateComponent* pStateComp = pOwnerCharacter->FindComponentByClass<UTPSPlayerStateComponent>();
-		if (ensure(pStateComp))
-		{
-			pStateComp->RemoveState(EActionState::Firing);
-		}
-	}
+	OnFireStateChangedDelegate.Broadcast(false);
 
 	UE_LOG(FireLog, Log, TEXT("[StopFire] Firing stopped."));
 }
 
 void UTPSFireComponent::FireOnce()
 {
-	ACharacter* pOwnerCharacter = Cast<ACharacter>(GetOwner());
-	if (!ensure(pOwnerCharacter))
-	{
-		StopFire();
-		return;
-	}
-
-	UTPSEquipComponent* pEquipComp = pOwnerCharacter->FindComponentByClass<UTPSEquipComponent>();
-	if (!ensure(pEquipComp))
-	{
-		StopFire();
-		return;
-	}
-
-	ATPSWeaponBase* pWeapon = pEquipComp->GetWeaponActor();
+	ATPSWeaponBase* pWeapon = WeaponRef.Get();
 	if (!ensure(pWeapon))
 	{
 		StopFire();
@@ -101,7 +74,7 @@ void UTPSFireComponent::FireOnce()
 	const FVector ShotDirection = CalculateShotDirection(MuzzleTransform.GetLocation());
 
 	SpawnMuzzleEffect(MuzzleTransform);
-	ActivateProjectileFromPool(MuzzleTransform, ShotDirection);
+	ActivateProjectileFromPool(MuzzleTransform, ShotDirection, pWeapon);
 }
 
 FVector UTPSFireComponent::CalculateShotDirection(const FVector& InMuzzleLocation) const
@@ -140,7 +113,7 @@ void UTPSFireComponent::SpawnMuzzleEffect(const FTransform& InMuzzleTransform)
 		FVector(1.f), true, true, ENCPoolMethod::AutoRelease);
 }
 
-void UTPSFireComponent::ActivateProjectileFromPool(const FTransform& InMuzzleTransform, const FVector& InDirection)
+void UTPSFireComponent::ActivateProjectileFromPool(const FTransform& InMuzzleTransform, const FVector& InDirection, ATPSWeaponBase* InWeapon)
 {
 	UTPSProjectilePoolSubsystem* pPool = GetWorld()->GetSubsystem<UTPSProjectilePoolSubsystem>();
 	if (!ensure(pPool)) return;
@@ -148,16 +121,7 @@ void UTPSFireComponent::ActivateProjectileFromPool(const FTransform& InMuzzleTra
 	ATPSProjectileBase* pProjectile = pPool->GetProjectile();
 	if (!ensure(pProjectile)) return;
 
-	ACharacter* pOwnerCharacter = Cast<ACharacter>(GetOwner());
-	if (!ensure(pOwnerCharacter)) return;
-
-	UTPSEquipComponent* pEquipComp = pOwnerCharacter->FindComponentByClass<UTPSEquipComponent>();
-	if (!ensure(pEquipComp)) return;
-
-	ATPSWeaponBase* pWeapon = pEquipComp->GetWeaponActor();
-	if (!ensure(pWeapon)) return;
-
 	pProjectile->SetInstigator(Cast<APawn>(GetOwner()));
 	pProjectile->SetOwner(GetOwner());
-	pProjectile->ActivateProjectile(InMuzzleTransform, InDirection, pWeapon->GetDamage(), pWeapon->GetProjectileSpeed());
+	pProjectile->ActivateProjectile(InMuzzleTransform, InDirection, InWeapon->GetDamage(), InWeapon->GetProjectileSpeed());
 }

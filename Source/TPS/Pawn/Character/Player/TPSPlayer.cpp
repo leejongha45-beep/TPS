@@ -198,6 +198,14 @@ void ATPSPlayer::BindDelegate()
 			EquipComponentInst->OnEquipStateChangedDelegate.AddUObject(this, &ATPSPlayer::OnEquipStateChanged);
 		}
 	}
+
+	if (ensure(FireComponentInst))
+	{
+		if (!FireComponentInst->OnFireStateChangedDelegate.IsBoundToObject(this))
+		{
+			FireComponentInst->OnFireStateChangedDelegate.AddUObject(this, &ATPSPlayer::OnFireStateChanged);
+		}
+	}
 }
 
 void ATPSPlayer::StartMove()
@@ -375,10 +383,16 @@ void ATPSPlayer::Interact()
 
 void ATPSPlayer::StartFire()
 {
-	if (ensure(FireComponentInst))
-	{
-		FireComponentInst->StartFire();
-	}
+	if (!ensure(StateComponentInst) || !ensure(EquipComponentInst) || !ensure(FireComponentInst)) return;
+
+	if (!StateComponentInst->HasState(EActionState::Equipping)) return;
+
+	ATPSWeaponBase* pWeapon = EquipComponentInst->GetWeaponActor();
+	if (!ensure(pWeapon)) return;
+
+	if (!pWeapon->HasAmmo()) return;
+
+	FireComponentInst->StartFire(pWeapon);
 }
 
 void ATPSPlayer::StopFire()
@@ -386,6 +400,20 @@ void ATPSPlayer::StopFire()
 	if (ensure(FireComponentInst))
 	{
 		FireComponentInst->StopFire();
+	}
+}
+
+void ATPSPlayer::OnFireStateChanged(bool bIsFiring)
+{
+	if (!ensure(StateComponentInst)) return;
+
+	if (bIsFiring)
+	{
+		StateComponentInst->AddState(EActionState::Firing);
+	}
+	else
+	{
+		StateComponentInst->RemoveState(EActionState::Firing);
 	}
 }
 

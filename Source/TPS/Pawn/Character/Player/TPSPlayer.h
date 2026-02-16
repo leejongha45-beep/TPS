@@ -98,6 +98,10 @@ protected:
 	void OnEquipStateChanged(bool bIsEquipped);
 #pragma endregion
 
+#pragma region FireCallback
+	void OnFireStateChanged(bool bIsFiring);
+#pragma endregion
+
 #pragma region AimRotation
 	virtual void Interpolate_Tick(float DeltaTime) override;
 	void SetInterpolateTickEnabled(bool bEnabled);
