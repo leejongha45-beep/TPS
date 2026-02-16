@@ -2,8 +2,6 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Core/Subsystem/TPSProjectilePoolSubsystem.h"
-#include "GameFramework/Character.h"
-#include "GameFramework/PlayerController.h"
 #include "Weapon/TPSWeaponBase.h"
 #include "Weapon/Projectile/TPSProjectileBase.h"
 
@@ -11,7 +9,7 @@ DECLARE_LOG_CATEGORY_EXTERN(FireLog, Log, All);
 
 DEFINE_LOG_CATEGORY(FireLog);
 
-void UTPSFireComponent::StartFire(ATPSWeaponBase* InWeapon)
+void UTPSFireComponent::StartFire(ATPSWeaponBase* InWeapon, TFunction<void (FVector&, FRotator&)> InViewPointGetter)
 {
 	if (bIsFiring) return;
 	if (!ensure(InWeapon)) return;
@@ -25,6 +23,8 @@ void UTPSFireComponent::StartFire(ATPSWeaponBase* InWeapon)
 			if (!pWeapon->HasAmmo()) return;
 		}
 	}
+
+	ViewPointGetter = InViewPointGetter;
 
 	bIsFiring = true;
 
@@ -81,18 +81,13 @@ void UTPSFireComponent::FireOnce()
 
 FVector UTPSFireComponent::CalculateShotDirection(const FVector& InMuzzleLocation) const
 {
-	const APawn* pOwnerPawn = Cast<APawn>(GetOwner());
-	if (!ensure(pOwnerPawn)) return FVector::ForwardVector;
+	FVector ViewLocation;
+	FRotator ViewRotation;
+	
+	ViewPointGetter(ViewLocation, ViewRotation);
 
-	APlayerController* pController = Cast<APlayerController>(pOwnerPawn->GetController());
-	if (!ensure(pController)) return FVector::ForwardVector;
-
-	FVector CameraLocation;
-	FRotator CameraRotation;
-	pController->GetPlayerViewPoint(CameraLocation, CameraRotation);
-
-	const FVector TraceStart = CameraLocation;
-	const FVector TraceEnd = CameraLocation + CameraRotation.Vector() * 10000.f;
+	const FVector TraceStart = ViewLocation;
+	const FVector TraceEnd = ViewLocation + ViewRotation.Vector() * 10000.f;
 
 	FHitResult HitResult;
 	FCollisionQueryParams QueryParams;

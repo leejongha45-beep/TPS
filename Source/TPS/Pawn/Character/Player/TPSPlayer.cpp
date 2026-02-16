@@ -10,6 +10,7 @@
 #include "Component/Data/TPSPlayerStatusComponent.h"
 #include "Component/Action/TPSPlayerInteractionComponent.h"
 #include "Component/Action/TPSFireComponent.h"
+#include "Core/Controller/TPSPlayerController.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(AimTickLog, Warning, All);
 
@@ -399,7 +400,14 @@ void ATPSPlayer::StartFire()
 
 	if (!pWeapon->HasAmmo()) return;
 
-	FireComponentInst->StartFire(pWeapon);
+	ATPSPlayerController* pController = Cast<ATPSPlayerController>(GetController());
+	if (ensure(pController))
+	{
+		FireComponentInst->StartFire(pWeapon, [pController](FVector& OutLocation, FRotator& OutRotation)
+		{
+			pController->GetPlayerViewPoint(OutLocation, OutRotation);
+		});
+	}
 }
 
 void ATPSPlayer::StopFire()
