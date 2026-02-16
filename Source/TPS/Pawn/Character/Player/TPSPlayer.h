@@ -8,13 +8,14 @@
 #include "Utils/Interface/Action/Moveable.h"
 #include "Utils/Interface/Action/Sprintable.h"
 #include "Utils/Interface/Action/Interactable.h"
+#include "Utils/Interface/Action/Fireable.h"
 #include "Utils/Interface/Data/Interpolable.h"
 #include "Utils/TickFunctions/FInterpolateTickFunction.h"
 #include "TPSPlayer.generated.h"
 
 UCLASS()
 class TPS_API ATPSPlayer
-	: public ACharacter, public IMoveable, public ISprintable, public IAimable, public IJumpable, public IEquippable, public IInterpolable, public IInteractable
+	: public ACharacter, public IMoveable, public ISprintable, public IAimable, public IJumpable, public IEquippable, public IInterpolable, public IInteractable, public IFireable
 {
 	GENERATED_BODY()
 
@@ -25,6 +26,7 @@ public:
 	FORCEINLINE class UTPSAnimLayerComponent* GetAnimLayerComponent() const { return AnimLayerComponentInst; }
 	FORCEINLINE class UTPSPlayerInteractionComponent* GetInteractionComponent() const { return InteractionComponentInst; }
 	FORCEINLINE class UTPSEquipComponent* GetEquipComponent() const { return EquipComponentInst; }
+	FORCEINLINE class UTPSFireComponent* GetFireComponent() const { return FireComponentInst; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -64,6 +66,9 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Interaction")
 	TObjectPtr<class UTPSPlayerInteractionComponent> InteractionComponentInst;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Action")
+	TObjectPtr<class UTPSFireComponent> FireComponentInst;
 #pragma endregion
 
 #pragma region ControllerCallback
@@ -84,6 +89,9 @@ protected:
 	virtual void Unequip() override;
 
 	virtual void Interact() override;
+
+	virtual void StartFire() override;
+	virtual void StopFire() override;
 #pragma endregion
 
 #pragma region EquipCallback

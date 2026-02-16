@@ -3,8 +3,8 @@
 #include "CoreMinimal.h"
 #include "State.generated.h"
 
-UENUM(BlueprintType, Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
-enum class EActionState : uint8
+UENUM(Meta = (Bitflags, UseEnumValuesAsMaskValuesInEditor = "true"))
+enum class EActionState : uint16
 {
 	None    = 0       UMETA(Hidden),
 	Idle    = 1 << 0, // 1
@@ -15,5 +15,6 @@ enum class EActionState : uint8
 	Aiming    = 1 << 5, // 32
 	Equipping   = 1 << 6, // 64
 	Interacting = 1 << 7, // 128
+	Firing      = 1 << 8, // 256
 };
 ENUM_CLASS_FLAGS(EActionState);

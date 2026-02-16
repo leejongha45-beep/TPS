@@ -9,6 +9,7 @@
 #include "Component/Data/TPSPlayerStateComponent.h"
 #include "Component/Data/TPSPlayerStatusComponent.h"
 #include "Component/Action/TPSPlayerInteractionComponent.h"
+#include "Component/Action/TPSFireComponent.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(AimTickLog, Warning, All);
 
@@ -131,6 +132,12 @@ void ATPSPlayer::CreateDefaultComponents()
 	{
 		InteractionComponentInst = CreateDefaultSubobject<UTPSPlayerInteractionComponent>(TEXT("InteractionComponent"));
 		ensure(InteractionComponentInst);
+	}
+
+	if (!FireComponentInst)
+	{
+		FireComponentInst = CreateDefaultSubobject<UTPSFireComponent>(TEXT("FireComponent"));
+		ensure(FireComponentInst);
 	}
 }
 
@@ -338,6 +345,11 @@ void ATPSPlayer::StopJump()
 void ATPSPlayer::Equip()
 {
 	if (!ensure(StateComponentInst) || !ensure(EquipComponentInst)) return;
+	
+	if (StateComponentInst->HasState(EActionState::Firing))
+	{
+		StopFire();
+	}
 
 	const bool bIsCurrentlyEquipped = StateComponentInst->HasState(EActionState::Equipping);
 	EquipComponentInst->RequestToggle(bIsCurrentlyEquipped);
@@ -361,6 +373,22 @@ void ATPSPlayer::Interact()
 	}
 }
 
+void ATPSPlayer::StartFire()
+{
+	if (ensure(FireComponentInst))
+	{
+		FireComponentInst->StartFire();
+	}
+}
+
+void ATPSPlayer::StopFire()
+{
+	if (ensure(FireComponentInst))
+	{
+		FireComponentInst->StopFire();
+	}
+}
+
 void ATPSPlayer::OnEquipStateChanged(bool bIsEquipped)
 {
 	if (!ensure(StateComponentInst) || !ensure(CMCInst)) return;
@@ -373,6 +401,11 @@ void ATPSPlayer::OnEquipStateChanged(bool bIsEquipped)
 	}
 	else
 	{
+		if (ensure(FireComponentInst) && FireComponentInst->GetIsFiring())
+		{
+			FireComponentInst->StopFire();
+		}
+
 		if (StateComponentInst->HasState(EActionState::Aiming))
 		{
 			StopAim();

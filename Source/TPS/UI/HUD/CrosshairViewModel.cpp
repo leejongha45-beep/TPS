@@ -67,6 +67,11 @@ float UCrosshairViewModel::CalculateTargetSpread() const
 		Spread += Config.AirborneSpreadAdditive;
 	}
 
+	if (pStateComp->HasState(EActionState::Firing))
+	{
+		Spread += Config.FiringSpreadAdditive;
+	}
+
 	if (pStateComp->HasState(EActionState::Aiming))
 	{
 		Spread *= Config.AimingSpreadMultiplier;

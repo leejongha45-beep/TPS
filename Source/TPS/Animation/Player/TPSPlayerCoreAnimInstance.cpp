@@ -53,6 +53,7 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		bIsAiming = pStateComp->HasState(EActionState::Aiming);
 		bIsEquipping = pStateComp->HasState(EActionState::Equipping);
 		bIsFalling = pStateComp->HasState(EActionState::Falling);
+		bIsFiring = pStateComp->HasState(EActionState::Firing);
 	}
 
 	// 가속 감지

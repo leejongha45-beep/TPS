@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Weapon/TPSWeaponBase.h"
@@ -8,4 +8,7 @@ UCLASS()
 class TPS_API ATPSRifle : public ATPSWeaponBase
 {
 	GENERATED_BODY()
+
+public:
+	ATPSRifle();
 };

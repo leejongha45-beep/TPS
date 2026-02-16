@@ -22,6 +22,9 @@ struct FCrosshairConfig
 	float AirborneSpreadAdditive = 25.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Spread")
+	float FiringSpreadAdditive = 5.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Spread")
 	float AimingSpreadMultiplier = 0.3f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Spread")

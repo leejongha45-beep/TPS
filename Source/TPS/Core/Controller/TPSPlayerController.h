@@ -36,6 +36,9 @@ protected:
 	void EquipInput(const struct FInputActionValue& InputValue);
 	void InteractInput(const struct FInputActionValue& InputValue);
 
+	void StartFireInput(const struct FInputActionValue& InputValue);
+	void StopFireInput(const struct FInputActionValue& InputValue);
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputMappingContext> DefaultMappingContextAsset;
 
@@ -60,6 +63,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputAction> InteractActionAsset;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<class UInputAction> FireActionAsset;
+
 	UPROPERTY()
 	TScriptInterface<class IMoveable> MoveableInterface;
 
@@ -77,5 +83,8 @@ protected:
 
 	UPROPERTY()
 	TScriptInterface<class IInteractable> InteractableInterface;
+
+	UPROPERTY()
+	TScriptInterface<class IFireable> FireableInterface;
 #pragma endregion
 };

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Utils/Interface/Action/Attachable.h"
+#include "Weapon/TPSWeaponBase.h"
 #include "TPSEquipComponent.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnEquipMontagePlay, bool /* bEquip */);
@@ -22,6 +23,7 @@ public:
 
 	FORCEINLINE bool GetIsTransitioning() const { return bIsTransitioning; }
 	FORCEINLINE void SetWeaponInterface(TScriptInterface<IAttachable> InWeapon) { WeaponInterface = InWeapon; }
+	FORCEINLINE ATPSWeaponBase* GetWeaponActor() const { return Cast<ATPSWeaponBase>(WeaponInterface.GetObject()); }
 
 	FOnEquipMontagePlay OnEquipMontagePlayDelegate;
 	FOnEquipStateChanged OnEquipStateChangedDelegate;

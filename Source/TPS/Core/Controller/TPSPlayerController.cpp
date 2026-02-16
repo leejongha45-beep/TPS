@@ -8,6 +8,7 @@
 #include "Utils/Interface/Action/Sprintable.h"
 #include "Utils/Interface/Action/Equippable.h"
 #include "Utils/Interface/Action/Interactable.h"
+#include "Utils/Interface/Action/Fireable.h"
 
 ATPSPlayerController::ATPSPlayerController()
 {
@@ -71,6 +72,12 @@ void ATPSPlayerController::SetupInputComponent()
 		{
 			pEnhancedInput->BindAction(InteractActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::InteractInput);
 		}
+
+		if (ensure(FireActionAsset))
+		{
+			pEnhancedInput->BindAction(FireActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartFireInput);
+			pEnhancedInput->BindAction(FireActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopFireInput);
+		}
 	}
 }
 
@@ -86,6 +93,7 @@ void ATPSPlayerController::OnPossess(APawn* InPawn)
 		JumpableInterface = InPawn;
 		EquippableInterface = InPawn;
 		InteractableInterface = InPawn;
+		FireableInterface = InPawn;
 	}
 }
 
@@ -191,5 +199,21 @@ void ATPSPlayerController::InteractInput(const FInputActionValue& InputValue)
 	if (ensure(InteractableInterface))
 	{
 		InteractableInterface->Interact();
+	}
+}
+
+void ATPSPlayerController::StartFireInput(const FInputActionValue& InputValue)
+{
+	if (ensure(FireableInterface))
+	{
+		FireableInterface->StartFire();
+	}
+}
+
+void ATPSPlayerController::StopFireInput(const FInputActionValue& InputValue)
+{
+	if (ensure(FireableInterface))
+	{
+		FireableInterface->StopFire();
 	}
 }

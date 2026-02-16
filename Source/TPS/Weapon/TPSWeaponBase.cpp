@@ -34,3 +34,20 @@ void ATPSWeaponBase::Detach(USkeletalMeshComponent* InTargetMesh)
 		UnequipSocketName);
 	SetActorHiddenInGame(true);
 }
+
+FTransform ATPSWeaponBase::GetMuzzleTransform() const
+{
+	if (ensure(WeaponMeshInst))
+	{
+		return WeaponMeshInst->GetSocketTransform(MuzzleSocketName);
+	}
+	return FTransform::Identity;
+}
+
+void ATPSWeaponBase::ConsumeAmmo()
+{
+	if (CurrentAmmo > 0)
+	{
+		--CurrentAmmo;
+	}
+}
