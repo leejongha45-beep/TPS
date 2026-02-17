@@ -31,12 +31,14 @@ void UCrosshairViewModel::Update(float DeltaTime)
 		return;
 	}
 
+	// ① 비장착 상태 → 크로스헤어 숨김
 	if (!pStateComp->HasState(EActionState::Equipping))
 	{
 		bIsVisible = false;
 		return;
 	}
 
+	// ② 목표 스프레드 계산 → 현재 값 보간
 	bIsVisible = true;
 	TargetSpreadOffset = CalculateTargetSpread();
 	CurrentSpreadOffset = FMath::FInterpTo(CurrentSpreadOffset, TargetSpreadOffset, DeltaTime, Config.SpreadInterpSpeed);
@@ -50,6 +52,7 @@ float UCrosshairViewModel::CalculateTargetSpread() const
 		return Config.BaseSpreadOffset;
 	}
 
+	// ① 기본값 + 상태별 가산 (Moving, Sprinting, Airborne, Firing)
 	float Spread = Config.BaseSpreadOffset;
 
 	if (pStateComp->HasState(EActionState::Moving))
@@ -72,6 +75,7 @@ float UCrosshairViewModel::CalculateTargetSpread() const
 		Spread += Config.FiringSpreadAdditive;
 	}
 
+	// ② 조준 시 최종 곱수 적용
 	if (pStateComp->HasState(EActionState::Aiming))
 	{
 		Spread *= Config.AimingSpreadMultiplier;

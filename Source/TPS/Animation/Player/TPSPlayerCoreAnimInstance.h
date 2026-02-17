@@ -5,6 +5,13 @@
 #include "Utils/UENUM/RootYawOffsetMode.h"
 #include "TPSPlayerCoreAnimInstance.generated.h"
 
+/**
+ * 코어 애니메이션 인스턴스 (Lyra 스타일 멀티스레드)
+ * - NativeUpdateAnimation (게임 스레드): UObject 접근, StateComponent 읽기, LineTrace
+ * - NativeThreadSafeUpdateAnimation (워커 스레드): 캐시된 값 타입으로 순수 수학 연산
+ * - Turn-In-Place, 조준 Pitch/Yaw, 이동 방향 등 계산
+ * - BlueprintThreadSafe Getter로 AnimGraph에서 안전하게 접근
+ */
 UCLASS()
 class TPS_API UTPSPlayerCoreAnimInstance : public UAnimInstance
 {
@@ -15,10 +22,13 @@ protected:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 	virtual void NativeThreadSafeUpdateAnimation(float DeltaSeconds) override;
 
+	/** 소유 플레이어 캐릭터 (WeakPtr) */
 	TWeakObjectPtr<class ATPSPlayer> OwnerRef;
+
+	/** 상태 컴포넌트 참조 (WeakPtr) */
 	TWeakObjectPtr<class UTPSPlayerStateComponent> StateComponentRef;
 
-	// 워커 스레드용 캐시 (게임 스레드에서 수집, 워커 스레드에서 읽기)
+	/** 워커 스레드용 캐시 (게임 스레드에서 수집, 워커 스레드에서 읽기) */
 	FVector CachedVelocity = FVector::ZeroVector;
 	FRotator CachedActorRotation = FRotator::ZeroRotator;
 	FRotator CachedAimRotation = FRotator::ZeroRotator;
@@ -74,20 +84,25 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	float UpperBodyBlendWeight = 0.f;
 
-	// 이전 프레임 캐시 (게임 스레드 전용)
+	/** 이전 프레임 캐시 (게임 스레드 전용) */
 	float PreviousControllerYaw = 0.f;
 
 #pragma region EquipMontage
+	/** 장착 몽타주 에셋 */
 	UPROPERTY(EditDefaultsOnly, Category = "Montage|Equip")
 	TObjectPtr<UAnimMontage> EquipMontageAsset;
 
+	/** 해제 몽타주 에셋 */
 	UPROPERTY(EditDefaultsOnly, Category = "Montage|Equip")
 	TObjectPtr<UAnimMontage> UnequipMontageAsset;
 
+	/** 장착 컴포넌트 참조 (WeakPtr) */
 	TWeakObjectPtr<class UTPSEquipComponent> EquipComponentRef;
 
+	/** 장착/해제 몽타주 재생 (bEquip: true=장착, false=해제) */
 	void PlayEquipMontage(bool bEquip);
 
+	/** 몽타주 종료 콜백 — EquipComponent에 결과 전달 */
 	UFUNCTION()
 	void OnEquipMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 #pragma endregion
@@ -141,7 +156,7 @@ public:
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	float GetUpperBodyBlendWeight() const { return UpperBodyBlendWeight; }
 
-	// Linked Layer에서 호출 — 스테이트 전환 시 모드 변경
+	/** Linked Layer에서 호출 — 스테이트 전환 시 모드 변경 */
 	UFUNCTION(BlueprintCallable, Category="Animation", meta=(BlueprintThreadSafe))
 	void SetRootYawOffsetMode(ERootYawOffsetMode InMode);
 };

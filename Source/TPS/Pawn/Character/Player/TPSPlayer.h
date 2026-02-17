@@ -13,6 +13,13 @@
 #include "Utils/TickFunctions/FInterpolateTickFunction.h"
 #include "TPSPlayer.generated.h"
 
+/**
+ * 플레이어 캐릭터
+ * - 모든 액션 인터페이스 구현 (IMoveable, ISprintable, IAimable, IJumpable, IEquippable, IInteractable, IFireable)
+ * - Controller에서 인터페이스를 통해 액션 명령 수신
+ * - 컴포넌트 기반 설계: State, Status, CMC, Camera, Equip, Fire, AnimLayer, Interaction
+ * - IInterpolable: 조준 시 캐릭터 회전 보간
+ */
 UCLASS()
 class TPS_API ATPSPlayer
 	: public ACharacter, public IMoveable, public ISprintable, public IAimable, public IJumpable, public IEquippable, public IInterpolable, public IInteractable, public IFireable
@@ -108,6 +115,7 @@ protected:
 
 	FInterpolateTickFunction InterpolateTickFunction;
 
+	/** 조준 시 캐릭터 회전 보간 속도 */
 	UPROPERTY(EditDefaultsOnly, Category = "Aim")
 	float AimRotationInterpSpeed = 10.f;
 #pragma endregion

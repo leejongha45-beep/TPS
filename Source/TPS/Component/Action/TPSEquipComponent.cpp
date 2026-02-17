@@ -9,11 +9,12 @@ void UTPSEquipComponent::RequestToggle(bool bIsCurrentlyEquipped)
 {
 	if (!ensure(WeaponInterface)) return;
 
+	// ① 전환 중 중복 방지
 	if (bIsEquipTransitioning) return;
 
 	bIsEquipTransitioning = true;
 
-
+	// ② 몽타주 재생 요청 브로드캐스트 → AnimInstance에서 수신
 	const bool bEquip = !bIsCurrentlyEquipped;
 	UE_LOG(EquipLog, Log, TEXT("[RequestToggle] Request: %s"), bEquip ? TEXT("Equip") : TEXT("Unequip"));
 

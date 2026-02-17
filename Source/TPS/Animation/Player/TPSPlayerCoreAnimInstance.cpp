@@ -12,12 +12,14 @@ void UTPSPlayerCoreAnimInstance::NativeInitializeAnimation()
 
 	if (!OwnerRef.Get())
 	{
+		// ① 오너 캐싱 + 컴포넌트 참조 획득
 		OwnerRef = Cast<ATPSPlayer>(TryGetPawnOwner());
 		if (ensure(OwnerRef.Get()))
 		{
 			StateComponentRef = OwnerRef->GetStateComponent();
 			ensure(StateComponentRef.Get());
 
+			// ② EquipComponent 몽타주 델리게이트 바인딩
 			UTPSEquipComponent* pEquipComp = OwnerRef->GetEquipComponent();
 			if (ensure(pEquipComp))
 			{
@@ -41,12 +43,12 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		return;
 	}
 
-	// 게임 스레드: UObject 접근이 필요한 원시 데이터 캐싱
+	// ① 게임 스레드: UObject 접근이 필요한 원시 데이터 캐싱
 	CachedVelocity = pOwner->GetVelocity();
 	CachedActorRotation = pOwner->GetActorRotation();
 	CachedAimRotation = pOwner->GetBaseAimRotation();
 
-	// 비원자적 읽기 → 게임 스레드 전용
+	// ② 비원자적 읽기 → 게임 스레드 전용 (StateComponent)
 	UTPSPlayerStateComponent* pStateComp = StateComponentRef.Get();
 	if (ensure(pStateComp))
 	{
@@ -56,14 +58,14 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		bIsFiring = pStateComp->HasState(EActionState::Firing);
 	}
 
-	// 가속 감지
+	// ③ 가속 감지 (CMC 접근)
 	const UCharacterMovementComponent* CMC = pOwner->GetCharacterMovement();
 	if (CMC)
 	{
 		bHasAcceleration = !CMC->GetCurrentAcceleration().IsNearlyZero();
 	}
 
-	// Root Yaw Offset (Turn in Place)
+	// ④ Root Yaw Offset (Turn in Place)
 	const float CurrentControllerYaw = pOwner->GetControlRotation().Yaw;
 	const float ControllerYawDelta = FRotator::NormalizeAxis(CurrentControllerYaw - PreviousControllerYaw);
 
@@ -92,13 +94,13 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	PreviousControllerYaw = CurrentControllerYaw;
 
-	// 상체 블렌드 가중치 (장착 상태이거나 장착/해제 몽타주 재생 중)
+	// ⑤ 상체 블렌드 가중치 (장착 상태이거나 장착/해제 몽타주 재생 중)
 	const bool bIsPlayingEquipMontage =
 		(EquipMontageAsset && Montage_IsPlaying(EquipMontageAsset)) ||
 		(UnequipMontageAsset && Montage_IsPlaying(UnequipMontageAsset));
 	UpperBodyBlendWeight = (bIsEquipping || bIsPlayingEquipMontage) ? 1.f : 0.f;
 
-	// GroundDistance: 라인 트레이스(물리 월드 접근) → 게임 스레드 전용
+	// ⑥ GroundDistance: 라인 트레이스(물리 월드 접근) → 게임 스레드 전용
 	if (bIsFalling)
 	{
 		const FVector Start = pOwner->GetActorLocation();
@@ -127,11 +129,11 @@ void UTPSPlayerCoreAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeco
 {
 	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
 
-	// 워커 스레드: 캐시된 값 타입으로 순수 수학 연산만 수행
+	// ① GroundSpeed + Direction 계산 (캐시된 값 타입 → 순수 수학)
 	GroundSpeed = CachedVelocity.Size2D();
 	Direction = UKismetAnimationLibrary::CalculateDirection(CachedVelocity, CachedActorRotation);
 
-	// AimYaw/AimPitch + AimYawRate
+	// ② AimYaw/AimPitch + AimYawRate
 	const float PreviousAimYaw = AimYaw;
 	FRotator DeltaRotation = (CachedAimRotation - CachedActorRotation).GetNormalized();
 	AimPitch = DeltaRotation.Pitch;
@@ -140,7 +142,7 @@ void UTPSPlayerCoreAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeco
 		? FMath::Abs(FRotator::NormalizeAxis(AimYaw - PreviousAimYaw)) / DeltaSeconds
 		: 0.f;
 
-	// 이동 방향 각도
+	// ③ 이동 방향 각도
 	if (GroundSpeed > 5.f)
 	{
 		LocalVelocityDirectionAngle = Direction;
@@ -154,9 +156,11 @@ void UTPSPlayerCoreAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeco
 
 void UTPSPlayerCoreAnimInstance::PlayEquipMontage(bool bEquip)
 {
+	// ① Equip/Unequip 몽타주 선택
 	UAnimMontage* pMontage = bEquip ? EquipMontageAsset : UnequipMontageAsset;
 	if (!ensure(pMontage)) return;
 
+	// ② 몽타주 재생 + 종료 델리게이트 바인딩
 	Montage_Play(pMontage);
 
 	FOnMontageEnded EndDelegate;

@@ -29,6 +29,7 @@ void ATPSHUD::DrawCrosshair()
 {
 	if (!ensure(CrosshairViewModelInst)) return;
 
+	// ① 플레이어 참조 유효성 확인 (무효 시 재초기화)
 	if (!CrosshairViewModelInst->IsPlayerValid())
 	{
 		APlayerController* pPC = GetOwningPlayerController();
@@ -40,10 +41,12 @@ void ATPSHUD::DrawCrosshair()
 		CrosshairViewModelInst->Initialize(pPlayer, CrosshairConfig);
 	}
 
+	// ② 뷰모델 업데이트 (스프레드 보간)
 	CrosshairViewModelInst->Update(GetWorld()->GetDeltaSeconds());
 
 	if (!CrosshairViewModelInst->GetIsVisible()) return;
 
+	// ③ 뷰모델에서 스타일 값 읽기
 	const float CenterX = Canvas->ClipX * 0.5f;
 	const float CenterY = Canvas->ClipY * 0.5f;
 
@@ -53,6 +56,7 @@ void ATPSHUD::DrawCrosshair()
 	const FLinearColor Color = CrosshairViewModelInst->GetCrosshairColor();
 	const float DotSize = CrosshairViewModelInst->GetCenterDotSize();
 
+	// ④ 십자선 4방향 + 중앙 도트 드로잉
 	DrawCrosshairLine(CenterX, CenterY,  0.f, -1.f, SpreadOffset, LineLen, Thickness, Color);
 	DrawCrosshairLine(CenterX, CenterY,  0.f,  1.f, SpreadOffset, LineLen, Thickness, Color);
 	DrawCrosshairLine(CenterX, CenterY, -1.f,  0.f, SpreadOffset, LineLen, Thickness, Color);

@@ -9,6 +9,7 @@ void UTPSProjectilePoolSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 {
 	Super::Initialize(Collection);
 
+	// ① DataAsset 로드 (풀 설정)
 	ConfigAsset = LoadObject<UTPSProjectilePoolConfig>(
 		nullptr, TEXT("/Game/Assets/Data/DA_ProjectilePoolConfig.DA_ProjectilePoolConfig"));
 
@@ -18,6 +19,7 @@ void UTPSProjectilePoolSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 		return;
 	}
 
+	// ② 설정값 캐싱 + 풀 메모리 예약
 	PoolSize = ConfigAsset->PoolSize;
 	DeferredSpawnBatchSize = ConfigAsset->DeferredSpawnBatchSize;
 	Pool.Reserve(PoolSize);
@@ -27,6 +29,7 @@ void UTPSProjectilePoolSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
 
+	// ① 투사체 클래스 동기 로드 (SoftObjectPtr)
 	if (!ConfigAsset || ConfigAsset->ProjectileClassPath.IsNull())
 	{
 		UE_LOG(PoolLog, Warning, TEXT("[OnWorldBeginPlay] ProjectileClassPath is not set. Pool will not be initialized."));
@@ -40,10 +43,12 @@ void UTPSProjectilePoolSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		return;
 	}
 
+	// ② 초기 배치 스폰 (InitialSpawnCount만큼)
 	SpawnProjectileBatch(ConfigAsset->InitialSpawnCount);
 
 	UE_LOG(PoolLog, Log, TEXT("[OnWorldBeginPlay] Initial pool spawned: %d / %d"), TotalSpawnedCount, PoolSize);
 
+	// ③ 나머지 → 프레임 분산 스폰 타이머 등록
 	if (TotalSpawnedCount < PoolSize)
 	{
 		InWorld.GetTimerManager().SetTimer(
@@ -68,11 +73,13 @@ void UTPSProjectilePoolSubsystem::Deinitialize()
 
 ATPSProjectileBase* UTPSProjectilePoolSubsystem::GetProjectile()
 {
+	// ① 풀에 여유분이 있으면 즉시 반환
 	if (Pool.Num() > 0)
 	{
 		return Pool.Pop();
 	}
 
+	// ② 풀 고갈 시 긴급 스폰
 	UE_LOG(PoolLog, Warning, TEXT("[GetProjectile] Pool exhausted! Emergency spawning projectile."));
 
 	UWorld* pWorld = GetWorld();

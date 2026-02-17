@@ -8,6 +8,12 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogItemBox, Log, All);
 
+/**
+ * 아이템 박스 액터
+ * - IInteractable 구현 — 플레이어가 오버랩 시 상호작용 가능
+ * - 오버랩 진입/이탈 시 InteractionComponent에 대상 등록/해제
+ * - Interact() 시 무기 스폰 + 장착
+ */
 UCLASS()
 class TPS_API ATPSItemBox : public AActor, public IInteractable
 {
@@ -18,6 +24,7 @@ public:
 
 	FORCEINLINE const TScriptInterface<class IInteractable>& GetInteractableInterface() const { return InteractableInterface; }
 
+	/** 지정 무기 타입의 무기 스폰 */
 	void SpawnWeapon(EWeaponType TargetWeapon);
 
 protected:

@@ -19,7 +19,7 @@ void ATPSPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-	// IMC
+	// ① IMC (Input Mapping Context) 등록
 	UEnhancedInputLocalPlayerSubsystem* pSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 	if (ensure(pSubsystem))
 	{
@@ -29,7 +29,7 @@ void ATPSPlayerController::SetupInputComponent()
 		}
 	}
 
-	// ActionBinding
+	// ② 입력 액션 바인딩 (Look, Move, Sprint, Aim, Jump, Equip, Interact, Fire)
 	UEnhancedInputComponent* pEnhancedInput = CastChecked<UEnhancedInputComponent>(InputComponent);
 	if (ensure(LookActionAsset))
 	{
@@ -82,6 +82,7 @@ void ATPSPlayerController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 
+	// TScriptInterface 캐싱 — 모든 액션 인터페이스를 Pawn에서 획득
 	if (ensure(InPawn))
 	{
 		if (!MoveableInterface) MoveableInterface = InPawn;

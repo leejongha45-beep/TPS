@@ -10,6 +10,7 @@ void UTPSItemBoxWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	// ① 닫기 버튼 바인딩
 	if (ensure(CloseButton))
 	{
 		if (!CloseButton->OnClicked.IsBound())
@@ -18,6 +19,7 @@ void UTPSItemBoxWidget::NativeConstruct()
 		}
 	}
 
+	// ② 라이플 버튼 바인딩
 	if (ensure(RifleButton))
 	{
 		if (!RifleButton->OnClicked.IsBound())

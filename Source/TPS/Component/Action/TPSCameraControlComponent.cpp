@@ -95,6 +95,7 @@ void UTPSCameraControlComponent::Interpolate_Tick(float DeltaTime)
 	bool bFinished_C = false;
 	bool bFinished_S = false;
 
+	// ① 카메라 FOV 보간
 	if (ensure(CameraRef))
 	{
 		float CurrentFOV = CameraRef->FieldOfView;
@@ -107,6 +108,7 @@ void UTPSCameraControlComponent::Interpolate_Tick(float DeltaTime)
 		}
 	}
 
+	// ② SpringArm 오프셋 + ArmLength 보간
 	if (ensure(SpringArmRef))
 	{
 		FVector CurrentOffset = SpringArmRef->SocketOffset;
@@ -123,6 +125,7 @@ void UTPSCameraControlComponent::Interpolate_Tick(float DeltaTime)
 		}
 	}
 
+	// ③ 양쪽 모두 완료 시 최종값 스냅 + Tick 비활성화
 	if (bFinished_C && bFinished_S)
 	{
 		if (ensure(CameraRef))

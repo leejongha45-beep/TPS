@@ -33,11 +33,13 @@ void UTPSPlayerInteractionComponent::ClearCurrentTarget(AActor* InTarget)
 
 	if (CurrentTargetRef.Get() == InTarget)
 	{
+		// ① 상호작용 중이면 먼저 닫기
 		if (bIsInteracting)
 		{
 			CloseInteraction();
 		}
 
+		// ② 프롬프트 제거 + 참조 초기화
 		HidePrompt();
 		CurrentTargetRef.Reset();
 	}
@@ -51,11 +53,13 @@ void UTPSPlayerInteractionComponent::OpenInteraction()
 	IInteractable* pInteractable = Cast<IInteractable>(pTargetActor);
 	if (!ensure(pInteractable)) return;
 
-	// 상호작용할 액터의 Interact호출 함으로써 결합도 완화
+	// ① 대상 액터의 Interact 호출 (결합도 완화 — 인터페이스 경유)
 	pInteractable->Interact();
 
+	// ② 프롬프트 숨김
 	HidePrompt();
 
+	// ③ 플레이어 상태에 Interacting 추가
 	ATPSPlayer* pPlayer = Cast<ATPSPlayer>(GetOwner());
 	if (!ensure(pPlayer)) return;
 
@@ -65,6 +69,7 @@ void UTPSPlayerInteractionComponent::OpenInteraction()
 		pStateComponent->AddState(EActionState::Interacting);
 	}
 
+	// ④ 입력 모드 → GameAndUI + 마우스 커서 표시
 	APlayerController* pController = Cast<APlayerController>(pPlayer->GetController());
 	if (ensure(pController))
 	{
@@ -87,12 +92,14 @@ void UTPSPlayerInteractionComponent::CloseInteraction()
 		return;
 	}
 
+	// ① 대상 액터의 Interact 재호출 (토글 닫기)
 	IInteractable* pInteractable = Cast<IInteractable>(pTargetActor);
 	if (ensure(pInteractable))
 	{
 		pInteractable->Interact();
 	}
 
+	// ② 플레이어 상태에서 Interacting 제거
 	ATPSPlayer* pPlayer = Cast<ATPSPlayer>(GetOwner());
 	if (!ensure(pPlayer)) return;
 
@@ -102,6 +109,7 @@ void UTPSPlayerInteractionComponent::CloseInteraction()
 		pStateComponent->RemoveState(EActionState::Interacting);
 	}
 
+	// ③ 입력 모드 → GameOnly + 마우스 커서 숨김
 	APlayerController* pController = Cast<APlayerController>(pPlayer->GetController());
 	if (ensure(pController))
 	{
@@ -116,6 +124,7 @@ void UTPSPlayerInteractionComponent::ShowPrompt()
 {
 	if (InteractionPromptWidgetInst) return;
 
+	// ① 플레이어 → 컨트롤러 참조 획득
 	ATPSPlayer* pPlayer = Cast<ATPSPlayer>(GetOwner());
 	if (!ensure(pPlayer)) return;
 
@@ -123,6 +132,7 @@ void UTPSPlayerInteractionComponent::ShowPrompt()
 	if (!ensure(pController)) return;
 	if (!ensure(InteractionPromptWidgetClass)) return;
 
+	// ② 위젯 생성 → 텍스트 설정 → 뷰포트 추가
 	InteractionPromptWidgetInst = CreateWidget<UTPSInteractionPromptWidget>(pController, InteractionPromptWidgetClass);
 	if (ensure(InteractionPromptWidgetInst))
 	{

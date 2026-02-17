@@ -14,6 +14,7 @@ void UTPSFireComponent::StartFire(ATPSWeaponBase* InWeapon, TFunction<void (FVec
 	if (bIsFiring) return;
 	if (!ensure(InWeapon)) return;
 
+	// ① 무기 참조 캐싱 + 탄약 확인
 	if (!WeaponRef.Get())
 	{
 		WeaponRef = InWeapon;
@@ -24,16 +25,16 @@ void UTPSFireComponent::StartFire(ATPSWeaponBase* InWeapon, TFunction<void (FVec
 		}
 	}
 
+	// ② 상태 전환 + 델리게이트 브로드캐스트
 	ViewPointGetter = InViewPointGetter;
 
 	bIsFiring = true;
 
 	OnFireStateChangedDelegate.Broadcast(true);
 
-	// 일단 한발쏘고
+	// ③ 즉시 1발 발사 + 연사 타이머 등록
 	FireOnce();
 
-	// 연사
 	GetWorld()->GetTimerManager().SetTimer(
 		FireTimerHandle, this, &UTPSFireComponent::FireOnce,
 		InWeapon->GetFireInterval(), true);
@@ -56,6 +57,7 @@ void UTPSFireComponent::StopFire()
 
 void UTPSFireComponent::FireOnce()
 {
+	// ① 무기 유효성 + 탄약 확인
 	ATPSWeaponBase* pWeapon = WeaponRef.Get();
 	if (!ensure(pWeapon))
 	{
@@ -70,22 +72,28 @@ void UTPSFireComponent::FireOnce()
 		return;
 	}
 
+	// ② 탄약 소모 + 총구 정보 획득
 	pWeapon->ConsumeAmmo();
 
 	const FTransform MuzzleTransform = pWeapon->GetMuzzleTransform();
+
+	// ③ 카메라 중심 → 충돌 지점 방향 계산
 	const FVector ShotDirection = CalculateShotDirection(MuzzleTransform.GetLocation());
 
+	// ④ 총구 이펙트 + 풀에서 투사체 활성화
 	SpawnMuzzleEffect(MuzzleTransform);
 	ActivateProjectileFromPool(MuzzleTransform, ShotDirection, pWeapon);
 }
 
 FVector UTPSFireComponent::CalculateShotDirection(const FVector& InMuzzleLocation) const
 {
+	// ① 카메라 뷰포인트 획득
 	FVector ViewLocation;
 	FRotator ViewRotation;
-	
+
 	ViewPointGetter(ViewLocation, ViewRotation);
 
+	// ② 카메라 → 전방 라인 트레이스
 	const FVector TraceStart = ViewLocation;
 	const FVector TraceEnd = ViewLocation + ViewRotation.Vector() * 10000.f;
 
@@ -97,6 +105,7 @@ FVector UTPSFireComponent::CalculateShotDirection(const FVector& InMuzzleLocatio
 	const bool bHit = GetWorld()->LineTraceSingleByChannel(
 		HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
 
+	// ③ 충돌 지점(또는 최대 거리) → 총구 기준 방향 반환
 	const FVector TargetPoint = bHit ? HitResult.ImpactPoint : TraceEnd;
 	return (TargetPoint - InMuzzleLocation).GetSafeNormal();
 }
@@ -113,12 +122,14 @@ void UTPSFireComponent::SpawnMuzzleEffect(const FTransform& InMuzzleTransform)
 
 void UTPSFireComponent::ActivateProjectileFromPool(const FTransform& InMuzzleTransform, const FVector& InDirection, ATPSWeaponBase* InWeapon)
 {
+	// ① 풀 서브시스템에서 투사체 꺼내기
 	UTPSProjectilePoolSubsystem* pPool = GetWorld()->GetSubsystem<UTPSProjectilePoolSubsystem>();
 	if (!ensure(pPool)) return;
 
 	ATPSProjectileBase* pProjectile = pPool->GetProjectile();
 	if (!ensure(pProjectile)) return;
 
+	// ② Instigator/Owner 설정 + 투사체 활성화
 	pProjectile->SetInstigator(Cast<APawn>(GetOwner()));
 	pProjectile->SetOwner(GetOwner());
 	pProjectile->ActivateProjectile(InMuzzleTransform, InDirection, InWeapon->GetDamage(), InWeapon->GetProjectileSpeed());

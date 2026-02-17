@@ -11,6 +11,7 @@ void UTPSItemBoxInteractionComponent::ToggleItemBox(bool bInput, APlayerControll
 
 	if (bIsOpening)
 	{
+		// ① 위젯 생성 (최초 1회)
 		ATPSItemBox* pItemBox = Cast<ATPSItemBox>(GetOwner());
 		if (!ensure(pItemBox)) return;
 
@@ -24,6 +25,7 @@ void UTPSItemBoxInteractionComponent::ToggleItemBox(bool bInput, APlayerControll
 			ItemBoxWidgetInst = CreateWidget<UTPSItemBoxWidget>(pController, ItemBoxWidgetClass);
 		}
 
+		// ② 오너 참조 설정 + 뷰포트 추가
 		if (ensure(ItemBoxWidgetInst))
 		{
 			ItemBoxWidgetInst->SetOwningItemBox(pItemBox);
@@ -39,6 +41,7 @@ void UTPSItemBoxInteractionComponent::ToggleItemBox(bool bInput, APlayerControll
 	}
 	else
 	{
+		// ③ 닫기 — 뷰포트에서 제거
 		if (ItemBoxWidgetInst)
 		{
 			ItemBoxWidgetInst->RemoveFromParent();

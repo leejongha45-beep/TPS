@@ -13,6 +13,7 @@ ATPSItemBox::ATPSItemBox()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
+	// ① 메시 컴포넌트
 	if (!MeshInst)
 	{
 		MeshInst = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
@@ -22,6 +23,7 @@ ATPSItemBox::ATPSItemBox()
 		}
 	}
 
+	// ② 트리거 박스 + 오버랩 델리게이트 바인딩
 	if (!BoxCollisionInst)
 	{
 		BoxCollisionInst = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
@@ -43,6 +45,7 @@ ATPSItemBox::ATPSItemBox()
 		}
 	}
 
+	// ③ 상호작용 컴포넌트
 	if (!InteractionComponentInst)
 	{
 		InteractionComponentInst = CreateDefaultSubobject<UTPSItemBoxInteractionComponent>(TEXT("InteractionComponent"));
@@ -60,14 +63,17 @@ void ATPSItemBox::SpawnWeapon(EWeaponType TargetWeapon)
 
 		if (!SpawnedWeapon)
 		{
+			// ① 무기 액터 스폰
 			ATPSPlayer* pPlayer = Cast<ATPSPlayer>(InteractableInterface.GetObject());
 			if (!ensure(pPlayer)) return;
 
 			SpawnedWeapon = GetWorld()->SpawnActor<ATPSWeaponBase>(ItemClassArray[ItemIndex]);
 			if (!ensure(SpawnedWeapon)) return;
 
+			// ② 비장착 소켓에 부착
 			SpawnedWeapon->Detach(pPlayer->GetMesh());
 
+			// ③ EquipComponent에 무기 인터페이스 등록
 			UTPSEquipComponent* pEquipComponent = pPlayer->GetEquipComponent();
 			if (!ensure(pEquipComponent)) return;
 
@@ -98,9 +104,11 @@ void ATPSItemBox::OnBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AA
 	ATPSPlayer* pPlayer = Cast<ATPSPlayer>(OtherActor);
 	if (!ensure(pPlayer)) return;
 
+	// ① 상호작용 대상 인터페이스 캐싱
 	InteractableInterface = pPlayer;
 	ensure(InteractableInterface);
 
+	// ② 플레이어의 InteractionComponent에 자신을 타겟으로 등록
 	UTPSPlayerInteractionComponent* pInteractionComponent = pPlayer->GetInteractionComponent();
 	if (ensure(pInteractionComponent))
 	{
