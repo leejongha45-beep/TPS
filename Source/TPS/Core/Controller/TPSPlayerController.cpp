@@ -85,12 +85,25 @@ void ATPSPlayerController::OnPossess(APawn* InPawn)
 	if (ensure(InPawn))
 	{
 		if (!MoveableInterface) MoveableInterface = InPawn;
+		ensure(MoveableInterface);
+
 		if (!SprintableInterface) SprintableInterface = InPawn;
+		ensure(SprintableInterface);
+
 		if (!AimableInterface) AimableInterface = InPawn;
+		ensure(AimableInterface);
+
 		if (!JumpableInterface) JumpableInterface = InPawn;
+		ensure(JumpableInterface);
+
 		if (!EquippableInterface) EquippableInterface = InPawn;
+		ensure(EquippableInterface);
+
 		if (!InteractableInterface) InteractableInterface = InPawn;
+		ensure(InteractableInterface);
+
 		if (!FireableInterface) FireableInterface = InPawn;
+		ensure(FireableInterface);
 	}
 }
 

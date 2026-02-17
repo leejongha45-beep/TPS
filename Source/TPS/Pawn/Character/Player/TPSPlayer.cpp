@@ -317,7 +317,7 @@ void ATPSPlayer::StopAim()
 
 		SetInterpolateTickEnabled(false);
 
-		if (AnimLayerComponentInst)
+		if (ensure(AnimLayerComponentInst))
 		{
 			AnimLayerComponentInst->LinkAnimLayer(AnimLayerComponentInst->GetRifleHipFireLayerClass());
 		}

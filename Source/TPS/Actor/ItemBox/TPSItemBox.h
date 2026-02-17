@@ -3,17 +3,10 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Utils/Interface/Action/Interactable.h"
+#include "Utils/UENUM/WeaponType.h"
 #include "TPSItemBox.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogItemBox, Log, All);
-
-UENUM()
-enum class EWeaponType : uint8
-{
-	Pistol,
-	Rifle,
-	Shotgun
-};
 
 UCLASS()
 class TPS_API ATPSItemBox : public AActor, public IInteractable

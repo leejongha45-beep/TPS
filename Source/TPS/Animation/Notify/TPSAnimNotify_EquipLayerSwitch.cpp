@@ -9,10 +9,10 @@ void UTPSAnimNotify_EquipLayerSwitch::Notify(USkeletalMeshComponent* MeshComp, U
 
 	AActor* pOwner = MeshComp->GetOwner();
 	if (!ensure(pOwner)) return;
-	
-	UTPSAnimLayerComponent* AnimLayerComp =pOwner->FindComponentByClass<UTPSAnimLayerComponent>();
-	if (ensure(AnimLayerComp))
+
+	UTPSAnimLayerComponent* pAnimLayerComp = pOwner->FindComponentByClass<UTPSAnimLayerComponent>();
+	if (ensure(pAnimLayerComp))
 	{
-		AnimLayerComp->LinkAnimLayer(TargetAnimLayerClass);
+		pAnimLayerComp->LinkAnimLayer(TargetAnimLayerClass);
 	}
 }

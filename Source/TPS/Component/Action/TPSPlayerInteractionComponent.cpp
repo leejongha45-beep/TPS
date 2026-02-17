@@ -126,7 +126,7 @@ void UTPSPlayerInteractionComponent::ShowPrompt()
 	InteractionPromptWidgetInst = CreateWidget<UTPSInteractionPromptWidget>(pController, InteractionPromptWidgetClass);
 	if (ensure(InteractionPromptWidgetInst))
 	{
-		InteractionPromptWidgetInst->SetPromptText(FText::FromString(TEXT("Press F to Interact")));
+		InteractionPromptWidgetInst->SetPromptText(InteractionPromptText);
 		InteractionPromptWidgetInst->AddToViewport();
 	}
 }

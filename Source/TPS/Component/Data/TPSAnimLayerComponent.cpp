@@ -11,10 +11,10 @@ void UTPSAnimLayerComponent::LinkAnimLayer(TSubclassOf<UTPSLinkedAnimInstance> I
 {
 	if (!InClass || InClass == CurrentAnimLayerClass) return;
 
-	ACharacter* Character = Cast<ACharacter>(GetOwner());
-	if (!ensure(Character)) return;
+	ACharacter* pCharacter = Cast<ACharacter>(GetOwner());
+	if (!ensure(pCharacter)) return;
 
-	USkeletalMeshComponent* pMeshComp = Character->GetMesh();
+	USkeletalMeshComponent* pMeshComp = pCharacter->GetMesh();
 	if (ensure(pMeshComp))
 	{
 		pMeshComp->LinkAnimClassLayers(InClass);
@@ -26,9 +26,13 @@ void UTPSAnimLayerComponent::UnlinkAnimLayer()
 {
 	if (!CurrentAnimLayerClass) return;
 
-	ACharacter* Character = Cast<ACharacter>(GetOwner());
-	if (!ensure(Character)) return;
+	ACharacter* pCharacter = Cast<ACharacter>(GetOwner());
+	if (!ensure(pCharacter)) return;
 
-	Character->GetMesh()->UnlinkAnimClassLayers(CurrentAnimLayerClass);
-	CurrentAnimLayerClass = nullptr;
+	USkeletalMeshComponent* pMeshComp = pCharacter->GetMesh();
+	if (ensure(pMeshComp))
+	{
+		pMeshComp->UnlinkAnimClassLayers(CurrentAnimLayerClass);
+		CurrentAnimLayerClass = nullptr;
+	}
 }

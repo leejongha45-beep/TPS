@@ -35,4 +35,7 @@ protected:
 	TObjectPtr<class UTPSInteractionPromptWidget> InteractionPromptWidgetInst;
 
 	uint8 bIsInteracting : 1 = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI|Interaction")
+	FText InteractionPromptText = FText::FromString(TEXT("Press F to Interact"));
 };

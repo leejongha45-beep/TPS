@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Actor/ItemBox/TPSItemBox.h"
+#include "Utils/UENUM/WeaponType.h"
 #include "Blueprint/UserWidget.h"
 #include "TPSItemBoxWidget.generated.h"
 
