@@ -6,7 +6,7 @@
 /**
  * 바닥 재질 타입
  * - UE PhysicalSurface (SurfaceType1~8)와 1:1 매핑
- * - FootstepHelper에서 DataTable RowName으로 사용
+ * - FootstepComponent에서 캐시 인덱스로 사용
  * - Project Settings → Physics → Surface Types 순서와 일치시킬 것
  */
 UENUM(BlueprintType)

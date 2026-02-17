@@ -1,23 +1,80 @@
-#include "Utils/Helpers/FootstepHelper.h"
-#include "Utils/Struct/FootstepData.h"
+#include "Component/Data/TPSFootstepComponent.h"
 #include "Component/Data/TPSPlayerStateComponent.h"
+#include "Engine/DataTable.h"
 #include "Kismet/GameplayStatics.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "Engine/DataTable.h"
 #include "Sound/SoundBase.h"
-
-DECLARE_LOG_CATEGORY_EXTERN(FootstepLog, Log, All);
+#include "Utils/Struct/FootstepData.h"
 
 DEFINE_LOG_CATEGORY(FootstepLog);
 
-void FFootstepHelper::PlayFootstepSound(
+UTPSFootstepComponent::UTPSFootstepComponent()
+{
+	PrimaryComponentTick.bCanEverTick = false;
+
+	for (auto& pRow : CachedRows)
+	{
+		pRow = nullptr;
+	}
+}
+
+void UTPSFootstepComponent::BeginPlay()
+{
+	Super::BeginPlay();
+
+	CacheFootstepRows();
+}
+
+void UTPSFootstepComponent::CacheFootstepRows()
+{
+	if (!ensure(FootstepDataTableAsset)) return;
+
+	// ① 전체 Row를 한 번에 가져옴
+	TArray<FFootstepSoundRow*> AllRows;
+	FootstepDataTableAsset->GetAllRows<FFootstepSoundRow>(TEXT("FootstepCache"), AllRows);
+
+	// ② SurfaceType을 인덱스로 변환하여 캐싱
+	for (const FFootstepSoundRow* pRow : AllRows)
+	{
+		if (!pRow) continue;
+
+		const uint8 Index = static_cast<uint8>(pRow->SurfaceType);
+		if (Index < static_cast<uint8>(ESurfaceType::MAX))
+		{
+			CachedRows[Index] = pRow;
+		}
+	}
+
+	UE_LOG(FootstepLog, Log, TEXT("FootstepComponent: Cached %d rows from DataTable"), AllRows.Num());
+}
+
+const FFootstepSoundRow* UTPSFootstepComponent::FindCachedRow(ESurfaceType SurfaceType) const
+{
+	const uint8 Index = static_cast<uint8>(SurfaceType);
+	if (Index < static_cast<uint8>(ESurfaceType::MAX) && CachedRows[Index])
+	{
+		return CachedRows[Index];
+	}
+
+	// fallback: Default Row
+	const uint8 DefaultIndex = static_cast<uint8>(ESurfaceType::Default);
+	if (ensure(CachedRows[DefaultIndex]))
+	{
+		UE_LOG(FootstepLog, Warning,
+		       TEXT("FootstepComponent: Row for SurfaceType [%d] not cached, falling back to Default"),
+		       Index);
+		return CachedRows[DefaultIndex];
+	}
+
+	return nullptr;
+}
+
+void UTPSFootstepComponent::PlayFootstepSound(
 	USkeletalMeshComponent* MeshComp,
 	const FName& FootBoneName,
-	UDataTable* DataTableAsset,
 	float TraceDistance)
 {
 	if (!ensure(MeshComp)) return;
-	if (!ensure(DataTableAsset)) return;
 
 	AActor* pOwner = MeshComp->GetOwner();
 	if (!ensure(pOwner)) return;
@@ -32,8 +89,8 @@ void FFootstepHelper::PlayFootstepSound(
 	ESurfaceType SurfaceType = DetectSurfaceType(
 		pWorld, TraceStart, TraceDistance, pOwner, ImpactPoint);
 
-	// ② DataTable 조회
-	const FFootstepSoundRow* pRow = FindFootstepRow(DataTableAsset, SurfaceType);
+	// ② 캐시에서 Row 조회 (O(1))
+	const FFootstepSoundRow* pRow = FindCachedRow(SurfaceType);
 	if (!ensure(pRow)) return;
 
 	// ③ Walk / Run 분기
@@ -54,8 +111,8 @@ void FFootstepHelper::PlayFootstepSound(
 	if (SoundArray.Num() == 0)
 	{
 		UE_LOG(FootstepLog, Warning,
-		       TEXT("FootstepHelper: No sound assets for SurfaceType [%s]"),
-		       *UEnum::GetValueAsString(SurfaceType));
+		       TEXT("FootstepComponent: No sound assets for SurfaceType [%d]"),
+		       static_cast<uint8>(SurfaceType));
 		return;
 	}
 
@@ -75,7 +132,7 @@ void FFootstepHelper::PlayFootstepSound(
 		);
 }
 
-ESurfaceType FFootstepHelper::DetectSurfaceType(
+ESurfaceType UTPSFootstepComponent::DetectSurfaceType(
 	UWorld* World,
 	const FVector& TraceStart,
 	float TraceDistance,
@@ -107,7 +164,7 @@ ESurfaceType FFootstepHelper::DetectSurfaceType(
 	return ConvertPhysicalSurface(UPhysicalMaterial::DetermineSurfaceType(pPhysMat));
 }
 
-ESurfaceType FFootstepHelper::ConvertPhysicalSurface(EPhysicalSurface InSurface)
+ESurfaceType UTPSFootstepComponent::ConvertPhysicalSurface(EPhysicalSurface InSurface)
 {
 	switch (InSurface)
 	{
@@ -121,32 +178,4 @@ ESurfaceType FFootstepHelper::ConvertPhysicalSurface(EPhysicalSurface InSurface)
 	case SurfaceType8: return ESurfaceType::Mud;
 	default: return ESurfaceType::Default;
 	}
-}
-
-const FFootstepSoundRow* FFootstepHelper::FindFootstepRow(
-	const UDataTable* DataTableAsset,
-	ESurfaceType SurfaceType)
-{
-	if (!ensure(DataTableAsset)) return nullptr;
-
-	// ESurfaceType 문자열로 RowName 조회
-	FString RowName = UEnum::GetValueAsString(SurfaceType);
-	// "ESurfaceType::Concrete" → "Concrete" 로 변환
-	RowName.RemoveFromStart(TEXT("ESurfaceType::"));
-
-	const FFootstepSoundRow* pRow =
-		DataTableAsset->FindRow<FFootstepSoundRow>(*RowName, TEXT("FootstepLookup"));
-
-	// fallback: Default Row
-	if (!pRow)
-	{
-		UE_LOG(FootstepLog, Warning,
-		       TEXT("FootstepHelper: Row [%s] not found, falling back to Default"),
-		       *RowName);
-
-		pRow = DataTableAsset->FindRow<FFootstepSoundRow>(
-			TEXT("Default"), TEXT("FootstepFallback"));
-	}
-
-	return pRow;
 }

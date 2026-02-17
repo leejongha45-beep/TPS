@@ -34,6 +34,7 @@ public:
 	FORCEINLINE class UTPSPlayerInteractionComponent* GetInteractionComponent() const { return InteractionComponentInst; }
 	FORCEINLINE class UTPSEquipComponent* GetEquipComponent() const { return EquipComponentInst; }
 	FORCEINLINE class UTPSFireComponent* GetFireComponent() const { return FireComponentInst; }
+	FORCEINLINE class UTPSFootstepComponent* GetFootstepComponent() const { return FootstepComponentInst; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -76,6 +77,9 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Action")
 	TObjectPtr<class UTPSFireComponent> FireComponentInst;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Data")
+	TObjectPtr<class UTPSFootstepComponent> FootstepComponentInst;
 #pragma endregion
 
 #pragma region ControllerCallback

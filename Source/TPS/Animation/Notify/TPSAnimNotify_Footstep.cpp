@@ -1,14 +1,19 @@
 #include "Animation/Notify/TPSAnimNotify_Footstep.h"
-#include "Utils/Helpers/FootstepHelper.h"
+#include "Component/Data/TPSFootstepComponent.h"
 
 void UTPSAnimNotify_Footstep::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 
-	FFootstepHelper::PlayFootstepSound(
-		MeshComp,
-		FootBoneName,
-		FootstepDataTableAsset,
-		TraceDistance
-	);
+	if (!MeshComp) return;
+
+	AActor* pOwner = MeshComp->GetOwner();
+	if (!pOwner) return;
+
+	UTPSFootstepComponent* pFootstepComp =
+		pOwner->FindComponentByClass<UTPSFootstepComponent>();
+
+	if (!ensure(pFootstepComp)) return;
+
+	pFootstepComp->PlayFootstepSound(MeshComp, FootBoneName, TraceDistance);
 }

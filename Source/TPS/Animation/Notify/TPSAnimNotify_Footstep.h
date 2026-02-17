@@ -6,8 +6,8 @@
 
 /**
  * 발소리 AnimNotify
- * 로직은 FFootstepHelper에 위임하여
- * 리팩토링 시 이 클래스는 수정 불필요
+ * - Owner의 UTPSFootstepComponent에 재생 위임
+ * - 본 이름과 트레이스 거리만 보유 (DataTable은 Component가 캐싱)
  */
 UCLASS()
 class TPS_API UTPSAnimNotify_Footstep : public UAnimNotify
@@ -16,10 +16,6 @@ class TPS_API UTPSAnimNotify_Footstep : public UAnimNotify
 
 protected:
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
-
-	/** 발소리 DataTable (RowType: FFootstepSoundRow) */
-	UPROPERTY(EditDefaultsOnly, Category = "Footstep")
-	TObjectPtr<class UDataTable> FootstepDataTableAsset;
 
 	/** 발 본 이름 — foot_l 또는 foot_r */
 	UPROPERTY(EditDefaultsOnly, Category = "Footstep")

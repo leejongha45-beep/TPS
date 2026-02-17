@@ -10,6 +10,7 @@
 #include "Component/Data/TPSPlayerStatusComponent.h"
 #include "Component/Action/TPSPlayerInteractionComponent.h"
 #include "Component/Action/TPSFireComponent.h"
+#include "Component/Data/TPSFootstepComponent.h"
 #include "Core/Controller/TPSPlayerController.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(AimTickLog, Warning, All);
@@ -101,7 +102,7 @@ void ATPSPlayer::CreateDefaultComponents()
 	}
 
 
-	// ② 데이터 컴포넌트 (State, Status)
+	// ② 데이터 컴포넌트 (State, Status, Footstep)
 	if (!StateComponentInst)
 	{
 		StateComponentInst = CreateDefaultSubobject<UTPSPlayerStateComponent>(TEXT("StateComponent"));
@@ -120,6 +121,12 @@ void ATPSPlayer::CreateDefaultComponents()
 			StatusComponentInst->SetDefaultSprintSpeed(700.f);
 			StatusComponentInst->SetDefaultWalkSpeed(500.f);
 		}
+	}
+
+	if (!FootstepComponentInst)
+	{
+		FootstepComponentInst = CreateDefaultSubobject<UTPSFootstepComponent>(TEXT("FootstepComponent"));
+		ensure(FootstepComponentInst);
 	}
 
 	// ③ 액션 컴포넌트 (Equip, AnimLayer, Interaction, Fire)
