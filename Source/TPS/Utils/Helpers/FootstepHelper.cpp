@@ -1,4 +1,4 @@
-#include "Utils/FootstepHelper.h"
+#include "Utils/Helpers/FootstepHelper.h"
 #include "Utils/Struct/FootstepData.h"
 #include "Component/Data/TPSPlayerStateComponent.h"
 #include "Kismet/GameplayStatics.h"

@@ -1,5 +1,5 @@
 #include "Animation/Notify/TPSAnimNotify_Footstep.h"
-#include "Utils/FootstepHelper.h"
+#include "Utils/Helpers/FootstepHelper.h"
 
 void UTPSAnimNotify_Footstep::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
