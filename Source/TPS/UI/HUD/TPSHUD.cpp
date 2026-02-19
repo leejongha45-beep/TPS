@@ -123,7 +123,7 @@ void ATPSHUD::OnAmmoViewModelChanged(UAmmoViewModel* InAmmoViewModel)
 		if (ensure(AmmoWidgetInst))
 		{
 			AmmoWidgetInst->SetVisibility(ESlateVisibility::HitTestInvisible);
-			AmmoWidgetInst->UpdateAmmoDisplay(InAmmoViewModel->GetCurrentAmmo(), InAmmoViewModel->GetMaxAmmo());
+			AmmoWidgetInst->UpdateAmmoDisplay(InAmmoViewModel->GetCurrentAmmo(), InAmmoViewModel->GetMaxAmmo(), InAmmoViewModel->GetAmmoColor());
 		}
 	}
 	else
@@ -146,5 +146,5 @@ void ATPSHUD::UpdateAmmoWidget()
 	UAmmoViewModel* pViewModel = AmmoViewModelRef.Get();
 	if (!ensure(pViewModel)) return;
 
-	AmmoWidgetInst->UpdateAmmoDisplay(pViewModel->GetCurrentAmmo(), pViewModel->GetMaxAmmo());
+	AmmoWidgetInst->UpdateAmmoDisplay(pViewModel->GetCurrentAmmo(), pViewModel->GetMaxAmmo(), pViewModel->GetAmmoColor());
 }

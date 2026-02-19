@@ -15,8 +15,8 @@ class TPS_API UTPSAmmoWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	/** 탄약 텍스트 갱신 */
-	void UpdateAmmoDisplay(int32 InCurrent, int32 InMax);
+	/** 탄약 텍스트 + 색상 갱신 */
+	void UpdateAmmoDisplay(int32 InCurrent, int32 InMax, const FSlateColor& InColor);
 
 protected:
 	/** BP에서 바인딩할 텍스트 블록 — 현재 탄약 */
