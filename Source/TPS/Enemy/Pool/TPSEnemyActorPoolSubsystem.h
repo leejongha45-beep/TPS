@@ -9,7 +9,7 @@
  * - Initialize: Config DataAsset 로드 + 풀 메모리 예약
  * - OnWorldBeginPlay: 클래스 동기 로드 + 초기 배치 스폰 + 지연 스폰 타이머
  * - Get/Return 패턴으로 적 폰 재활용
- * - TPSProjectilePoolSubsystem과 동일 아키텍처
+ * - Pool 고갈 시 긴급 배치 확장 (프레임당 상한 제어)
  */
 UCLASS()
 class TPS_API UTPSEnemyActorPoolSubsystem : public UWorldSubsystem
@@ -21,7 +21,7 @@ public:
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void Deinitialize() override;
 
-	/** 풀에서 비활성 적 1마리 가져오기 */
+	/** 풀에서 비활성 적 1마리 가져오기 (Pool 고갈 시 자동 확장, 상한 초과 시 nullptr) */
 	class ATPSEnemyPawnBase* GetEnemy();
 
 	/** 사용 완료된 적을 풀에 반환 */
@@ -51,4 +51,18 @@ protected:
 	int32 PoolSize = 0;
 	int32 DeferredSpawnBatchSize = 0;
 	int32 TotalSpawnedCount = 0;
+
+	// ── 긴급 확장 제어 ──
+
+	/** 긴급 확장 1회당 스폰 수 */
+	static constexpr int32 ExpansionBatchSize = 10;
+
+	/** 프레임당 긴급 확장 최대 호출 횟수 (10회 × 10마리 = 100마리/프레임) */
+	static constexpr int32 MaxExpansionPerFrame = 10;
+
+	/** 현재 프레임 긴급 확장 호출 횟수 (매 프레임 리셋) */
+	int32 FrameExpansionCount = 0;
+
+	/** 마지막 확장이 발생한 프레임 번호 */
+	uint64 LastExpansionFrameNumber = 0;
 };

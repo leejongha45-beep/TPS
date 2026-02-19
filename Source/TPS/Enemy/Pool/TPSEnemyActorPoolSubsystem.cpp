@@ -79,23 +79,34 @@ ATPSEnemyPawnBase* UTPSEnemyActorPoolSubsystem::GetEnemy()
 		return Pool.Pop();
 	}
 
-	// ② 풀 고갈 시 긴급 스폰
-	UE_LOG(EnemyPoolLog, Warning, TEXT("[GetEnemy] Pool exhausted! Emergency spawning enemy."));
-
-	UWorld* pWorld = GetWorld();
-	if (!ensure(pWorld)) return nullptr;
-	if (!ensure(LoadedEnemyClass)) return nullptr;
-
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	ATPSEnemyPawnBase* pEnemy = pWorld->SpawnActor<ATPSEnemyPawnBase>(LoadedEnemyClass, FTransform::Identity, SpawnParams);
-	if (ensure(pEnemy))
+	// ② 프레임 카운트 리셋 (새 프레임 진입 시)
+	const uint64 CurrentFrame = GFrameCounter;
+	if (CurrentFrame != LastExpansionFrameNumber)
 	{
-		++TotalSpawnedCount;
+		FrameExpansionCount = 0;
+		LastExpansionFrameNumber = CurrentFrame;
 	}
 
-	return pEnemy;
+	// ③ 프레임당 확장 상한 체크 (10회 × 10마리 = 100마리/프레임)
+	if (FrameExpansionCount >= MaxExpansionPerFrame)
+	{
+		return nullptr;  // LODProcessor가 ISM 폴백
+	}
+
+	// ④ 긴급 배치 확장
+	UE_LOG(EnemyPoolLog, Warning, TEXT("[GetEnemy] Pool exhausted — expanding +%d (frame %llu, expansion %d/%d)"),
+		ExpansionBatchSize, CurrentFrame, FrameExpansionCount + 1, MaxExpansionPerFrame);
+
+	SpawnEnemyBatch(ExpansionBatchSize);
+	++FrameExpansionCount;
+
+	// ⑤ 확장 성공 시 반환
+	if (Pool.Num() > 0)
+	{
+		return Pool.Pop();
+	}
+
+	return nullptr;
 }
 
 void UTPSEnemyActorPoolSubsystem::ReturnEnemy(ATPSEnemyPawnBase* InEnemy)

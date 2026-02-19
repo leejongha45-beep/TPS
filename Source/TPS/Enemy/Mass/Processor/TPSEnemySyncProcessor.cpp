@@ -62,18 +62,23 @@ void UTPSEnemySyncProcessor::Execute(FMassEntityManager& EntityManager, FMassExe
 				const FTPSEnemyLODFragment& LOD = LODList[i];
 				const FTPSEnemyActorRefFragment& ActorRef = ActorRefList[i];
 
-				// ① FullActor → Actor 위치/회전 동기화
+				// ① FullActor → Actor 위치/회전/AI상태 동기화
 				if (LOD.LODLevel == EEnemyLODLevel::FullActor && ActorRef.ActorRef.IsValid())
 				{
-					AActor* pActor = ActorRef.ActorRef.Get();
-					pActor->SetActorLocation(Movement.CurrentLocation);
+					ATPSEnemyPawnBase* pEnemy = Cast<ATPSEnemyPawnBase>(ActorRef.ActorRef.Get());
+					if (!ensure(pEnemy)) continue;
+
+					pEnemy->SetActorLocation(Movement.CurrentLocation);
 
 					// 플레이어 방향으로 회전
 					const FVector Direction = (SharedLocation.PlayerLocation - Movement.CurrentLocation).GetSafeNormal2D();
 					if (!Direction.IsNearlyZero())
 					{
-						pActor->SetActorRotation(Direction.Rotation());
+						pEnemy->SetActorRotation(Direction.Rotation());
 					}
+
+					// AI 상태 동기화 (시각/사운드 전환)
+					pEnemy->SyncAIState(AI.AIState);
 				}
 				// ② ISM → ISM Transform 갱신
 				else if (LOD.LODLevel == EEnemyLODLevel::ISM && LOD.ISMInstanceIndex != INDEX_NONE)

@@ -94,7 +94,12 @@ void UTPSEnemyLODProcessor::Execute(FMassEntityManager& EntityManager, FMassExec
 				if (NewLOD == EEnemyLODLevel::FullActor && PrevLOD != EEnemyLODLevel::FullActor)
 				{
 					ATPSEnemyPawnBase* pEnemy = pPool->GetEnemy();
-					if (ensure(pEnemy))
+					if (!ensure(pEnemy))
+					{
+						// Pool 확장 상한 초과 — FullActor 전환 취소, ISM 유지
+						NewLOD = EEnemyLODLevel::ISM;
+					}
+					else
 					{
 						const FTransform SpawnTransform(FRotator::ZeroRotator, Movement.CurrentLocation);
 						pEnemy->ActivateEnemy(SpawnTransform, AI.AIState);
