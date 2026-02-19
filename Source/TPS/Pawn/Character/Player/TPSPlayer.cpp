@@ -8,6 +8,7 @@
 #include "Component/Data/TPSPlayerStateComponent.h"
 #include "Component/Action/TPSPlayerInteractionComponent.h"
 #include "Core/Controller/TPSPlayerController.h"
+#include "Weapon/TPSWeaponBase.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(AimTickLog, Warning, All);
 
@@ -173,16 +174,33 @@ void ATPSPlayer::StartFire()
 
 void ATPSPlayer::OnEquipStateChanged(bool bIsEquipped)
 {
-	// ① 공통 처리 (State + CMC + 사격/조준 중단)
-	Super::OnEquipStateChanged(bIsEquipped);
-
-	// ② Player 전용: 보간 + 컨트롤러 Yaw
 	if (bIsEquipped)
 	{
+		// ① 공통 처리 (State + CMC)
+		Super::OnEquipStateChanged(bIsEquipped);
+
+		// ② Player 전용: 보간 활성화
 		SetInterpolateTickEnabled(true);
+
+		// ③ AmmoViewModel 브로드캐스트 → HUD에서 수신
+		if (ensure(EquipComponentInst))
+		{
+			ATPSWeaponBase* pWeapon = EquipComponentInst->GetWeaponActor();
+			if (ensure(pWeapon))
+			{
+				OnAmmoViewModelChangedDelegate.Broadcast(pWeapon->GetAmmoViewModel());
+			}
+		}
 	}
 	else
 	{
+		// ① AmmoViewModel 해제 브로드캐스트 (Super 전에 — Super가 사격/조준 중단 처리)
+		OnAmmoViewModelChangedDelegate.Broadcast(nullptr);
+
+		// ② 공통 처리 (State + CMC + 사격/조준 중단)
+		Super::OnEquipStateChanged(bIsEquipped);
+
+		// ③ Player 전용: 컨트롤러 Yaw 해제
 		bUseControllerRotationYaw = false;
 	}
 }

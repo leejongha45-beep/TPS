@@ -1,5 +1,8 @@
 ﻿#include "UI/HUD/TPSHUD.h"
+#include "UI/ViewModel/AmmoViewModel.h"
+#include "UI/Widget/Ammo/TPSAmmoWidget.h"
 #include "Pawn/Character/Player/TPSPlayer.h"
+#include "Blueprint/UserWidget.h"
 #include "Engine/Canvas.h"
 
 void ATPSHUD::BeginPlay()
@@ -12,10 +15,28 @@ void ATPSHUD::BeginPlay()
 	ATPSPlayer* pPlayer = Cast<ATPSPlayer>(pPC->GetPawn());
 	if (!ensure(pPlayer)) return;
 
+	// ① 크로스헤어 뷰모델 초기화
 	CrosshairViewModelInst = NewObject<UCrosshairViewModel>(this);
 	if (ensure(CrosshairViewModelInst))
 	{
 		CrosshairViewModelInst->Initialize(pPlayer, CrosshairConfig);
+	}
+
+	// ② 탄약 위젯 생성 + Viewport 추가 (Collapsed)
+	if (AmmoWidgetClass)
+	{
+		AmmoWidgetInst = CreateWidget<UTPSAmmoWidget>(pPC, AmmoWidgetClass);
+		if (ensure(AmmoWidgetInst))
+		{
+			AmmoWidgetInst->AddToViewport();
+			AmmoWidgetInst->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	// ③ Player 델리게이트 바인딩
+	if (!pPlayer->OnAmmoViewModelChangedDelegate.IsBoundToObject(this))
+	{
+		pPlayer->OnAmmoViewModelChangedDelegate.AddUObject(this, &ATPSHUD::OnAmmoViewModelChanged);
 	}
 }
 
@@ -23,6 +44,7 @@ void ATPSHUD::DrawHUD()
 {
 	Super::DrawHUD();
 	DrawCrosshair();
+	UpdateAmmoWidget();
 }
 
 void ATPSHUD::DrawCrosshair()
@@ -89,4 +111,40 @@ void ATPSHUD::DrawCenterDot(float CenterX, float CenterY,
 	);
 	DotItem.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem(DotItem);
+}
+
+void ATPSHUD::OnAmmoViewModelChanged(UAmmoViewModel* InAmmoViewModel)
+{
+	if (InAmmoViewModel)
+	{
+		// ① 장착 — ViewModel 참조 세팅 + Widget 표시
+		AmmoViewModelRef = InAmmoViewModel;
+
+		if (ensure(AmmoWidgetInst))
+		{
+			AmmoWidgetInst->SetVisibility(ESlateVisibility::HitTestInvisible);
+			AmmoWidgetInst->UpdateAmmoDisplay(InAmmoViewModel->GetCurrentAmmo(), InAmmoViewModel->GetMaxAmmo());
+		}
+	}
+	else
+	{
+		// ② 해제 — 참조 해제 + Widget 숨김
+		AmmoViewModelRef.Reset();
+
+		if (ensure(AmmoWidgetInst))
+		{
+			AmmoWidgetInst->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+}
+
+void ATPSHUD::UpdateAmmoWidget()
+{
+	if (!AmmoViewModelRef.IsValid()) return;
+	if (!ensure(AmmoWidgetInst)) return;
+
+	UAmmoViewModel* pViewModel = AmmoViewModelRef.Get();
+	if (!ensure(pViewModel)) return;
+
+	AmmoWidgetInst->UpdateAmmoDisplay(pViewModel->GetCurrentAmmo(), pViewModel->GetMaxAmmo());
 }

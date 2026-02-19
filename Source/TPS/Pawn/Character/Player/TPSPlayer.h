@@ -6,6 +6,9 @@
 #include "Utils/TickFunctions/FInterpolateTickFunction.h"
 #include "TPSPlayer.generated.h"
 
+/** AmmoViewModel 변경 시 브로드캐스트 (장착: ViewModel 전달, 해제: nullptr) */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnAmmoViewModelChanged, class UAmmoViewModel* /* InAmmoViewModel */);
+
 /**
  * 플레이어 캐릭터
  * - ATPSSoldierBase 상속 (이동/스프린트/점프/조준/장착/사격 공통)
@@ -22,6 +25,8 @@ public:
 	ATPSPlayer(const FObjectInitializer& ObjectInitializer);
 
 	FORCEINLINE class UTPSPlayerInteractionComponent* GetInteractionComponent() const { return InteractionComponentInst; }
+
+	FOnAmmoViewModelChanged OnAmmoViewModelChangedDelegate;
 
 protected:
 	virtual void PostInitializeComponents() override;

@@ -2,13 +2,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
-#include "CrosshairViewModel.h"
+#include "UI/ViewModel/CrosshairViewModel.h"
 #include "TPSHUD.generated.h"
 
 /**
  * 게임 HUD
  * - Canvas 기반 크로스헤어 드로잉
- * - CrosshairViewModel을 통해 스프레드/스타일 관리
+ * - UMG 기반 탄약 위젯 관리
+ * - CrosshairViewModel / AmmoViewModel을 통해 데이터 수신
  * - DrawHUD() 매 프레임 호출
  */
 UCLASS()
@@ -20,6 +21,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void DrawHUD() override;
 
+#pragma region Crosshair
 	/** 크로스헤어 설정 (스프레드, 스타일) */
 	UPROPERTY(EditDefaultsOnly, Category = "Crosshair")
 	FCrosshairConfig CrosshairConfig;
@@ -40,4 +42,24 @@ protected:
 	/** 중앙 도트 드로잉 */
 	void DrawCenterDot(float CenterX, float CenterY,
 		float DotSize, const FLinearColor& Color);
+#pragma endregion
+
+#pragma region Ammo
+	/** 탄약 위젯 클래스 (BP에서 지정) */
+	UPROPERTY(EditDefaultsOnly, Category = "Ammo")
+	TSubclassOf<class UTPSAmmoWidget> AmmoWidgetClass;
+
+	/** 탄약 위젯 인스턴스 */
+	UPROPERTY()
+	TObjectPtr<class UTPSAmmoWidget> AmmoWidgetInst;
+
+	/** 현재 무기의 AmmoViewModel 참조 */
+	TWeakObjectPtr<class UAmmoViewModel> AmmoViewModelRef;
+
+	/** Player 델리게이트 콜백 — 장착/해제 시 ViewModel 전달 */
+	void OnAmmoViewModelChanged(class UAmmoViewModel* InAmmoViewModel);
+
+	/** AmmoViewModel → Widget 갱신 */
+	void UpdateAmmoWidget();
+#pragma endregion
 };

@@ -19,6 +19,7 @@ class TPS_API ATPSWeaponBase : public AActor, public IAttachable
 
 public:
 	ATPSWeaponBase();
+	virtual void PostInitializeComponents() override;
 
 	/** 장착 소켓에 부착 */
 	virtual void Attach(USkeletalMeshComponent* InTargetMesh) override;
@@ -43,8 +44,12 @@ public:
 	FORCEINLINE float GetReloadTime() const { return ReloadTime; }
 	FORCEINLINE bool HasAmmo() const { return CurrentAmmo > 0; }
 	FORCEINLINE bool IsAmmoFull() const { return CurrentAmmo >= MaxAmmo; }
+	FORCEINLINE class UAmmoViewModel* GetAmmoViewModel() const { return AmmoViewModelInst; }
 
 protected:
+	/** 탄약 뷰모델 (MVVM — 이 무기가 소유, HUD에서 참조) */
+	UPROPERTY()
+	TObjectPtr<class UAmmoViewModel> AmmoViewModelInst;
 	/** 무기 메시 */
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Mesh")
 	TObjectPtr<class USkeletalMeshComponent> WeaponMeshInst;

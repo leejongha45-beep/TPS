@@ -1,5 +1,6 @@
 ﻿#include "TPSWeaponBase.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "UI/ViewModel/AmmoViewModel.h"
 
 ATPSWeaponBase::ATPSWeaponBase()
 {
@@ -13,6 +14,21 @@ ATPSWeaponBase::ATPSWeaponBase()
 	}
 
 	AActor::SetActorHiddenInGame(true);
+}
+
+void ATPSWeaponBase::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	// ① AmmoViewModel 생성 + 초기 탄약값 세팅
+	if (!AmmoViewModelInst)
+	{
+		AmmoViewModelInst = NewObject<UAmmoViewModel>(this);
+		if (ensure(AmmoViewModelInst))
+		{
+			AmmoViewModelInst->SetAmmo(CurrentAmmo, MaxAmmo);
+		}
+	}
 }
 
 void ATPSWeaponBase::Attach(USkeletalMeshComponent* InTargetMesh)
@@ -50,9 +66,19 @@ void ATPSWeaponBase::ConsumeAmmo()
 	{
 		--CurrentAmmo;
 	}
+
+	if (ensure(AmmoViewModelInst))
+	{
+		AmmoViewModelInst->SetAmmo(CurrentAmmo, MaxAmmo);
+	}
 }
 
 void ATPSWeaponBase::ReloadAmmo()
 {
 	CurrentAmmo = MaxAmmo;
+
+	if (ensure(AmmoViewModelInst))
+	{
+		AmmoViewModelInst->SetAmmo(CurrentAmmo, MaxAmmo);
+	}
 }
