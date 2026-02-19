@@ -58,6 +58,7 @@ protected:
 #pragma region IFireable
 	virtual void StartFire() override;
 	virtual void StopFire() override;
+	virtual void Reload() override;
 #pragma endregion
 
 #pragma region EquipCallback
@@ -66,5 +67,9 @@ protected:
 
 #pragma region FireCallback
 	virtual void OnFireStateChanged(bool bIsFiring);
+#pragma endregion
+
+#pragma region ReloadCallback
+	virtual void OnReloadStateChanged(bool bIsReloading);
 #pragma endregion
 };

@@ -58,6 +58,9 @@ protected:
 	uint8 bIsFiring : 1 = false;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Status")
+	uint8 bIsReloading : 1 = false;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	float GroundDistance = 0.f;
 
 	// === Turn in Place ===
@@ -122,6 +125,19 @@ protected:
 	void OnFireOnce();
 #pragma endregion
 
+#pragma region ReloadMontage
+	/** 재장전 몽타주 에셋 */
+	UPROPERTY(EditDefaultsOnly, Category = "Montage|Reload")
+	TObjectPtr<UAnimMontage> ReloadMontageAsset;
+
+	/** 재장전 몽타주 재생 (FireComponent 델리게이트에서 호출) */
+	void PlayReloadMontage();
+
+	/** 재장전 몽타주 종료 콜백 — FireComponent에 결과 전달 */
+	UFUNCTION()
+	void OnReloadMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+#pragma endregion
+
 public:
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	float GetGroundSpeed() const { return GroundSpeed; }
@@ -146,6 +162,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	bool GetIsFiring() const { return bIsFiring; }
+
+	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
+	bool GetIsReloading() const { return bIsReloading; }
 
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	float GetGroundDistance() const { return GroundDistance; }

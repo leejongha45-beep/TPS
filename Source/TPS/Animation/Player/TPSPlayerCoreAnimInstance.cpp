@@ -41,6 +41,12 @@ void UTPSPlayerCoreAnimInstance::NativeInitializeAnimation()
 					pFireComp->OnFireStateChangedDelegate.AddUObject(this, &UTPSPlayerCoreAnimInstance::OnFireStateChanged);
 				}
 				pFireComp->OnFireOnceDelegate.BindUObject(this, &UTPSPlayerCoreAnimInstance::OnFireOnce);
+
+				// ④ FireComponent 재장전 몽타주 델리게이트 바인딩
+				if (!pFireComp->OnReloadMontagePlayDelegate.IsBoundToObject(this))
+				{
+					pFireComp->OnReloadMontagePlayDelegate.AddUObject(this, &UTPSPlayerCoreAnimInstance::PlayReloadMontage);
+				}
 			}
 		}
 	}
@@ -69,6 +75,7 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		bIsEquipping = pStateComp->HasState(EActionState::Equipping);
 		bIsFalling = pStateComp->HasState(EActionState::Falling);
 		bIsFiring = pStateComp->HasState(EActionState::Firing);
+		bIsReloading = pStateComp->HasState(EActionState::Reloading);
 	}
 
 	// ③ 가속 감지 (CMC 접근)
@@ -107,13 +114,15 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	PreviousControllerYaw = CurrentControllerYaw;
 
-	// ⑤ 상체 블렌드 가중치 (장착 상태이거나 장착/해제/발사 몽타주 재생 중)
+	// ⑤ 상체 블렌드 가중치 (장착 상태이거나 장착/해제/발사/재장전 몽타주 재생 중)
 	const bool bIsPlayingEquipMontage =
 		(EquipMontageAsset && Montage_IsPlaying(EquipMontageAsset)) ||
 		(UnequipMontageAsset && Montage_IsPlaying(UnequipMontageAsset));
 	const bool bIsPlayingFireMontage =
 		(FireMontageAsset && Montage_IsPlaying(FireMontageAsset));
-	UpperBodyBlendWeight = (bIsEquipping || bIsPlayingEquipMontage || bIsPlayingFireMontage) ? 1.f : 0.f;
+	const bool bIsPlayingReloadMontage =
+		(ReloadMontageAsset && Montage_IsPlaying(ReloadMontageAsset));
+	UpperBodyBlendWeight = (bIsEquipping || bIsPlayingEquipMontage || bIsPlayingFireMontage || bIsPlayingReloadMontage) ? 1.f : 0.f;
 
 	// ⑥ GroundDistance: 라인 트레이스(물리 월드 접근) → 게임 스레드 전용
 	if (bIsFalling)
@@ -215,6 +224,26 @@ void UTPSPlayerCoreAnimInstance::OnFireOnce()
 
 	// 발사 1회: 몽타주 처음부터 재생 (연사 시 매번 리셋)
 	Montage_Play(FireMontageAsset, 1.f, EMontagePlayReturnType::MontageLength, 0.f);
+}
+
+void UTPSPlayerCoreAnimInstance::PlayReloadMontage()
+{
+	if (!ensure(ReloadMontageAsset)) return;
+
+	// ① 몽타주 재생 + 종료 델리게이트 바인딩
+	Montage_Play(ReloadMontageAsset);
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &UTPSPlayerCoreAnimInstance::OnReloadMontageEnded);
+	Montage_SetEndDelegate(EndDelegate, ReloadMontageAsset);
+}
+
+void UTPSPlayerCoreAnimInstance::OnReloadMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	UTPSFireComponent* pFireComp = FireComponentRef.Get();
+	if (!ensure(pFireComp)) return;
+
+	pFireComp->OnReloadMontageFinished(bInterrupted);
 }
 
 void UTPSPlayerCoreAnimInstance::SetRootYawOffsetMode(ERootYawOffsetMode InMode)

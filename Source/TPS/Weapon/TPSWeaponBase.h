@@ -32,12 +32,17 @@ public:
 	/** 탄약 1발 소모 */
 	void ConsumeAmmo();
 
+	/** 탄창 재장전 (CurrentAmmo → MaxAmmo) */
+	void ReloadAmmo();
+
 	FORCEINLINE float GetFireInterval() const { return FireInterval; }
 	FORCEINLINE float GetDamage() const { return WeaponDamage; }
 	FORCEINLINE float GetProjectileSpeed() const { return ProjectileSpeed; }
 	FORCEINLINE int32 GetCurrentAmmo() const { return CurrentAmmo; }
 	FORCEINLINE int32 GetMaxAmmo() const { return MaxAmmo; }
+	FORCEINLINE float GetReloadTime() const { return ReloadTime; }
 	FORCEINLINE bool HasAmmo() const { return CurrentAmmo > 0; }
+	FORCEINLINE bool IsAmmoFull() const { return CurrentAmmo >= MaxAmmo; }
 
 protected:
 	/** 무기 메시 */

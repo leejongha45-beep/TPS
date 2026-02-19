@@ -55,6 +55,9 @@ protected:
 	void StartFireInput(const struct FInputActionValue& InputValue);
 	void StopFireInput(const struct FInputActionValue& InputValue);
 
+	/** 재장전 입력 */
+	void ReloadInput(const struct FInputActionValue& InputValue);
+
 	/** Enhanced Input — 기본 매핑 컨텍스트 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputMappingContext> DefaultMappingContextAsset;
@@ -90,6 +93,10 @@ protected:
 	/** IA — LMB 사격 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputAction> FireActionAsset;
+
+	/** IA — R 재장전 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<class UInputAction> ReloadActionAsset;
 
 	/** 이동 인터페이스 — OnPossess에서 캐싱 */
 	UPROPERTY()

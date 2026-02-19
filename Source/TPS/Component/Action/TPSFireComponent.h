@@ -10,6 +10,12 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnFireStateChanged, bool /* bIsFiring */);
 /** 발사 1회 시 AnimInstance에서 몽타주 재생용 (1:1 바인딩) */
 DECLARE_DELEGATE(FOnFireOnce);
 
+/** 재장전 상태 변경 시 브로드캐스트 (bIsReloading: true=시작, false=완료/취소) */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnReloadStateChanged, bool /* bIsReloading */);
+
+/** 재장전 몽타주 재생 요청 (AnimInstance에서 수신) */
+DECLARE_MULTICAST_DELEGATE(FOnReloadMontagePlay);
+
 /**
  * 사격 관리 컴포넌트
  * - StartFire: 타이머 기반 연사 시작 (무기의 FireRate 사용)
@@ -34,10 +40,28 @@ public:
 	/** 사격 종료 (타이머 해제) */
 	void StopFire();
 
+	/**
+	 * 재장전 시작
+	 * @param InWeapon  현재 장착 무기
+	 */
+	void StartReload(class ATPSWeaponBase* InWeapon);
+
+	/** 재장전 취소 (장착 해제 등 외부 인터럽트) */
+	void CancelReload();
+
+	/** AnimNotify에서 호출 — 실제 탄약 충전 시점 */
+	void OnReloadNotify();
+
+	/** 재장전 몽타주 종료 시 AnimInstance에서 호출 */
+	void OnReloadMontageFinished(bool bInterrupted);
+
 	FORCEINLINE bool GetIsFiring() const { return bIsFiring; }
+	FORCEINLINE bool GetIsReloading() const { return bIsReloading; }
 
 	FOnFireStateChanged OnFireStateChangedDelegate;
 	FOnFireOnce OnFireOnceDelegate;
+	FOnReloadStateChanged OnReloadStateChangedDelegate;
+	FOnReloadMontagePlay OnReloadMontagePlayDelegate;
 
 protected:
 	/** 1발 발사 (타이머 콜백) */
@@ -59,6 +83,9 @@ protected:
 	FTimerHandle FireTimerHandle;
 
 	uint8 bIsFiring : 1 = false;
+
+	/** 재장전 중 플래그 */
+	uint8 bIsReloading : 1 = false;
 
 	/** 카메라 뷰포인트 획득 콜백 */
 	TFunction<void (FVector&, FRotator&)> ViewPointGetter;

@@ -22,5 +22,6 @@ enum class EActionState : uint16
 	Equipping   = 1 << 6, /** 장착/해제 몽타주 진행 중 */
 	Interacting = 1 << 7, /** 상호작용 중 */
 	Firing      = 1 << 8, /** 사격 중 (LMB) */
+	Reloading   = 1 << 9, /** 재장전 중 (R) */
 };
 ENUM_CLASS_FLAGS(EActionState);

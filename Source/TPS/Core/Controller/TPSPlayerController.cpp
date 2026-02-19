@@ -76,6 +76,11 @@ void ATPSPlayerController::SetupInputComponent()
 		pEnhancedInput->BindAction(FireActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartFireInput);
 		pEnhancedInput->BindAction(FireActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopFireInput);
 	}
+
+	if (ensure(ReloadActionAsset))
+	{
+		pEnhancedInput->BindAction(ReloadActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::ReloadInput);
+	}
 }
 
 void ATPSPlayerController::OnPossess(APawn* InPawn)
@@ -226,5 +231,13 @@ void ATPSPlayerController::StopFireInput(const FInputActionValue& InputValue)
 	if (ensure(FireableInterface))
 	{
 		FireableInterface->StopFire();
+	}
+}
+
+void ATPSPlayerController::ReloadInput(const FInputActionValue& InputValue)
+{
+	if (ensure(FireableInterface))
+	{
+		FireableInterface->Reload();
 	}
 }

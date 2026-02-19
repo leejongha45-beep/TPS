@@ -12,6 +12,7 @@ DEFINE_LOG_CATEGORY(FireLog);
 void UTPSFireComponent::StartFire(ATPSWeaponBase* InWeapon, TFunction<void (FVector&, FRotator&)> InViewPointGetter)
 {
 	if (bIsFiring) return;
+	if (bIsReloading) return;
 	if (!ensure(InWeapon)) return;
 
 	// ① 무기 참조 캐싱 + 탄약 확인
@@ -121,6 +122,75 @@ void UTPSFireComponent::SpawnMuzzleEffect(const FTransform& InMuzzleTransform)
 		GetWorld(), MuzzleFlashEffectAsset,
 		InMuzzleTransform.GetLocation(), InMuzzleTransform.GetRotation().Rotator(),
 		FVector(1.f), true, true, ENCPoolMethod::AutoRelease);
+}
+
+void UTPSFireComponent::StartReload(ATPSWeaponBase* InWeapon)
+{
+	if (bIsReloading) return;
+	if (bIsFiring) return;
+	if (!ensure(InWeapon)) return;
+
+	// ① 탄창이 가득이면 무시
+	if (InWeapon->IsAmmoFull())
+	{
+		UE_LOG(FireLog, Log, TEXT("[StartReload] Ammo full. Ignoring."));
+		return;
+	}
+
+	// ② 무기 참조 캐싱 + 상태 전환
+	WeaponRef = InWeapon;
+	bIsReloading = true;
+
+	// ③ 델리게이트 브로드캐스트 → SoldierBase(상태) + AnimInstance(몽타주)
+	OnReloadStateChangedDelegate.Broadcast(true);
+	OnReloadMontagePlayDelegate.Broadcast();
+
+	UE_LOG(FireLog, Log, TEXT("[StartReload] Reload started. ReloadTime: %.2f"), InWeapon->GetReloadTime());
+}
+
+void UTPSFireComponent::CancelReload()
+{
+	if (!bIsReloading) return;
+
+	bIsReloading = false;
+	WeaponRef.Reset();
+
+	OnReloadStateChangedDelegate.Broadcast(false);
+
+	UE_LOG(FireLog, Warning, TEXT("[CancelReload] Reload cancelled."));
+}
+
+void UTPSFireComponent::OnReloadNotify()
+{
+	if (!bIsReloading) return;
+
+	// AnimNotify 시점: 실제 탄약 충전
+	ATPSWeaponBase* pWeapon = WeaponRef.Get();
+	if (ensure(pWeapon))
+	{
+		pWeapon->ReloadAmmo();
+		UE_LOG(FireLog, Log, TEXT("[OnReloadNotify] Ammo replenished: %d/%d"),
+			pWeapon->GetCurrentAmmo(), pWeapon->GetMaxAmmo());
+	}
+}
+
+void UTPSFireComponent::OnReloadMontageFinished(bool bInterrupted)
+{
+	if (!bIsReloading) return;
+
+	bIsReloading = false;
+	WeaponRef.Reset();
+
+	if (bInterrupted)
+	{
+		UE_LOG(FireLog, Warning, TEXT("[OnReloadMontageFinished] Reload montage interrupted."));
+	}
+	else
+	{
+		UE_LOG(FireLog, Log, TEXT("[OnReloadMontageFinished] Reload complete."));
+	}
+
+	OnReloadStateChangedDelegate.Broadcast(false);
 }
 
 void UTPSFireComponent::ActivateProjectileFromPool(const FTransform& InMuzzleTransform, const FVector& InDirection, ATPSWeaponBase* InWeapon)

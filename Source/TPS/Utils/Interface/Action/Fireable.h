@@ -26,4 +26,7 @@ public:
 
 	/** 사격 종료 (LMB 릴리스) */
 	virtual void StopFire() = 0;
+
+	/** 재장전 (R 입력) */
+	virtual void Reload() = 0;
 };

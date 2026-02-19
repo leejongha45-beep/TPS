@@ -68,6 +68,11 @@ void ATPSSoldierBase::BindDelegate()
 		{
 			FireComponentInst->OnFireStateChangedDelegate.AddUObject(this, &ATPSSoldierBase::OnFireStateChanged);
 		}
+
+		if (!FireComponentInst->OnReloadStateChangedDelegate.IsBoundToObject(this))
+		{
+			FireComponentInst->OnReloadStateChangedDelegate.AddUObject(this, &ATPSSoldierBase::OnReloadStateChanged);
+		}
 	}
 }
 
@@ -111,7 +116,16 @@ void ATPSSoldierBase::Equip()
 		StopFire();
 	}
 
-	// ② 현재 장착 여부 확인 → 토글 요청
+	// ② 재장전 중이면 취소
+	if (StateComponentInst->HasState(EActionState::Reloading))
+	{
+		if (ensure(FireComponentInst))
+		{
+			FireComponentInst->CancelReload();
+		}
+	}
+
+	// ③ 현재 장착 여부 확인 → 토글 요청
 	const bool bIsCurrentlyEquipped = StateComponentInst->HasState(EActionState::Equipping);
 	EquipComponentInst->RequestToggle(bIsCurrentlyEquipped);
 }
@@ -153,10 +167,18 @@ void ATPSSoldierBase::OnEquipStateChanged(bool bIsEquipped)
 	}
 	else
 	{
-		// 공통: 사격/조준 중단 + 상태 제거 + CMC 복원
-		if (ensure(FireComponentInst) && FireComponentInst->GetIsFiring())
+		// 공통: 사격/재장전/조준 중단 + 상태 제거 + CMC 복원
+		if (ensure(FireComponentInst))
 		{
-			FireComponentInst->StopFire();
+			if (FireComponentInst->GetIsFiring())
+			{
+				FireComponentInst->StopFire();
+			}
+
+			if (FireComponentInst->GetIsReloading())
+			{
+				FireComponentInst->CancelReload();
+			}
 		}
 
 		if (StateComponentInst->HasState(EActionState::Aiming))
@@ -166,6 +188,43 @@ void ATPSSoldierBase::OnEquipStateChanged(bool bIsEquipped)
 
 		StateComponentInst->RemoveState(EActionState::Equipping);
 		CMCInst->SetOrientRotationToMovement(true);
+	}
+}
+
+void ATPSSoldierBase::Reload()
+{
+	if (!ensure(StateComponentInst) || !ensure(EquipComponentInst) || !ensure(FireComponentInst)) return;
+
+	// ① 장착 상태 확인
+	if (!StateComponentInst->HasState(EActionState::Equipping)) return;
+
+	// ② 이미 재장전 중이면 무시
+	if (StateComponentInst->HasState(EActionState::Reloading)) return;
+
+	// ③ 사격 중이면 먼저 중단
+	if (StateComponentInst->HasState(EActionState::Firing))
+	{
+		StopFire();
+	}
+
+	// ④ 무기 확인 → FireComponent에 재장전 요청
+	ATPSWeaponBase* pWeapon = EquipComponentInst->GetWeaponActor();
+	if (!ensure(pWeapon)) return;
+
+	FireComponentInst->StartReload(pWeapon);
+}
+
+void ATPSSoldierBase::OnReloadStateChanged(bool bIsReloading)
+{
+	if (!ensure(StateComponentInst)) return;
+
+	if (bIsReloading)
+	{
+		StateComponentInst->AddState(EActionState::Reloading);
+	}
+	else
+	{
+		StateComponentInst->RemoveState(EActionState::Reloading);
 	}
 }
 

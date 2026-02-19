@@ -51,3 +51,8 @@ void ATPSWeaponBase::ConsumeAmmo()
 		--CurrentAmmo;
 	}
 }
+
+void ATPSWeaponBase::ReloadAmmo()
+{
+	CurrentAmmo = MaxAmmo;
+}
