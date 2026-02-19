@@ -3,12 +3,25 @@
 #include "Core/Controller/TPSPlayerController.h"
 #include "Pawn/Character/Player/TPSPlayer.h"
 #include "UI/HUD/TPSHUD.h"
+#include "Wave/TPSWaveManager.h"
+#include "Wave/TPSWaveConfig.h"
 
 ATPSGameModeBase::ATPSGameModeBase()
 {
-	DefaultPawnClass = BP_PlayerClass;
+}
 
-	PlayerControllerClass = BP_PlayerControllerClass;
+void ATPSGameModeBase::BeginPlay()
+{
+	Super::BeginPlay();
 
-	HUDClass = BP_HUDClass;
+	// 웨이브 매니저 초기화 + 시작
+	if (WaveConfig)
+	{
+		WaveManagerInst = NewObject<UTPSWaveManager>(this);
+		if (ensure(WaveManagerInst))
+		{
+			WaveManagerInst->Initialize(GetWorld(), WaveConfig);
+			WaveManagerInst->StartWaves();
+		}
+	}
 }

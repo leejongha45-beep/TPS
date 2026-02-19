@@ -8,6 +8,7 @@
  * 게임 모드 베이스
  * - 기본 Player, Controller, HUD 클래스 지정
  * - 생성자에서 DefaultPawnClass, PlayerControllerClass, HUDClass 설정
+ * - WaveManager 소유 + BeginPlay에서 웨이브 시작
  */
 UCLASS()
 class TPS_API ATPSGameModeBase : public AGameModeBase
@@ -17,16 +18,18 @@ class TPS_API ATPSGameModeBase : public AGameModeBase
 public:
 	ATPSGameModeBase();
 
+	FORCEINLINE class UTPSWaveManager* GetWaveManager() const { return WaveManagerInst; }
+
 protected:
-	/** 플레이어 캐릭터 BP 클래스 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Classes")
-	TSubclassOf<class ATPSPlayer> BP_PlayerClass;
+	virtual void BeginPlay() override;
 
-	/** 플레이어 컨트롤러 BP 클래스 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Classes")
-	TSubclassOf<class ATPSPlayerController> BP_PlayerControllerClass;
+#pragma region Wave
+	/** 웨이브 설정 DataAsset (에디터에서 지정) */
+	UPROPERTY(EditDefaultsOnly, Category = "Wave")
+	TObjectPtr<class UTPSWaveConfig> WaveConfig;
 
-	/** HUD BP 클래스 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Classes")
-	TSubclassOf<class ATPSHUD> BP_HUDClass;
+	/** 웨이브 매니저 (런타임 생성) */
+	UPROPERTY()
+	TObjectPtr<class UTPSWaveManager> WaveManagerInst;
+#pragma endregion
 };
