@@ -83,6 +83,9 @@ void UTPSFireComponent::FireOnce()
 	// ④ 총구 이펙트 + 풀에서 투사체 활성화
 	SpawnMuzzleEffect(MuzzleTransform);
 	ActivateProjectileFromPool(MuzzleTransform, ShotDirection, pWeapon);
+
+	// ⑤ 발사 1회 델리게이트 → AnimInstance 몽타주 재생
+	OnFireOnceDelegate.ExecuteIfBound();
 }
 
 FVector UTPSFireComponent::CalculateShotDirection(const FVector& InMuzzleLocation) const

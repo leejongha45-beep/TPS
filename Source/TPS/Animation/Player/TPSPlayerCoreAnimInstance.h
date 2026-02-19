@@ -107,6 +107,21 @@ protected:
 	void OnEquipMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 #pragma endregion
 
+#pragma region FireMontage
+	/** 발사 몽타주 에셋 */
+	UPROPERTY(EditDefaultsOnly, Category = "Montage|Fire")
+	TObjectPtr<UAnimMontage> FireMontageAsset;
+
+	/** FireComponent 참조 (WeakPtr) */
+	TWeakObjectPtr<class UTPSFireComponent> FireComponentRef;
+
+	/** 발사 상태 변경 시 몽타주 정지 (FireComponent 델리게이트에서 호출) */
+	void OnFireStateChanged(bool bFiring);
+
+	/** 발사 1회 시 몽타주 재재생 (FireComponent에서 호출) */
+	void OnFireOnce();
+#pragma endregion
+
 public:
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	float GetGroundSpeed() const { return GroundSpeed; }
