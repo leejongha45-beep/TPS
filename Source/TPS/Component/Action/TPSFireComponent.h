@@ -7,6 +7,9 @@
 /** 사격 상태 변경 시 브로드캐스트 (bIsFiring: true=사격 시작, false=사격 종료) */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnFireStateChanged, bool /* bIsFiring */);
 
+/** 발사 1회 시 AnimInstance에서 몽타주 재생용 (1:1 바인딩) */
+DECLARE_DELEGATE(FOnFireOnce);
+
 /**
  * 사격 관리 컴포넌트
  * - StartFire: 타이머 기반 연사 시작 (무기의 FireRate 사용)
@@ -34,6 +37,7 @@ public:
 	FORCEINLINE bool GetIsFiring() const { return bIsFiring; }
 
 	FOnFireStateChanged OnFireStateChangedDelegate;
+	FOnFireOnce OnFireOnceDelegate;
 
 protected:
 	/** 1발 발사 (타이머 콜백) */

@@ -42,6 +42,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	uint8 bIsFalling : 1 = false;
 
+	/** 발사 중 여부 */
+	UPROPERTY(BlueprintReadOnly, Category = "Status")
+	uint8 bIsFiring : 1 = false;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Status")
 	float GroundDistance = 0.f;
 
@@ -87,6 +91,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	bool GetIsFalling() const { return bIsFalling; }
+
+	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
+	bool GetIsFiring() const { return bIsFiring; }
 
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
 	float GetGroundDistance() const { return GroundDistance; }

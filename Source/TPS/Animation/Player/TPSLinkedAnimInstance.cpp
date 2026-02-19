@@ -15,6 +15,7 @@ void UTPSLinkedAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 		bIsAiming = CoreInst->GetIsAiming();
 		bIsEquipping = CoreInst->GetIsEquipping();
 		bIsFalling = CoreInst->GetIsFalling();
+		bIsFiring = CoreInst->GetIsFiring();
 		GroundDistance = CoreInst->GetGroundDistance();
 
 		// 신규 미러링

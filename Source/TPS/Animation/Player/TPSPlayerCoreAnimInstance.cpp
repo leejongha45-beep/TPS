@@ -3,6 +3,7 @@
 #include "KismetAnimationLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Component/Action/TPSEquipComponent.h"
+#include "Component/Action/TPSFireComponent.h"
 #include "Component/Data/TPSPlayerStateComponent.h"
 #include "Pawn/Character/Player/TPSPlayer.h"
 
@@ -28,6 +29,18 @@ void UTPSPlayerCoreAnimInstance::NativeInitializeAnimation()
 				{
 					pEquipComp->OnEquipMontagePlayDelegate.AddUObject(this, &UTPSPlayerCoreAnimInstance::PlayEquipMontage);
 				}
+			}
+
+			// ③ FireComponent 몽타주 델리게이트 바인딩
+			UTPSFireComponent* pFireComp = OwnerRef->GetFireComponent();
+			if (ensure(pFireComp))
+			{
+				FireComponentRef = pFireComp;
+				if (!pFireComp->OnFireStateChangedDelegate.IsBoundToObject(this))
+				{
+					pFireComp->OnFireStateChangedDelegate.AddUObject(this, &UTPSPlayerCoreAnimInstance::OnFireStateChanged);
+				}
+				pFireComp->OnFireOnceDelegate.BindUObject(this, &UTPSPlayerCoreAnimInstance::OnFireOnce);
 			}
 		}
 	}
@@ -94,11 +107,13 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	PreviousControllerYaw = CurrentControllerYaw;
 
-	// ⑤ 상체 블렌드 가중치 (장착 상태이거나 장착/해제 몽타주 재생 중)
+	// ⑤ 상체 블렌드 가중치 (장착 상태이거나 장착/해제/발사 몽타주 재생 중)
 	const bool bIsPlayingEquipMontage =
 		(EquipMontageAsset && Montage_IsPlaying(EquipMontageAsset)) ||
 		(UnequipMontageAsset && Montage_IsPlaying(UnequipMontageAsset));
-	UpperBodyBlendWeight = (bIsEquipping || bIsPlayingEquipMontage) ? 1.f : 0.f;
+	const bool bIsPlayingFireMontage =
+		(FireMontageAsset && Montage_IsPlaying(FireMontageAsset));
+	UpperBodyBlendWeight = (bIsEquipping || bIsPlayingEquipMontage || bIsPlayingFireMontage) ? 1.f : 0.f;
 
 	// ⑥ GroundDistance: 라인 트레이스(물리 월드 접근) → 게임 스레드 전용
 	if (bIsFalling)
@@ -181,6 +196,25 @@ void UTPSPlayerCoreAnimInstance::OnEquipMontageEnded(UAnimMontage* Montage, bool
 	}
 
 	pEquipComp->OnMontageFinished(!bIsEquipping);
+}
+
+void UTPSPlayerCoreAnimInstance::OnFireStateChanged(bool bFiring)
+{
+	if (bFiring) return;
+
+	// 발사 종료: 몽타주 정지 (블렌드 아웃)
+	if (FireMontageAsset && Montage_IsPlaying(FireMontageAsset))
+	{
+		Montage_Stop(0.25f, FireMontageAsset);
+	}
+}
+
+void UTPSPlayerCoreAnimInstance::OnFireOnce()
+{
+	if (!ensure(FireMontageAsset)) return;
+
+	// 발사 1회: 몽타주 처음부터 재생 (연사 시 매번 리셋)
+	Montage_Play(FireMontageAsset, 1.f, EMontagePlayReturnType::MontageLength, 0.f);
 }
 
 void UTPSPlayerCoreAnimInstance::SetRootYawOffsetMode(ERootYawOffsetMode InMode)
