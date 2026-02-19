@@ -1,7 +1,9 @@
 #include "Wave/TPSWaveManager.h"
 #include "Wave/TPSWaveConfig.h"
-#include "MassSpawnerSubsystem.h"
+#include "MassEntitySubsystem.h"
 #include "MassEntityConfigAsset.h"
+#include "MassEntityTemplate.h"
+#include "Enemy/Mass/Fragment/TPSEnemyMovementFragment.h"
 #include "Kismet/GameplayStatics.h"
 
 void UTPSWaveManager::Initialize(UWorld* InWorld, UTPSWaveConfig* InConfig)
@@ -49,9 +51,16 @@ void UTPSWaveManager::SpawnWaveEnemies()
 
 	const FVector PlayerLoc = pPlayer->GetActorLocation();
 
-	// Mass Entity 일괄 스폰
-	UMassSpawnerSubsystem* pSpawner = CachedWorld->GetSubsystem<UMassSpawnerSubsystem>();
-	if (!ensure(pSpawner)) return;
+	// Mass Entity Manager 획득
+	UMassEntitySubsystem* pEntitySubsystem = CachedWorld->GetSubsystem<UMassEntitySubsystem>();
+	if (!ensure(pEntitySubsystem)) return;
+
+	FMassEntityManager& EntityManager = pEntitySubsystem->GetMutableEntityManager();
+
+	// EntityConfig → 아키타입 확보
+	const FMassEntityTemplate& Template = Wave.EnemyEntityConfig->GetConfig().GetOrCreateEntityTemplate(
+		*CachedWorld.Get());
+	const FMassArchetypeHandle& Archetype = Template.GetArchetype();
 
 	RemainingEnemies = Wave.SpawnCount;
 
@@ -64,14 +73,22 @@ void UTPSWaveManager::SpawnWaveEnemies()
 			FMath::Cos(Angle) * Radius,
 			FMath::Sin(Angle) * Radius,
 			0.f
-		);
+			);
 
-		// TODO: MassSpawnerSubsystem API 확인 후 Entity 생성 구현
-		// pSpawner->SpawnEntity(Wave.EnemyEntityConfig, SpawnLoc);
+		// Entity 생성
+		FMassEntityHandle NewEntity = EntityManager.CreateEntity(Archetype);
+
+		// Movement Fragment 초기 위치 설정
+		FTPSEnemyMovementFragment* MoveFrag = EntityManager.GetFragmentDataPtr<FTPSEnemyMovementFragment>(NewEntity);
+		if (ensure(MoveFrag))
+		{
+			MoveFrag->CurrentLocation = SpawnLoc;
+			MoveFrag->TargetLocation = PlayerLoc;
+		}
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("[WaveManager] Wave %d started — %d enemies"),
-		CurrentWaveIndex + 1, Wave.SpawnCount);
+	       CurrentWaveIndex + 1, Wave.SpawnCount);
 }
 
 void UTPSWaveManager::NotifyEnemyKilled()
@@ -87,7 +104,7 @@ void UTPSWaveManager::CheckWaveClear()
 	if (RemainingEnemies > 0) return;
 
 	UE_LOG(LogTemp, Warning, TEXT("[WaveManager] Wave %d cleared! Total kills: %d"),
-		CurrentWaveIndex + 1, TotalKillCount);
+	       CurrentWaveIndex + 1, TotalKillCount);
 
 	++CurrentWaveIndex;
 

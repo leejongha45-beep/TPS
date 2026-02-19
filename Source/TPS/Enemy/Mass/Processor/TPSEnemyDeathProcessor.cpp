@@ -8,6 +8,9 @@
 #include "Enemy/Mass/Fragment/TPSEnemyActorRefFragment.h"
 #include "Enemy/Actor/TPSEnemyPawnBase.h"
 #include "Enemy/Pool/TPSEnemyActorPoolSubsystem.h"
+#include "Enemy/Visualization/TPSEnemyISMSubsystem.h"
+#include "Core/GameMode/TPSGameModeBase.h"
+#include "Wave/TPSWaveManager.h"
 
 UTPSEnemyDeathProcessor::UTPSEnemyDeathProcessor()
 	: EntityQuery(*this)
@@ -38,11 +41,17 @@ void UTPSEnemyDeathProcessor::Execute(FMassEntityManager& EntityManager, FMassEx
 	UTPSEnemyActorPoolSubsystem* pPool = pWorld->GetSubsystem<UTPSEnemyActorPoolSubsystem>();
 	if (!ensure(pPool)) return;
 
-	// 파괴 대상 수집 (순회 중 파괴 불가 → 별도 배열에 모아서 일괄 처리)
+	UTPSEnemyISMSubsystem* pISM = pWorld->GetSubsystem<UTPSEnemyISMSubsystem>();
+	if (!ensure(pISM)) return;
+
+	// WaveManager 참조 (킬 통보용)
+	ATPSGameModeBase* pGameMode = Cast<ATPSGameModeBase>(pWorld->GetAuthGameMode());
+	UTPSWaveManager* pWaveManager = pGameMode ? pGameMode->GetWaveManager() : nullptr;
+
 	TArray<FMassEntityHandle> EntitiesToDestroy;
 
 	EntityQuery.ForEachEntityChunk(Context,
-		[pPool, &EntitiesToDestroy](FMassExecutionContext& Context)
+		[pPool, pISM, pWaveManager, &EntitiesToDestroy](FMassExecutionContext& Context)
 		{
 			const int32 NumEntities = Context.GetNumEntities();
 
@@ -64,7 +73,7 @@ void UTPSEnemyDeathProcessor::Execute(FMassEntityManager& EntityManager, FMassEx
 				if (LOD.LODLevel == EEnemyLODLevel::FullActor && ActorRef.ActorRef.IsValid())
 				{
 					ATPSEnemyPawnBase* pEnemy = Cast<ATPSEnemyPawnBase>(ActorRef.ActorRef.Get());
-					if (pEnemy)
+					if (ensure(pEnemy))
 					{
 						pEnemy->DeactivateEnemy();
 						pPool->ReturnEnemy(pEnemy);
@@ -72,12 +81,24 @@ void UTPSEnemyDeathProcessor::Execute(FMassEntityManager& EntityManager, FMassEx
 					ActorRef.ActorRef = nullptr;
 				}
 
-				// ② Entity 파괴 대상 수집
+				// ② ISM이면 인스턴스 제거
+				if (LOD.LODLevel == EEnemyLODLevel::ISM && LOD.ISMInstanceIndex != INDEX_NONE)
+				{
+					pISM->RemoveInstance(LOD.ISMInstanceIndex);
+				}
+
+				// ③ 킬 통보
+				if (pWaveManager)
+				{
+					pWaveManager->NotifyEnemyKilled();
+				}
+
+				// ④ Entity 파괴 대상 수집
 				EntitiesToDestroy.Add(Context.GetEntity(i));
 			}
 		});
 
-	// ③ 일괄 Entity 파괴
+	// ⑤ 일괄 Entity 파괴
 	for (const FMassEntityHandle& Entity : EntitiesToDestroy)
 	{
 		EntityManager.DestroyEntity(Entity);

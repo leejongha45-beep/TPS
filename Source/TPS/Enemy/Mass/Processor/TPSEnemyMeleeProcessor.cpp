@@ -1,7 +1,7 @@
 #include "TPSEnemyMeleeProcessor.h"
 #include "MassCommonTypes.h"
 #include "MassExecutionContext.h"
-#include "TPSEnemyLODProcessor.h"
+#include "TPSEnemySyncProcessor.h"
 #include "Enemy/Mass/Fragment/TPSEnemyAIStateFragment.h"
 #include "Enemy/Mass/Fragment/TPSEnemyLODFragment.h"
 #include "Enemy/Mass/Fragment/TPSEnemyActorRefFragment.h"
@@ -16,8 +16,8 @@ UTPSEnemyMeleeProcessor::UTPSEnemyMeleeProcessor()
 	ExecutionFlags = static_cast<int32>(EProcessorExecutionFlags::All);
 	ExecutionOrder.ExecuteInGroup = UE::Mass::ProcessorGroupNames::Tasks;
 
-	// LODProcessor 이후 실행 (Actor 스폰 확정 후)
-	ExecutionOrder.ExecuteAfter.Add(UTPSEnemyLODProcessor::StaticClass()->GetFName());
+	// SyncProcessor 이후 실행 (Actor 위치 동기화 완료 후)
+	ExecutionOrder.ExecuteAfter.Add(UTPSEnemySyncProcessor::StaticClass()->GetFName());
 }
 
 void UTPSEnemyMeleeProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)

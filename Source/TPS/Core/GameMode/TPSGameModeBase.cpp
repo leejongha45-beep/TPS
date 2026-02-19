@@ -15,7 +15,7 @@ void ATPSGameModeBase::BeginPlay()
 	Super::BeginPlay();
 
 	// 웨이브 매니저 초기화 + 시작
-	if (WaveConfig)
+	if (ensure(WaveConfig))
 	{
 		WaveManagerInst = NewObject<UTPSWaveManager>(this);
 		if (ensure(WaveManagerInst))
