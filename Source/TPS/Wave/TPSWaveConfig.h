@@ -24,6 +24,14 @@ struct FTPSWaveEntry
 	/** 웨이브 시작 전 카운트다운 (초) */
 	UPROPERTY(EditDefaultsOnly, meta = (ClampMin = "0"))
 	float CountdownTime = 3.f;
+
+	/**
+	 * 사용할 스폰 포인트 수 (아군 기지에서 가까운 순)
+	 * 0 = 전체 활성 포인트 사용, 양수 = 가까운 순 N개 선택
+	 * 최종 단계 시 본진 포인트도 자동 포함
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "SpawnPoint", meta = (ClampMin = "0"))
+	int32 SpawnPointCount = 0;
 };
 
 /**

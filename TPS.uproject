@@ -44,6 +44,10 @@
 		{
 			"Name": "MassGameplay",
 			"Enabled": true
+		},
+		{
+			"Name": "Landmass",
+			"Enabled": true
 		}
 	]
 }
