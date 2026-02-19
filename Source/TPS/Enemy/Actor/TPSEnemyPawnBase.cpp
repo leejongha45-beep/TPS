@@ -2,6 +2,10 @@
 #include "Enemy/Component/TPSEnemyHealthComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
+
+DECLARE_LOG_CATEGORY_EXTERN(EnemyAILog, Log, All);
+DEFINE_LOG_CATEGORY(EnemyAILog);
 
 ATPSEnemyPawnBase::ATPSEnemyPawnBase()
 {
@@ -34,15 +38,130 @@ ATPSEnemyPawnBase::ATPSEnemyPawnBase()
 		HealthComponentInst = CreateDefaultSubobject<UTPSEnemyHealthComponent>(TEXT("HealthComponent"));
 		if (ensure(HealthComponentInst))
 		{
-			// 추후 델리게이트 바인딩 추가
 		}
 	}
 
+	// ④ AI Tick 초기 설정
+	AIControlTickFunction.bCanEverTick = true;
+	AIControlTickFunction.bStartWithTickEnabled = false;
+	AIControlTickFunction.TickGroup = TG_PrePhysics;
+
 	// 풀 비활성 초기 상태
-	SetActorTickEnabled(false);
+	AActor::SetActorTickEnabled(false);
 }
 
-void ATPSEnemyPawnBase::ActivateEnemy(const FTransform& InTransform)
+void ATPSEnemyPawnBase::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	// ① HealthComponent 사망 델리게이트 바인딩
+	if (ensure(HealthComponentInst))
+	{
+		HealthComponentInst->OnEnemyDeathDelegate.AddUObject(this, &ATPSEnemyPawnBase::OnDeath);
+	}
+}
+
+void ATPSEnemyPawnBase::RegisterActorTickFunctions(bool bRegister)
+{
+	Super::RegisterActorTickFunctions(bRegister);
+
+	if (bRegister)
+	{
+		AIControlTickFunction.Target = this;
+		AIControlTickFunction.RegisterTickFunction(GetLevel());
+		AIControlTickFunction.SetTickFunctionEnable(AIControlTickFunction.bStartWithTickEnabled);
+	}
+	else
+	{
+		if (AIControlTickFunction.IsTickFunctionRegistered())
+		{
+			AIControlTickFunction.UnRegisterTickFunction();
+		}
+	}
+}
+
+void ATPSEnemyPawnBase::SetAIControlTickEnabled(bool bEnabled)
+{
+	if (AIControlTickFunction.IsTickFunctionEnabled() == bEnabled) return;
+
+	AIControlTickFunction.SetTickFunctionEnable(bEnabled);
+	UE_LOG(EnemyAILog, Warning, TEXT("[SetAIControlTickEnabled] %s"), bEnabled ? TEXT("Enabled") : TEXT("Disabled"));
+}
+
+void ATPSEnemyPawnBase::AI_Control_Tick(float DeltaTime)
+{
+	// ① 타겟 참조 (추후: 가장 가까운 아군/플레이어 중 타겟 선정 로직으로 교체)
+	APawn* pTarget = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!ensure(pTarget)) return;
+
+	// ② 거리 계산
+	const float Distance = FVector::Dist(GetActorLocation(), pTarget->GetActorLocation());
+
+	// ③ 상태별 처리
+	switch (CurrentAIState)
+	{
+	case EEnemyAIState::Idle:   ProcessIdle(DeltaTime);                        break;
+	case EEnemyAIState::Chase:  ProcessChase(DeltaTime, pTarget, Distance);    break;
+	case EEnemyAIState::Attack: ProcessAttack(DeltaTime, pTarget, Distance);   break;
+	case EEnemyAIState::Die:    break;
+	}
+}
+
+void ATPSEnemyPawnBase::ProcessIdle(float DeltaTime)
+{
+	// 스폰 후 대기 → Chase
+	StateTimer += DeltaTime;
+	if (StateTimer >= IdleWaitTime)
+	{
+		CurrentAIState = EEnemyAIState::Chase;
+	}
+}
+
+void ATPSEnemyPawnBase::ProcessChase(float DeltaTime, APawn* InTarget, float InDistance)
+{
+	// ① 타겟 방향으로 이동
+	const FVector Direction = (InTarget->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+	SetActorLocation(GetActorLocation() + Direction * MoveSpeed * DeltaTime);
+	SetActorRotation(Direction.Rotation());
+
+	// ② 사거리 진입 → Attack
+	if (InDistance <= AttackRange)
+	{
+		CurrentAIState = EEnemyAIState::Attack;
+	}
+}
+
+void ATPSEnemyPawnBase::ProcessAttack(float DeltaTime, APawn* InTarget, float InDistance)
+{
+	// ① 사거리 이탈 → Chase 복귀 (히스테리시스 1.2배)
+	if (InDistance > AttackRange * 1.2f)
+	{
+		CurrentAIState = EEnemyAIState::Chase;
+		return;
+	}
+
+	// ② 쿨다운 소진 → 공격
+	AttackCooldownTimer -= DeltaTime;
+	if (AttackCooldownTimer <= 0.f)
+	{
+		UGameplayStatics::ApplyDamage(InTarget, AttackDamage, nullptr, this, nullptr);
+		AttackCooldownTimer = AttackInterval;
+	}
+}
+
+void ATPSEnemyPawnBase::OnDeath()
+{
+	// ① AI 상태 전환
+	CurrentAIState = EEnemyAIState::Die;
+
+	// ② AI Tick 정지
+	SetAIControlTickEnabled(false);
+
+	// ③ 사망 연출
+	PlayDeath();
+}
+
+void ATPSEnemyPawnBase::ActivateEnemy(const FTransform& InTransform, EEnemyAIState InInitialState)
 {
 	// ① 위치/회전 설정
 	SetActorLocationAndRotation(InTransform.GetLocation(), InTransform.GetRotation().Rotator());
@@ -59,26 +178,37 @@ void ATPSEnemyPawnBase::ActivateEnemy(const FTransform& InTransform)
 		MeshComponentInst->SetVisibility(true);
 	}
 
-	// ④ Tick 활성화
-	SetActorTickEnabled(true);
+	// ④ AI 상태 초기화
+	CurrentAIState = InInitialState;
+	StateTimer = 0.f;
+	AttackCooldownTimer = 0.f;
+
+	// ⑤ HealthComponent 초기화
+	if (ensure(HealthComponentInst))
+	{
+		HealthComponentInst->InitFromFragment(50.f, 50.f);
+	}
+
+	// ⑥ AI Tick 시작
+	SetAIControlTickEnabled(true);
 }
 
 void ATPSEnemyPawnBase::DeactivateEnemy()
 {
-	// ① 충돌 OFF
+	// ① AI Tick 정지
+	SetAIControlTickEnabled(false);
+
+	// ② 충돌 OFF
 	if (ensure(CapsuleComponentInst))
 	{
 		CapsuleComponentInst->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
-	// ② 메시 숨김
+	// ③ 메시 숨김
 	if (ensure(MeshComponentInst))
 	{
 		MeshComponentInst->SetVisibility(false);
 	}
-
-	// ③ Tick 비활성화
-	SetActorTickEnabled(false);
 
 	// ④ 맵 밖으로 이동 (풀 대기 위치)
 	SetActorLocation(FVector(-10000.f, 0.f, 0.f));
