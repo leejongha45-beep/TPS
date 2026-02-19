@@ -18,10 +18,10 @@ protected:
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 
 	/** 발 본 이름 — foot_l 또는 foot_r */
-	UPROPERTY(EditDefaultsOnly, Category = "Footstep")
+	UPROPERTY(EditAnywhere, Category = "Footstep")
 	FName FootBoneName = TEXT("foot_l");
 
 	/** LineTrace 거리 (cm) */
-	UPROPERTY(EditDefaultsOnly, Category = "Footstep", meta = (ClampMin = "10.0", ClampMax = "200.0"))
+	UPROPERTY(EditAnywhere, Category = "Footstep", meta = (ClampMin = "10.0", ClampMax = "200.0"))
 	float TraceDistance = 50.f;
 };
