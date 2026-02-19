@@ -1,6 +1,7 @@
 #include "TPSEnemyISMSubsystem.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Enemy/Settings/TPSEnemySettings.h"
 
 void UTPSEnemyISMSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -23,8 +24,16 @@ void UTPSEnemyISMSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		ISMComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		ISMComponent->SetCastShadow(false);
 
-		// TODO: StaticMesh 에셋은 에디터 작업에서 설정
-		// ISMComponent->SetStaticMesh(LoadObject<UStaticMesh>(...));
+		// DeveloperSettings에서 ISM 메시 로드
+		const UTPSEnemySettings* Settings = GetDefault<UTPSEnemySettings>();
+		if (ensure(Settings && !Settings->EnemyISMMesh.IsNull()))
+		{
+			UStaticMesh* Mesh = Settings->EnemyISMMesh.LoadSynchronous();
+			if (ensure(Mesh))
+			{
+				ISMComponent->SetStaticMesh(Mesh);
+			}
+		}
 	}
 }
 
