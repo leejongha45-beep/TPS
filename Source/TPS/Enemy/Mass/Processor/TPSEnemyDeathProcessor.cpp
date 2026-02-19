@@ -9,8 +9,9 @@
 #include "Enemy/Actor/TPSEnemyPawnBase.h"
 #include "Enemy/Pool/TPSEnemyActorPoolSubsystem.h"
 #include "Enemy/Visualization/TPSEnemyISMSubsystem.h"
-#include "Core/GameMode/TPSGameModeBase.h"
-#include "Wave/TPSWaveManager.h"
+
+// static 델리게이트 정의
+FOnEnemyKilled UTPSEnemyDeathProcessor::OnEnemyKilledDelegate;
 
 UTPSEnemyDeathProcessor::UTPSEnemyDeathProcessor()
 	: EntityQuery(*this)
@@ -44,14 +45,10 @@ void UTPSEnemyDeathProcessor::Execute(FMassEntityManager& EntityManager, FMassEx
 	UTPSEnemyISMSubsystem* pISM = pWorld->GetSubsystem<UTPSEnemyISMSubsystem>();
 	if (!ensure(pISM)) return;
 
-	// WaveManager 참조 (킬 통보용)
-	ATPSGameModeBase* pGameMode = Cast<ATPSGameModeBase>(pWorld->GetAuthGameMode());
-	UTPSWaveManager* pWaveManager = pGameMode ? pGameMode->GetWaveManager() : nullptr;
-
 	TArray<FMassEntityHandle> EntitiesToDestroy;
 
 	EntityQuery.ForEachEntityChunk(Context,
-		[pPool, pISM, pWaveManager, &EntitiesToDestroy](FMassExecutionContext& Context)
+		[pPool, pISM, &EntitiesToDestroy](FMassExecutionContext& Context)
 		{
 			const int32 NumEntities = Context.GetNumEntities();
 
@@ -87,11 +84,8 @@ void UTPSEnemyDeathProcessor::Execute(FMassEntityManager& EntityManager, FMassEx
 					pISM->RemoveInstance(LOD.ISMInstanceIndex);
 				}
 
-				// ③ 킬 통보
-				if (pWaveManager)
-				{
-					pWaveManager->NotifyEnemyKilled();
-				}
+				// ③ 킬 통보 — 델리게이트 Broadcast (WaveManager 등 외부 시스템이 수신)
+				OnEnemyKilledDelegate.Broadcast();
 
 				// ④ Entity 파괴 대상 수집
 				EntitiesToDestroy.Add(Context.GetEntity(i));

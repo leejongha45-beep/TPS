@@ -9,9 +9,9 @@ void UTPSEnemyISMSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	UWorld* pWorld = GetWorld();
 	if (!ensure(pWorld)) return;
 
-	// ① ISM을 보유할 임시 Actor 생성
+	// ① ISM을 보유할 임시 Actor 생성 (PIE 중복 방지 — 유니크 이름)
 	FActorSpawnParameters SpawnParams;
-	SpawnParams.Name = TEXT("EnemyISMOwner");
+	SpawnParams.Name = MakeUniqueObjectName(pWorld->GetCurrentLevel(), AActor::StaticClass(), TEXT("EnemyISMOwner"));
 	ISMOwnerActor = pWorld->SpawnActor<AActor>(AActor::StaticClass(), FTransform::Identity, SpawnParams);
 	if (!ensure(ISMOwnerActor)) return;
 

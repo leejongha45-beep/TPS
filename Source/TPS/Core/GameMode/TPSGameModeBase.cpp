@@ -5,6 +5,7 @@
 #include "UI/HUD/TPSHUD.h"
 #include "Wave/TPSWaveManager.h"
 #include "Wave/TPSWaveConfig.h"
+#include "Enemy/Mass/Processor/TPSEnemyDeathProcessor.h"
 
 ATPSGameModeBase::ATPSGameModeBase()
 {
@@ -22,6 +23,10 @@ void ATPSGameModeBase::BeginPlay()
 		{
 			WaveManagerInst->Initialize(GetWorld(), WaveConfig);
 			WaveManagerInst->StartWaves();
+
+			// 킬 델리게이트 바인딩 — DeathProcessor → WaveManager
+			UTPSEnemyDeathProcessor::OnEnemyKilledDelegate.AddUObject(
+				WaveManagerInst, &UTPSWaveManager::NotifyEnemyKilled);
 		}
 	}
 }
