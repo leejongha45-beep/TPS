@@ -1,9 +1,11 @@
 #pragma once
 #include "CoreMinimal.h"
+#include "MassEntityHandle.h"
 #include "GameFramework/Pawn.h"
 #include "Utils/Interface/Action/AIControllable.h"
 #include "Utils/TickFunctions/FAIControlTickFunction.h"
 #include "Utils/UENUM/EnemyState.h"
+#include "MassEntityTypes.h"
 #include "TPSEnemyPawnBase.generated.h"
 
 /**
@@ -35,6 +37,10 @@ public:
 	void PlayDeath();
 
 	FORCEINLINE class UTPSEnemyHealthComponent* GetHealthComponent() const { return HealthComponentInst; }
+
+	/** Mass Entity Handle 설정 — LODProcessor가 Actor 스폰 시 호출 */
+	void SetMassEntityHandle(FMassEntityHandle InHandle, FMassEntityManager* InEntityManager);
+	FORCEINLINE FMassEntityHandle GetMassEntityHandle() const { return MassEntityHandle; }
 
 protected:
 	virtual void PostInitializeComponents() override;
@@ -110,4 +116,12 @@ protected:
 	float DeathLingerTime = 2.f;
 
 	FTimerHandle DeathTimerHandle;
+
+#pragma region MassEntity
+	/** 대응되는 Mass Entity (LODProcessor가 설정) */
+	FMassEntityHandle MassEntityHandle;
+
+	/** Entity Fragment 접근용 */
+	FMassEntityManager* CachedEntityManager = nullptr;
+#pragma endregion
 };

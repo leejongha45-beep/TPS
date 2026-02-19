@@ -42,7 +42,7 @@ void UTPSEnemyLODProcessor::Execute(FMassEntityManager& EntityManager, FMassExec
 	int32 TransitionCount = 0;
 
 	EntityQuery.ForEachEntityChunk(Context,
-		[pPool, &TransitionCount](FMassExecutionContext& Context)
+		[pPool, &TransitionCount, &EntityManager](FMassExecutionContext& Context)
 		{
 			const int32 NumEntities = Context.GetNumEntities();
 
@@ -90,10 +90,11 @@ void UTPSEnemyLODProcessor::Execute(FMassEntityManager& EntityManager, FMassExec
 				if (NewLOD == EEnemyLODLevel::FullActor && PrevLOD != EEnemyLODLevel::FullActor)
 				{
 					ATPSEnemyPawnBase* pEnemy = pPool->GetEnemy();
-					if (pEnemy)
+					if (ensure(pEnemy))
 					{
 						const FTransform SpawnTransform(FRotator::ZeroRotator, Movement.CurrentLocation);
 						pEnemy->ActivateEnemy(SpawnTransform, AI.AIState);
+						pEnemy->SetMassEntityHandle(Context.GetEntity(i), &EntityManager);
 						ActorRef.ActorRef = pEnemy;
 					}
 				}
@@ -103,7 +104,7 @@ void UTPSEnemyLODProcessor::Execute(FMassEntityManager& EntityManager, FMassExec
 					if (ActorRef.ActorRef.IsValid())
 					{
 						ATPSEnemyPawnBase* pEnemy = Cast<ATPSEnemyPawnBase>(ActorRef.ActorRef.Get());
-						if (pEnemy)
+						if (ensure(pEnemy))
 						{
 							pEnemy->DeactivateEnemy();
 							pPool->ReturnEnemy(pEnemy);

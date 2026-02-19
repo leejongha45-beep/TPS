@@ -1,5 +1,8 @@
 #include "Enemy/Actor/TPSEnemyPawnBase.h"
 #include "Enemy/Component/TPSEnemyHealthComponent.h"
+#include "Enemy/Mass/Fragment/TPSEnemyHealthFragment.h"
+#include "Enemy/Mass/Fragment/TPSEnemyAIStateFragment.h"
+#include "MassEntitySubsystem.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -215,6 +218,10 @@ void ATPSEnemyPawnBase::DeactivateEnemy()
 
 	// ⑤ Death 타이머 정리
 	GetWorldTimerManager().ClearTimer(DeathTimerHandle);
+
+	// ⑥ Mass Entity Handle 초기화
+	MassEntityHandle = FMassEntityHandle();
+	CachedEntityManager = nullptr;
 }
 
 void ATPSEnemyPawnBase::PlayDeath()
@@ -244,7 +251,31 @@ float ATPSEnemyPawnBase::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 		HealthComponentInst->ApplyDamage(ActualDamage);
 	}
 
-	// ② Mass Fragment 동기화 — Phase 4에서 구현
+	// ② Mass Fragment 동기화
+	if (MassEntityHandle.IsValid() && CachedEntityManager)
+	{
+		FTPSEnemyHealthFragment* HealthFrag = CachedEntityManager->GetFragmentDataPtr<FTPSEnemyHealthFragment>(MassEntityHandle);
+		if (ensure(HealthFrag))
+		{
+			HealthFrag->CurrentHealth = HealthComponentInst->GetCurrentHealth();
+
+			// 사망 시 AI 상태도 동기화
+			if (HealthComponentInst->IsDead())
+			{
+				FTPSEnemyAIStateFragment* AIFrag = CachedEntityManager->GetFragmentDataPtr<FTPSEnemyAIStateFragment>(MassEntityHandle);
+				if (ensure(AIFrag))
+				{
+					AIFrag->AIState = EEnemyAIState::Die;
+				}
+			}
+		}
+	}
 
 	return ActualDamage;
+}
+
+void ATPSEnemyPawnBase::SetMassEntityHandle(FMassEntityHandle InHandle, FMassEntityManager* InEntityManager)
+{
+	MassEntityHandle = InHandle;
+	CachedEntityManager = InEntityManager;
 }
