@@ -8,11 +8,12 @@
 #include "Enemy/Mass/Fragment/TPSEnemyAIStateFragment.h"
 #include "Enemy/Actor/TPSEnemyPawnBase.h"
 #include "Enemy/Pool/TPSEnemyActorPoolSubsystem.h"
+#include "Enemy/Visualization/TPSEnemyISMSubsystem.h"
 
 UTPSEnemyLODProcessor::UTPSEnemyLODProcessor()
 	: EntityQuery(*this)
 {
-	// ★ GameThread 필수 — Actor 풀 Get/Return 호출
+	// ★ GameThread 필수 — Actor 풀 Get/Return + ISM 호출
 	bRequiresGameThreadExecution = true;
 
 	ExecutionFlags = static_cast<int32>(EProcessorExecutionFlags::All);
@@ -32,17 +33,20 @@ void UTPSEnemyLODProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager
 
 void UTPSEnemyLODProcessor::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
-	// Actor 풀 서브시스템
+	// 서브시스템 참조
 	UWorld* pWorld = EntityManager.GetWorld();
 	if (!ensure(pWorld)) return;
 
 	UTPSEnemyActorPoolSubsystem* pPool = pWorld->GetSubsystem<UTPSEnemyActorPoolSubsystem>();
 	if (!ensure(pPool)) return;
 
+	UTPSEnemyISMSubsystem* pISM = pWorld->GetSubsystem<UTPSEnemyISMSubsystem>();
+	if (!ensure(pISM)) return;
+
 	int32 TransitionCount = 0;
 
 	EntityQuery.ForEachEntityChunk(Context,
-		[pPool, &TransitionCount, &EntityManager](FMassExecutionContext& Context)
+		[pPool, pISM, &TransitionCount, &EntityManager](FMassExecutionContext& Context)
 		{
 			const int32 NumEntities = Context.GetNumEntities();
 
@@ -113,7 +117,19 @@ void UTPSEnemyLODProcessor::Execute(FMassEntityManager& EntityManager, FMassExec
 					}
 				}
 
-				// ⑥ ISM 전환은 Phase 5에서 구현
+				// ⑥ ISM 전환
+				if (NewLOD == EEnemyLODLevel::ISM && PrevLOD != EEnemyLODLevel::ISM)
+				{
+					// ISM 진입 → 인스턴스 추가
+					const FTransform ISMTransform(FRotator::ZeroRotator, Movement.CurrentLocation);
+					LOD.ISMInstanceIndex = pISM->AddInstance(ISMTransform);
+				}
+				else if (PrevLOD == EEnemyLODLevel::ISM && NewLOD != EEnemyLODLevel::ISM)
+				{
+					// ISM 이탈 → 인스턴스 제거
+					pISM->RemoveInstance(LOD.ISMInstanceIndex);
+					LOD.ISMInstanceIndex = INDEX_NONE;
+				}
 
 				LOD.LODLevel = NewLOD;
 				++TransitionCount;
