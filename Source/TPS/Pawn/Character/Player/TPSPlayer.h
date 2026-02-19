@@ -1,116 +1,53 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
-#include "Utils/Interface/Action/Aimable.h"
-#include "Utils/Interface/Action/Equippable.h"
-#include "Utils/Interface/Action/Jumpable.h"
-#include "Utils/Interface/Action/Moveable.h"
-#include "Utils/Interface/Action/Sprintable.h"
-#include "Utils/Interface/Action/Interactable.h"
-#include "Utils/Interface/Action/Fireable.h"
+#include "Pawn/Character/Base/TPSSoldierBase.h"
 #include "Utils/Interface/Data/Interpolable.h"
 #include "Utils/TickFunctions/FInterpolateTickFunction.h"
 #include "TPSPlayer.generated.h"
 
 /**
  * 플레이어 캐릭터
- * - 모든 액션 인터페이스 구현 (IMoveable, ISprintable, IAimable, IJumpable, IEquippable, IInteractable, IFireable)
+ * - ATPSSoldierBase 상속 (이동/스프린트/점프/조준/장착/사격 공통)
+ * - Player 전용: 카메라, 상호작용, ADS 보간
  * - Controller에서 인터페이스를 통해 액션 명령 수신
- * - 컴포넌트 기반 설계: State, Status, CMC, Camera, Equip, Fire, AnimLayer, Interaction
- * - IInterpolable: 조준 시 캐릭터 회전 보간
  */
 UCLASS()
 class TPS_API ATPSPlayer
-	: public ACharacter, public IMoveable, public ISprintable, public IAimable, public IJumpable, public IEquippable, public IInterpolable, public IInteractable, public IFireable
+	: public ATPSSoldierBase, public IInterpolable
 {
 	GENERATED_BODY()
 
 public:
 	ATPSPlayer(const FObjectInitializer& ObjectInitializer);
 
-	FORCEINLINE class UTPSPlayerStateComponent* GetStateComponent() const { return StateComponentInst; }
-	FORCEINLINE class UTPSAnimLayerComponent* GetAnimLayerComponent() const { return AnimLayerComponentInst; }
 	FORCEINLINE class UTPSPlayerInteractionComponent* GetInteractionComponent() const { return InteractionComponentInst; }
-	FORCEINLINE class UTPSEquipComponent* GetEquipComponent() const { return EquipComponentInst; }
-	FORCEINLINE class UTPSFireComponent* GetFireComponent() const { return FireComponentInst; }
-	FORCEINLINE class UTPSFootstepComponent* GetFootstepComponent() const { return FootstepComponentInst; }
 
 protected:
-	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
 	virtual void RegisterActorTickFunctions(bool bRegister) override;
-	virtual void OnJumped_Implementation() override;
-	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
-
-	void BindDelegate();
-	void CreateDefaultComponents();
+	virtual void CreateDefaultComponents() override;
 
 #pragma region Component
-
 	UPROPERTY(VisibleDefaultsOnly, Category = "Component|Camera")
 	TObjectPtr<class USpringArmComponent> SpringArmComponentInst;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Component|Camera")
 	TObjectPtr<class UCameraComponent> CameraComponentInst;
 
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Action")
-	TObjectPtr<class UTPSCMC> CMCInst;
-
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|State")
-	TObjectPtr<class UTPSPlayerStateComponent> StateComponentInst;
-
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Status")
-	TObjectPtr<class UTPSPlayerStatusComponent> StatusComponentInst;
-
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Camera")
 	TObjectPtr<class UTPSCameraControlComponent> CameraControlComponentInst;
 
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Action")
-	TObjectPtr<class UTPSEquipComponent> EquipComponentInst;
-
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Animation")
-	TObjectPtr<class UTPSAnimLayerComponent> AnimLayerComponentInst;
-
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Interaction")
 	TObjectPtr<class UTPSPlayerInteractionComponent> InteractionComponentInst;
-
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Action")
-	TObjectPtr<class UTPSFireComponent> FireComponentInst;
-
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Data")
-	TObjectPtr<class UTPSFootstepComponent> FootstepComponentInst;
 #pragma endregion
 
-#pragma region ControllerCallback
-	virtual void StartMove() override;
-	virtual void Move(const FVector2D& InputVector) override;
-	virtual void StopMove() override;
-
-	virtual void StartSprint() override;
-	virtual void StopSprint() override;
-
+#pragma region PlayerOverride
+	virtual void Interact() override;
 	virtual void StartAim() override;
 	virtual void StopAim() override;
-
-	virtual void StartJump() override;
-	virtual void StopJump() override;
-
-	virtual void Equip() override;
-	virtual void Unequip() override;
-
-	virtual void Interact() override;
-
 	virtual void StartFire() override;
-	virtual void StopFire() override;
-#pragma endregion
-
-#pragma region EquipCallback
-	void OnEquipStateChanged(bool bIsEquipped);
-#pragma endregion
-
-#pragma region FireCallback
-	void OnFireStateChanged(bool bIsFiring);
+	virtual void OnEquipStateChanged(bool bIsEquipped) override;
 #pragma endregion
 
 #pragma region AimRotation
