@@ -17,22 +17,22 @@ protected:
 	virtual void BuildTemplate(FMassEntityTemplateBuildContext& BuildContext, const UWorld& World) const override;
 
 	/** 기본 최대 체력 */
-	UPROPERTY(EditAnywhere, Category = "Stats")
+	UPROPERTY(EditAnywhere, Category = "Stats", meta = (ClampMin = "1.0"))
 	float DefaultMaxHealth = 50.f;
 
 	/** 기본 이동 속도 (cm/s) */
-	UPROPERTY(EditAnywhere, Category = "Stats")
+	UPROPERTY(EditAnywhere, Category = "Stats", meta = (ClampMin = "0.0"))
 	float DefaultMoveSpeed = 600.f;
 
 	/** 기본 공격 사거리 (cm) */
-	UPROPERTY(EditAnywhere, Category = "Stats")
+	UPROPERTY(EditAnywhere, Category = "Stats", meta = (ClampMin = "10.0"))
 	float DefaultAttackRange = 150.f;
 
 	/** 기본 공격 데미지 */
-	UPROPERTY(EditAnywhere, Category = "Stats")
+	UPROPERTY(EditAnywhere, Category = "Stats", meta = (ClampMin = "0.0"))
 	float DefaultAttackDamage = 10.f;
 
 	/** 기본 공격 간격 (초) */
-	UPROPERTY(EditAnywhere, Category = "Stats")
+	UPROPERTY(EditAnywhere, Category = "Stats", meta = (ClampMin = "0.1"))
 	float DefaultAttackInterval = 1.f;
 };

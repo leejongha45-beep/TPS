@@ -127,8 +127,9 @@ void UTPSEnemyActorPoolSubsystem::SpawnEnemyBatch(int32 InCount)
 
 	for (int32 i = 0; i < InCount; ++i)
 	{
+		static const FTransform PoolSpawnTransform(FVector(-10000.f, 0.f, 0.f));
 		ATPSEnemyPawnBase* pEnemy = pWorld->SpawnActor<ATPSEnemyPawnBase>(
-			LoadedEnemyClass, FTransform(FVector(-10000.f, 0.f, 0.f)), SpawnParams);
+			LoadedEnemyClass, PoolSpawnTransform, SpawnParams);
 		if (ensure(pEnemy))
 		{
 			Pool.Add(pEnemy);

@@ -82,7 +82,7 @@ void UTPSEnemyAIProcessor::Execute(FMassEntityManager& EntityManager, FMassExecu
 					break;
 
 				case EEnemyAIState::Attack:
-					if (Distance > AI.AttackRange * 1.2f)
+					if (Distance > AI.AttackRange * AI.AttackRangeHysteresis)
 					{
 						AI.AIState = EEnemyAIState::Chase;
 					}

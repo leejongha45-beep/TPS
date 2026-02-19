@@ -1,4 +1,4 @@
-#include "TPSEnemySyncProcessor.h"
+#include "TPSEnemyTransformSyncProcessor.h"
 #include "MassCommonTypes.h"
 #include "MassExecutionContext.h"
 #include "TPSEnemyLODProcessor.h"
@@ -10,7 +10,7 @@
 #include "Enemy/Actor/TPSEnemyPawnBase.h"
 #include "Enemy/Visualization/TPSEnemyISMSubsystem.h"
 
-UTPSEnemySyncProcessor::UTPSEnemySyncProcessor()
+UTPSEnemyTransformSyncProcessor::UTPSEnemyTransformSyncProcessor()
 	: EntityQuery(*this)
 {
 	// ★ GameThread 필수 — Actor SetActorLocation + ISM UpdateTransform
@@ -23,7 +23,7 @@ UTPSEnemySyncProcessor::UTPSEnemySyncProcessor()
 	ExecutionOrder.ExecuteAfter.Add(UTPSEnemyLODProcessor::StaticClass()->GetFName());
 }
 
-void UTPSEnemySyncProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
+void UTPSEnemyTransformSyncProcessor::ConfigureQueries(const TSharedRef<FMassEntityManager>& EntityManager)
 {
 	EntityQuery.AddRequirement<FTPSEnemyMovementFragment>(EMassFragmentAccess::ReadOnly);
 	EntityQuery.AddRequirement<FTPSEnemyLODFragment>(EMassFragmentAccess::ReadOnly);
@@ -32,7 +32,7 @@ void UTPSEnemySyncProcessor::ConfigureQueries(const TSharedRef<FMassEntityManage
 	EntityQuery.AddSharedRequirement<FTPSPlayerLocationSharedFragment>(EMassFragmentAccess::ReadOnly);
 }
 
-void UTPSEnemySyncProcessor::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
+void UTPSEnemyTransformSyncProcessor::Execute(FMassEntityManager& EntityManager, FMassExecutionContext& Context)
 {
 	UWorld* pWorld = EntityManager.GetWorld();
 	if (!ensure(pWorld)) return;

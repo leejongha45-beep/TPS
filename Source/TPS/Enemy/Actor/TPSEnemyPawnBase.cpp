@@ -9,6 +9,11 @@
 DECLARE_LOG_CATEGORY_EXTERN(EnemyAILog, Log, All);
 DEFINE_LOG_CATEGORY(EnemyAILog);
 
+namespace TPSEnemyConstants
+{
+	static const FVector PoolParkingLocation(-10000.f, 0.f, 0.f);
+}
+
 ATPSEnemyPawnBase::ATPSEnemyPawnBase()
 {
 	// ① Capsule (Root) — 충돌/피격 판정
@@ -123,7 +128,7 @@ void ATPSEnemyPawnBase::DeactivateEnemy()
 	}
 
 	// ③ 맵 밖으로 이동 (풀 대기 위치)
-	SetActorLocation(FVector(-10000.f, 0.f, 0.f));
+	SetActorLocation(TPSEnemyConstants::PoolParkingLocation);
 
 	// ④ Death 타이머 정리
 	GetWorldTimerManager().ClearTimer(DeathTimerHandle);

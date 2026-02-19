@@ -72,7 +72,8 @@ void UTPSEnemyISMSubsystem::RemoveInstance(int32 InInstanceIndex)
 	if (InInstanceIndex == INDEX_NONE) return;
 
 	// 실제 제거 대신 화면 밖으로 이동 + 재활용 풀에 등록
-	const FTransform HiddenTransform(FRotator::ZeroRotator, FVector(0.f, 0.f, -100000.f));
+	static constexpr float HiddenInstanceZ = -100000.f;
+	const FTransform HiddenTransform(FRotator::ZeroRotator, FVector(0.f, 0.f, HiddenInstanceZ));
 	ISMComponent->UpdateInstanceTransform(InInstanceIndex, HiddenTransform, true, true);
 	FreeIndices.Add(InInstanceIndex);
 }

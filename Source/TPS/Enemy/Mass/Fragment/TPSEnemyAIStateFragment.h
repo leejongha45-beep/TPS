@@ -35,4 +35,7 @@ struct FTPSEnemyAIStateFragment : public FMassFragment
 
 	/** Idle 대기 시간 (초) */
 	float IdleWaitTime = 0.5f;
+
+	/** 공격→추격 복귀 히스테리시스 배율 (AttackRange * 이 값 초과 시 Chase 복귀) */
+	float AttackRangeHysteresis = 1.2f;
 };
