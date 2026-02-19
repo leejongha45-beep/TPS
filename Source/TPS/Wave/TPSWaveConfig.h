@@ -37,6 +37,8 @@ struct FTPSWaveEntry
 /**
  * 웨이브 설정 DataAsset
  * - 에디터에서 웨이브별 적 구성 세팅
+ * - Waves 배열을 무한 순환 (Cycle)
+ * - 순환할 때마다 SpawnCountMultiplier 누적 적용
  * - GameModeBase → WaveManager가 참조
  */
 UCLASS()
@@ -45,7 +47,34 @@ class TPS_API UTPSWaveConfig : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	/** 웨이브 목록 (순서대로 진행) */
+	/** 웨이브 목록 (순서대로 진행, 끝나면 처음부터 순환) */
 	UPROPERTY(EditDefaultsOnly, Category = "Wave")
 	TArray<FTPSWaveEntry> Waves;
+
+	// ──────────── 무한 웨이브 스케일링 ────────────
+
+	/**
+	 * 순환(Cycle)마다 스폰 수에 곱하는 배율
+	 * Cycle 0 = 1.0, Cycle 1 = 배율^1, Cycle 2 = 배율^2 ...
+	 * 예: 1.5면 1회차 100마리 → 2회차 150마리 → 3회차 225마리
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "Scaling", meta = (ClampMin = "1.0"))
+	float SpawnCountMultiplier = 1.5f;
+
+	/**
+	 * 순환당 스폰 수 상한 (한 웨이브 최대치, 퍼포먼스 안전장치)
+	 * 0 = 제한 없음
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "Scaling", meta = (ClampMin = "0"))
+	int32 MaxSpawnCountPerWave = 2000;
+
+	// ──────────── 동시 존재 제한 ────────────
+
+	/**
+	 * 월드에 동시에 존재할 수 있는 최대 적 수
+	 * 초과분은 대기열에 보류 → 적 사망 시 여유만큼 추가 스폰
+	 * 0 = 제한 없음
+	 */
+	UPROPERTY(EditDefaultsOnly, Category = "Performance", meta = (ClampMin = "0"))
+	int32 MaxAliveEnemies = 3000;
 };

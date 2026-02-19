@@ -168,15 +168,35 @@ TArray<ATPSEnemySpawnPoint*> UTPSSpawnPointSubsystem::GetRandomSpawnPoints(int32
 
 void UTPSSpawnPointSubsystem::DeactivateSpawnPoints(const TArray<ATPSEnemySpawnPoint*>& Points)
 {
-	for (ATPSEnemySpawnPoint* pPoint : Points)
+	// ① 비활성화 전 활성 포인트 수 기록 (비율 계산용)
+	int32 ActiveCountBefore = 0;
+	for (ATPSEnemySpawnPoint* pPoint : SortedSpawnPoints)
 	{
-		if (ensure(pPoint))
+		if (ensure(pPoint) && pPoint->IsActive())
 		{
-			pPoint->Deactivate();
+			++ActiveCountBefore;
 		}
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[SpawnPointSubsystem] Deactivated %d spawn points"), Points.Num());
+	// ② 비활성화 실행
+	int32 DeactivatedCount = 0;
+	for (ATPSEnemySpawnPoint* pPoint : Points)
+	{
+		if (ensure(pPoint) && pPoint->IsActive())
+		{
+			pPoint->Deactivate();
+			++DeactivatedCount;
+		}
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[SpawnPointSubsystem] Deactivated %d spawn points (was %d active)"),
+	       DeactivatedCount, ActiveCountBefore);
+
+	// ③ 통보 — WaveManager가 대기열 비율 감소에 활용
+	if (DeactivatedCount > 0)
+	{
+		OnSpawnPointsDeactivatedDelegate.Broadcast(DeactivatedCount, ActiveCountBefore);
+	}
 }
 
 // ──────────────────────────────────────────────

@@ -5,6 +5,9 @@
 
 class ATPSEnemySpawnPoint;
 
+/** 스폰 포인트 비활성화 통보 (비활성화된 포인트 수, 비활성화 전 활성 포인트 수) */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnSpawnPointsDeactivated, int32, int32);
+
 /**
  * 스폰 포인트 관리 월드 서브시스템
  * - BeginPlay 시 레벨의 모든 ATPSEnemySpawnPoint 캐싱
@@ -57,6 +60,9 @@ public:
 
 	/** 전달받은 포인트들 일괄 비활성화 (기지 파괴 시 호출) */
 	void DeactivateSpawnPoints(const TArray<ATPSEnemySpawnPoint*>& Points);
+
+	/** 스폰 포인트 비활성화 통보 델리게이트 */
+	FOnSpawnPointsDeactivated OnSpawnPointsDeactivatedDelegate;
 
 	// ──────────── 최종 단계 API ────────────
 
