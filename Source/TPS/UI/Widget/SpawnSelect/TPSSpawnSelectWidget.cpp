@@ -2,11 +2,9 @@
 #include "UI/Widget/SpawnSelect/TPSSpawnSelectMarkerWidget.h"
 #include "Spawn/TPSPlayerStart.h"
 #include "Components/Image.h"
-#include "Components/CanvasPanel.h"
-#include "Components/CanvasPanelSlot.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
-#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Blueprint/WidgetTree.h"
 
 void UTPSSpawnSelectWidget::NativeConstruct()
 {
@@ -22,6 +20,9 @@ void UTPSSpawnSelectWidget::NativeConstruct()
 	{
 		SelectedNameText->SetText(FText::FromString(TEXT("스폰 위치를 선택하세요")));
 	}
+
+	// WBP 자식에서 마커 위젯 수집
+	CollectMarkerWidgets();
 }
 
 void UTPSSpawnSelectWidget::NativeDestruct()
@@ -31,7 +32,7 @@ void UTPSSpawnSelectWidget::NativeDestruct()
 		ConfirmButton->OnClicked.RemoveAll(this);
 	}
 
-	// 마커 델리게이트 정리
+	// 마커 델리게이트 정리 (WBP 소유이므로 RemoveFromParent 하지 않음)
 	for (UTPSSpawnSelectMarkerWidget* pMarker : MarkerWidgets)
 	{
 		if (pMarker)
@@ -44,53 +45,62 @@ void UTPSSpawnSelectWidget::NativeDestruct()
 	Super::NativeDestruct();
 }
 
-void UTPSSpawnSelectWidget::InitializeSpawnPoints(const TArray<ATPSPlayerStart*>& InSpawnPoints)
+void UTPSSpawnSelectWidget::CollectMarkerWidgets()
 {
-	if (!ensure(MarkerContainer)) return;
-	if (!ensure(MarkerWidgetClass)) return;
+	MarkerWidgets.Empty();
 
-	// 기존 마커 정리
-	for (UTPSSpawnSelectMarkerWidget* pMarker : MarkerWidgets)
+	if (!ensure(WidgetTree)) return;
+
+	// WidgetTree에서 모든 자식 순회 → 마커 타입 수집
+	WidgetTree->ForEachWidget([this](UWidget* pWidget)
 	{
+		UTPSSpawnSelectMarkerWidget* pMarker = Cast<UTPSSpawnSelectMarkerWidget>(pWidget);
 		if (pMarker)
 		{
-			pMarker->OnMarkerClickedDelegate.RemoveAll(this);
-			pMarker->RemoveFromParent();
+			MarkerWidgets.Add(pMarker);
 		}
-	}
-	MarkerWidgets.Empty();
+	});
+
+	UE_LOG(LogTemp, Log, TEXT("[SpawnSelectWidget] Collected %d markers from WBP"), MarkerWidgets.Num());
+}
+
+void UTPSSpawnSelectWidget::InitializeSpawnPoints(const TArray<ATPSPlayerStart*>& InSpawnPoints)
+{
 	SelectedSpawnPoint = nullptr;
 
-	APlayerController* pPC = GetOwningPlayer();
-	if (!ensure(pPC)) return;
-
-	for (ATPSPlayerStart* pPoint : InSpawnPoints)
+	// ① 각 마커의 DisplayName과 SpawnPoint의 DisplayName을 매칭
+	for (UTPSSpawnSelectMarkerWidget* pMarker : MarkerWidgets)
 	{
-		if (!ensure(pPoint)) continue;
-
-		UTPSSpawnSelectMarkerWidget* pMarker = CreateWidget<UTPSSpawnSelectMarkerWidget>(pPC, MarkerWidgetClass);
 		if (!ensure(pMarker)) continue;
 
-		pMarker->SetSpawnPoint(pPoint);
-		pMarker->OnMarkerClickedDelegate.AddUObject(this, &UTPSSpawnSelectWidget::OnMarkerClicked);
+		// 기존 델리게이트 정리
+		pMarker->OnMarkerClickedDelegate.RemoveAll(this);
 
-		// MarkerContainer (CanvasPanel)에 추가
-		UCanvasPanelSlot* pSlot = MarkerContainer->AddChildToCanvas(pMarker);
-		if (ensure(pSlot))
+		// DisplayName 매칭 시도
+		uint8 bMatched = false;
+		for (ATPSPlayerStart* pPoint : InSpawnPoints)
 		{
-			// 월드좌표 → 미니맵 정규화 좌표
-			const FVector2D NormPos = WorldToMinimap(pPoint->GetActorLocation());
+			if (!ensure(pPoint)) continue;
 
-			// 정규화 좌표를 앵커로 사용 (미니맵 크기에 자동 비례)
-			pSlot->SetAnchors(FAnchors(NormPos.X, NormPos.Y, NormPos.X, NormPos.Y));
-			pSlot->SetAlignment(FVector2D(0.5, 0.5));
-			pSlot->SetAutoSize(true);
+			if (pMarker->GetDisplayName().EqualTo(pPoint->GetDisplayName()))
+			{
+				// ② 매칭 성공 — SpawnPoint 바인딩 + 델리게이트 연결
+				pMarker->SetSpawnPoint(pPoint);
+				pMarker->OnMarkerClickedDelegate.AddUObject(this, &UTPSSpawnSelectWidget::OnMarkerClicked);
+				bMatched = true;
+				break;
+			}
 		}
 
-		MarkerWidgets.Add(pMarker);
+		// ③ 매칭 실패 — 마커 비활성화
+		if (!bMatched)
+		{
+			pMarker->SetSpawnPoint(nullptr);
+		}
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[SpawnSelectWidget] Created %d markers"), MarkerWidgets.Num());
+	UE_LOG(LogTemp, Log, TEXT("[SpawnSelectWidget] Initialized %d markers with %d spawn points"),
+		MarkerWidgets.Num(), InSpawnPoints.Num());
 }
 
 void UTPSSpawnSelectWidget::OnMarkerClicked(ATPSPlayerStart* InSpawnPoint)
@@ -125,16 +135,4 @@ void UTPSSpawnSelectWidget::OnConfirmButtonClicked()
 	if (!SelectedSpawnPoint.IsValid()) return;
 
 	OnSpawnPointConfirmedDelegate.Broadcast(SelectedSpawnPoint.Get());
-}
-
-FVector2D UTPSSpawnSelectWidget::WorldToMinimap(const FVector& InWorldLocation) const
-{
-	// 월드좌표를 0~1 범위로 정규화
-	const double NormX = (InWorldLocation.X - WorldOrigin.X) / WorldSize.X;
-	const double NormY = (InWorldLocation.Y - WorldOrigin.Y) / WorldSize.Y;
-
-	return FVector2D(
-		FMath::Clamp(NormX, 0.0, 1.0),
-		FMath::Clamp(NormY, 0.0, 1.0)
-	);
 }

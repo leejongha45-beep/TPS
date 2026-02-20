@@ -26,6 +26,7 @@ public:
 	void SetSelected(bool bInSelected);
 
 	FORCEINLINE ATPSPlayerStart* GetSpawnPoint() const { return SpawnPointRef.Get(); }
+	FORCEINLINE FText GetDisplayName() const { return DisplayName; }
 
 	/** 마커 클릭 델리게이트 */
 	FOnMarkerClicked OnMarkerClickedDelegate;
@@ -33,6 +34,10 @@ public:
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
+
+	/** SpawnPoint 매칭용 이름 (WBP 에디터에서 입력, DisplayName과 일치해야 함) */
+	UPROPERTY(EditInstanceOnly, Category = "SpawnSelect")
+	FText DisplayName;
 
 	/** 마커 버튼 (BP 바인딩) */
 	UPROPERTY(meta = (BindWidget))
