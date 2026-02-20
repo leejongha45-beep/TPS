@@ -5,10 +5,12 @@
 #include "UI/ViewModel/CrosshairViewModel.h"
 #include "TPSHUD.generated.h"
 
+class ATPSGameModeBase;
+
 /**
  * 게임 HUD
  * - Canvas 기반 크로스헤어 드로잉
- * - UMG 기반 탄약 위젯 관리
+ * - UMG 기반 탄약/스폰선택 위젯 관리
  * - CrosshairViewModel / AmmoViewModel을 통해 데이터 수신
  * - DrawHUD() 매 프레임 호출
  */
@@ -16,6 +18,13 @@ UCLASS()
 class TPS_API ATPSHUD : public AHUD
 {
 	GENERATED_BODY()
+
+public:
+	/** 스폰 선택 UI 표시 */
+	void ShowSpawnSelect(ATPSGameModeBase* InGameMode);
+
+	/** 스폰 선택 UI 숨김 */
+	void HideSpawnSelect();
 
 protected:
 	virtual void BeginPlay() override;
@@ -61,5 +70,18 @@ protected:
 
 	/** AmmoViewModel → Widget 갱신 */
 	void UpdateAmmoWidget();
+#pragma endregion
+
+#pragma region SpawnSelect
+	/** 스폰 선택 위젯 클래스 (BP에서 지정) */
+	UPROPERTY(EditDefaultsOnly, Category = "SpawnSelect")
+	TSubclassOf<class UTPSSpawnSelectWidget> SpawnSelectWidgetClass;
+
+	/** 스폰 선택 위젯 인스턴스 */
+	UPROPERTY()
+	TObjectPtr<class UTPSSpawnSelectWidget> SpawnSelectWidgetInst;
+
+	/** 스폰 선택 중 여부 — true면 크로스헤어/탄약 숨김 */
+	uint8 bIsSpawnSelecting : 1 = false;
 #pragma endregion
 };

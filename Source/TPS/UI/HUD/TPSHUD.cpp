@@ -1,7 +1,10 @@
 ﻿#include "UI/HUD/TPSHUD.h"
 #include "UI/ViewModel/AmmoViewModel.h"
 #include "UI/Widget/Ammo/TPSAmmoWidget.h"
+#include "UI/Widget/SpawnSelect/TPSSpawnSelectWidget.h"
 #include "Pawn/Character/Player/TPSPlayer.h"
+#include "Spawn/TPSPlayerSpawnSubsystem.h"
+#include "Core/GameMode/TPSGameModeBase.h"
 #include "Blueprint/UserWidget.h"
 #include "Engine/Canvas.h"
 
@@ -43,6 +46,10 @@ void ATPSHUD::BeginPlay()
 void ATPSHUD::DrawHUD()
 {
 	Super::DrawHUD();
+
+	// 스폰 선택 중에는 크로스헤어/탄약 비표시
+	if (bIsSpawnSelecting) return;
+
 	DrawCrosshair();
 	UpdateAmmoWidget();
 }
@@ -147,4 +154,65 @@ void ATPSHUD::UpdateAmmoWidget()
 	if (!ensure(pViewModel)) return;
 
 	AmmoWidgetInst->UpdateAmmoDisplay(pViewModel->GetCurrentAmmo(), pViewModel->GetMaxAmmo(), pViewModel->GetAmmoColor());
+}
+
+// ──────────────────────────────────────────────
+//  스폰 선택 UI
+// ──────────────────────────────────────────────
+
+void ATPSHUD::ShowSpawnSelect(ATPSGameModeBase* InGameMode)
+{
+	if (!ensure(InGameMode)) return;
+
+	APlayerController* pPC = GetOwningPlayerController();
+	if (!ensure(pPC)) return;
+
+	bIsSpawnSelecting = true;
+
+	// ① 위젯 생성 (최초 1회)
+	if (!SpawnSelectWidgetInst && SpawnSelectWidgetClass)
+	{
+		SpawnSelectWidgetInst = CreateWidget<UTPSSpawnSelectWidget>(pPC, SpawnSelectWidgetClass);
+		if (ensure(SpawnSelectWidgetInst))
+		{
+			SpawnSelectWidgetInst->AddToViewport(10); // 최상위 Z-Order
+		}
+	}
+
+	if (!ensure(SpawnSelectWidgetInst)) return;
+
+	// ② 활성 스폰 포인트 → 위젯에 전달
+	UWorld* pWorld = GetWorld();
+	if (ensure(pWorld))
+	{
+		UTPSPlayerSpawnSubsystem* pSpawnSub = pWorld->GetSubsystem<UTPSPlayerSpawnSubsystem>();
+		if (ensure(pSpawnSub))
+		{
+			SpawnSelectWidgetInst->InitializeSpawnPoints(pSpawnSub->GetActiveSpawnPoints());
+		}
+	}
+
+	// ③ 확정 델리게이트 → GameMode로 전달
+	SpawnSelectWidgetInst->OnSpawnPointConfirmedDelegate.RemoveAll(InGameMode);
+	SpawnSelectWidgetInst->OnSpawnPointConfirmedDelegate.AddUObject(
+		InGameMode, &ATPSGameModeBase::OnSpawnPointSelected);
+
+	// ④ 위젯 표시
+	SpawnSelectWidgetInst->SetVisibility(ESlateVisibility::Visible);
+
+	// ⑤ 탄약 위젯 숨김
+	if (AmmoWidgetInst)
+	{
+		AmmoWidgetInst->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void ATPSHUD::HideSpawnSelect()
+{
+	bIsSpawnSelecting = false;
+
+	if (SpawnSelectWidgetInst)
+	{
+		SpawnSelectWidgetInst->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }

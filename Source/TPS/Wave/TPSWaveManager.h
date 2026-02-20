@@ -84,6 +84,9 @@ private:
 	/** 동시 존재 상한 대비 추가 스폰 가능 수 */
 	int32 GetSpawnCapacity() const;
 
+	/** 웨이브 상태 전체 초기화 (Initialize/StartWaves 공용) */
+	void ResetState();
+
 	/** 스폰 포인트 비활성화 통보 핸들러 — 대기열 비율 감소 + 캐시 갱신 */
 	void HandleSpawnPointsDeactivated(int32 DeactivatedCount, int32 ActiveCountBefore);
 
@@ -107,6 +110,10 @@ private:
 	/** 동시 존재 상한으로 보류된 스폰 대기 수 */
 	int32 PendingSpawnCount = 0;
 
+	/** 마지막으로 스폰한 웨이브의 Config 인덱스 (지연 스폰에서 동일 EntityConfig 사용) */
+	int32 LastSpawnedWaveIndex = 0;
+
+	/** 누적 킬 카운트 (순환 무관, 세션 전체) */
 	int32 TotalKillCount = 0;
 
 	/** 현재 웨이브의 스폰 포인트 캐시 (지연 스폰에서 재사용) */

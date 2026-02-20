@@ -8,23 +8,34 @@
 #include "Enemy/Mass/Fragment/TPSEnemyMovementFragment.h"
 #include "Kismet/GameplayStatics.h"
 
-void UTPSWaveManager::Initialize(UWorld* InWorld, UTPSWaveConfig* InConfig)
+DEFINE_LOG_CATEGORY_STATIC(LogTPSWave, Log, All);
+
+void UTPSWaveManager::ResetState()
 {
-	CachedWorld = InWorld;
-	WaveConfig = InConfig;
 	CurrentWaveIndex = 0;
 	CurrentCycle = 0;
 	TotalWaveNumber = 0;
 	AliveEnemies = 0;
 	PendingSpawnCount = 0;
+	LastSpawnedWaveIndex = 0;
 	TotalKillCount = 0;
+	CachedSpawnPoints.Empty();
+}
+
+void UTPSWaveManager::Initialize(UWorld* InWorld, UTPSWaveConfig* InConfig)
+{
+	CachedWorld = InWorld;
+	WaveConfig = InConfig;
+	ResetState();
 
 	// 스폰 포인트 비활성화 델리게이트 바인딩
+	// 중복 바인딩 방지 — Initialize가 여러 번 호출되어도 핸들러가 1회만 등록되도록
 	if (ensure(InWorld))
 	{
 		UTPSSpawnPointSubsystem* pSpawnSubsystem = InWorld->GetSubsystem<UTPSSpawnPointSubsystem>();
 		if (ensure(pSpawnSubsystem))
 		{
+			pSpawnSubsystem->OnSpawnPointsDeactivatedDelegate.RemoveAll(this);
 			pSpawnSubsystem->OnSpawnPointsDeactivatedDelegate.AddUObject(
 				this, &UTPSWaveManager::HandleSpawnPointsDeactivated);
 		}
@@ -36,11 +47,7 @@ void UTPSWaveManager::StartWaves()
 	if (!ensure(WaveConfig)) return;
 	if (!ensure(WaveConfig->Waves.Num() > 0)) return;
 
-	CurrentWaveIndex = 0;
-	CurrentCycle = 0;
-	TotalWaveNumber = 0;
-	AliveEnemies = 0;
-	PendingSpawnCount = 0;
+	ResetState();
 
 	StartNextWaveCountdown();
 }
@@ -101,11 +108,11 @@ int32 UTPSWaveManager::SpawnEntities(int32 Count)
 	if (!ensure(WaveConfig)) return 0;
 	if (!ensure(CachedWorld.IsValid())) return 0;
 
-	// ① 현재 웨이브의 EntityConfig (순환된 인덱스 기준)
-	// 지연 스폰 시에도 마지막으로 스폰한 웨이브의 Config를 사용
-	const int32 WaveIdx = FMath::Clamp(CurrentWaveIndex > 0 ? CurrentWaveIndex - 1 : WaveConfig->Waves.Num() - 1,
-	                                    0, WaveConfig->Waves.Num() - 1);
-	const FTPSWaveEntry& Wave = WaveConfig->Waves[WaveIdx];
+	// ① 마지막으로 스폰한 웨이브의 EntityConfig 사용
+	// SpawnWaveEnemies()에서 기록한 LastSpawnedWaveIndex를 참조
+	// → 즉시 스폰, 지연 스폰 모두 동일한 웨이브의 Config를 안전하게 사용
+	if (!ensure(WaveConfig->Waves.IsValidIndex(LastSpawnedWaveIndex))) return 0;
+	const FTPSWaveEntry& Wave = WaveConfig->Waves[LastSpawnedWaveIndex];
 	if (!ensure(Wave.EnemyEntityConfig)) return 0;
 
 	// ② 플레이어 위치
@@ -130,6 +137,21 @@ int32 UTPSWaveManager::SpawnEntities(int32 Count)
 
 	int32 Spawned = 0;
 
+	// Entity 1개 생성 공통 로직 — 위치만 받아서 Entity 생성 + Fragment 초기화
+	auto CreateOneEntity = [&](const FVector& SpawnLoc)
+	{
+		FMassEntityHandle NewEntity = EntityManager.CreateEntity(Archetype);
+
+		FTPSEnemyMovementFragment* MoveFrag = EntityManager.GetFragmentDataPtr<FTPSEnemyMovementFragment>(NewEntity);
+		if (ensure(MoveFrag))
+		{
+			MoveFrag->CurrentLocation = SpawnLoc;
+			MoveFrag->TargetLocation = PlayerLoc;
+		}
+
+		++Spawned;
+	};
+
 	// ⑥ 스폰 포인트 기반 or 반경 폴백
 	if (CachedSpawnPoints.Num() > 0)
 	{
@@ -139,6 +161,12 @@ int32 UTPSWaveManager::SpawnEntities(int32 Count)
 
 		for (int32 PointIdx = 0; PointIdx < NumPoints; ++PointIdx)
 		{
+			// 유효성 체크
+			if (!ensure(CachedSpawnPoints[PointIdx]))
+			{
+				continue;
+			}
+
 			const int32 CountForThisPoint = BasePerPoint + (Remainder > 0 ? 1 : 0);
 			if (Remainder > 0) --Remainder;
 
@@ -150,16 +178,7 @@ int32 UTPSWaveManager::SpawnEntities(int32 Count)
 					SpawnLoc = pSpawnSubsystem->SnapToGround(SpawnLoc);
 				}
 
-				FMassEntityHandle NewEntity = EntityManager.CreateEntity(Archetype);
-
-				FTPSEnemyMovementFragment* MoveFrag = EntityManager.GetFragmentDataPtr<FTPSEnemyMovementFragment>(NewEntity);
-				if (ensure(MoveFrag))
-				{
-					MoveFrag->CurrentLocation = SpawnLoc;
-					MoveFrag->TargetLocation = PlayerLoc;
-				}
-
-				++Spawned;
+				CreateOneEntity(SpawnLoc);
 			}
 		}
 	}
@@ -176,16 +195,7 @@ int32 UTPSWaveManager::SpawnEntities(int32 Count)
 				0.f
 			);
 
-			FMassEntityHandle NewEntity = EntityManager.CreateEntity(Archetype);
-
-			FTPSEnemyMovementFragment* MoveFrag = EntityManager.GetFragmentDataPtr<FTPSEnemyMovementFragment>(NewEntity);
-			if (ensure(MoveFrag))
-			{
-				MoveFrag->CurrentLocation = SpawnLoc;
-				MoveFrag->TargetLocation = PlayerLoc;
-			}
-
-			++Spawned;
+			CreateOneEntity(SpawnLoc);
 		}
 	}
 
@@ -201,6 +211,7 @@ void UTPSWaveManager::SpawnWaveEnemies()
 {
 	if (!ensure(WaveConfig)) return;
 	if (!ensure(CachedWorld.IsValid())) return;
+	if (!ensure(WaveConfig->Waves.IsValidIndex(CurrentWaveIndex))) return;
 
 	const FTPSWaveEntry& Wave = WaveConfig->Waves[CurrentWaveIndex];
 
@@ -223,30 +234,28 @@ void UTPSWaveManager::SpawnWaveEnemies()
 		}
 	}
 
-	// ③ 동시 존재 상한 확인
+	// ③ 지연 스폰에서도 동일 EntityConfig를 사용하기 위해 인덱스 기록
+	LastSpawnedWaveIndex = CurrentWaveIndex;
+
+	// ④ 동시 존재 상한 확인
 	const int32 Capacity = GetSpawnCapacity();
 	const int32 ImmediateSpawn = FMath::Min(AdjustedSpawnCount, Capacity);
 	const int32 Deferred = AdjustedSpawnCount - ImmediateSpawn;
 
-	// ④ 즉시 스폰
+	// ⑤ 즉시 스폰
 	const int32 ActuallySpawned = SpawnEntities(ImmediateSpawn);
 
-	// ⑤ 초과분 대기열에 누적
-	PendingSpawnCount += Deferred;
+	// ⑥ 초과분 + 스폰 실패분을 대기열에 누적
+	// SpawnEntities가 요청보다 적게 스폰하면 (Entity 생성 실패, 유효하지 않은 스폰 포인트 등)
+	// 미스폰분도 대기열로 보내서 다음 킬 통보 시 재시도
+	const int32 FailedToSpawn = ImmediateSpawn - ActuallySpawned;
+	PendingSpawnCount += Deferred + FailedToSpawn;
 
-	// ⑥ 델리게이트
+	// ⑦ 델리게이트
 	OnWaveChangedDelegate.Broadcast(CurrentWaveIndex, CurrentCycle, AdjustedSpawnCount);
 
-	if (Deferred > 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[WaveManager] Wave %d (Cycle %d) — spawned %d, deferred %d (alive: %d, pending: %d)"),
-		       TotalWaveNumber, CurrentCycle, ActuallySpawned, Deferred, AliveEnemies, PendingSpawnCount);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[WaveManager] Wave %d (Cycle %d) — spawned %d (alive: %d)"),
-		       TotalWaveNumber, CurrentCycle, ActuallySpawned, AliveEnemies);
-	}
+	UE_LOG(LogTPSWave, Log, TEXT("[WaveManager] Wave %d (Cycle %d) — target %d, spawned %d, failed %d, deferred %d (alive: %d, pending: %d)"),
+	       TotalWaveNumber, CurrentCycle, AdjustedSpawnCount, ActuallySpawned, FailedToSpawn, Deferred, AliveEnemies, PendingSpawnCount);
 }
 
 // ──────────────────────────────────────────────
@@ -255,6 +264,14 @@ void UTPSWaveManager::SpawnWaveEnemies()
 
 void UTPSWaveManager::NotifyEnemyKilled()
 {
+	// 음수 방어 — 이중 호출이나 초기화 전 사망 통보로 인한 언더플로우 방지
+	// AliveEnemies가 음수가 되면 GetSpawnCapacity()가 상한보다 큰 값을 반환하여 과다 스폰 유발
+	if (!ensureMsgf(AliveEnemies > 0,
+		TEXT("[WaveManager] NotifyEnemyKilled called but AliveEnemies is already %d!"), AliveEnemies))
+	{
+		return;
+	}
+
 	--AliveEnemies;
 	++TotalKillCount;
 
@@ -279,7 +296,7 @@ void UTPSWaveManager::DrainPendingSpawns()
 
 	if (Spawned > 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[WaveManager] Deferred spawn: %d entities (pending remaining: %d, alive: %d)"),
+		UE_LOG(LogTPSWave, Log, TEXT("[WaveManager] Deferred spawn: %d entities (pending remaining: %d, alive: %d)"),
 		       Spawned, PendingSpawnCount, AliveEnemies);
 	}
 }
@@ -304,7 +321,7 @@ void UTPSWaveManager::HandleSpawnPointsDeactivated(int32 DeactivatedCount, int32
 
 		PendingSpawnCount = FMath::Max(0, PendingSpawnCount - Reduction);
 
-		UE_LOG(LogTemp, Warning, TEXT("[WaveManager] SpawnPoint deactivated — ratio %.1f%%, pending reduced by %d (remaining: %d)"),
+		UE_LOG(LogTPSWave, Warning, TEXT("[WaveManager] SpawnPoint deactivated — ratio %.1f%%, pending reduced by %d (remaining: %d)"),
 		       DeactivatedRatio * 100.f, Reduction, PendingSpawnCount);
 	}
 
@@ -313,7 +330,7 @@ void UTPSWaveManager::HandleSpawnPointsDeactivated(int32 DeactivatedCount, int32
 	{
 		if (PendingSpawnCount > 0)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[WaveManager] All spawn points deactivated — clearing pending queue (%d)"),
+			UE_LOG(LogTPSWave, Warning, TEXT("[WaveManager] All spawn points deactivated — clearing pending queue (%d)"),
 			       PendingSpawnCount);
 		}
 		PendingSpawnCount = 0;
@@ -335,7 +352,7 @@ void UTPSWaveManager::AdvanceWaveIndex()
 	{
 		OnCycleCompletedDelegate.Broadcast(CurrentCycle);
 
-		UE_LOG(LogTemp, Warning, TEXT("[WaveManager] Cycle %d completed! Starting Cycle %d"),
+		UE_LOG(LogTPSWave, Warning, TEXT("[WaveManager] Cycle %d completed! Starting Cycle %d"),
 		       CurrentCycle, CurrentCycle + 1);
 
 		++CurrentCycle;
@@ -347,6 +364,7 @@ void UTPSWaveManager::StartNextWaveCountdown()
 {
 	if (!ensure(WaveConfig)) return;
 	if (!ensure(CachedWorld.IsValid())) return;
+	if (!ensure(WaveConfig->Waves.IsValidIndex(CurrentWaveIndex))) return;
 
 	++TotalWaveNumber;
 

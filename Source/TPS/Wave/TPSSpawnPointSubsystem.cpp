@@ -4,6 +4,8 @@
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogTPSWave, Log, All);
+
 void UTPSSpawnPointSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -58,7 +60,7 @@ void UTPSSpawnPointSubsystem::CollectAndSortSpawnPoints(UWorld* World)
 		return DistA < DistB;
 	});
 
-	UE_LOG(LogTemp, Log, TEXT("[SpawnPointSubsystem] Collected %d spawn points, AllyBase at %s"),
+	UE_LOG(LogTPSWave, Log, TEXT("[SpawnPointSubsystem] Collected %d spawn points, AllyBase at %s"),
 	       SortedSpawnPoints.Num(), *AllyBaseLocation.ToString());
 }
 
@@ -189,7 +191,7 @@ void UTPSSpawnPointSubsystem::DeactivateSpawnPoints(const TArray<ATPSEnemySpawnP
 		}
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[SpawnPointSubsystem] Deactivated %d spawn points (was %d active)"),
+	UE_LOG(LogTPSWave, Warning, TEXT("[SpawnPointSubsystem] Deactivated %d spawn points (was %d active)"),
 	       DeactivatedCount, ActiveCountBefore);
 
 	// ③ 통보 — WaveManager가 대기열 비율 감소에 활용
@@ -207,7 +209,7 @@ void UTPSSpawnPointSubsystem::ActivateFinalPhase()
 {
 	bFinalPhaseActive = true;
 
-	UE_LOG(LogTemp, Warning, TEXT("[SpawnPointSubsystem] Final phase activated — HQ spawn points now included in queries"));
+	UE_LOG(LogTPSWave, Warning, TEXT("[SpawnPointSubsystem] Final phase activated — HQ spawn points now included in queries"));
 }
 
 // ──────────────────────────────────────────────
@@ -239,5 +241,5 @@ void UTPSSpawnPointSubsystem::SetAllyBaseLocation(const FVector& Location)
 {
 	AllyBaseLocation = Location;
 
-	UE_LOG(LogTemp, Log, TEXT("[SpawnPointSubsystem] AllyBaseLocation set to %s"), *AllyBaseLocation.ToString());
+	UE_LOG(LogTPSWave, Log, TEXT("[SpawnPointSubsystem] AllyBaseLocation set to %s"), *AllyBaseLocation.ToString());
 }

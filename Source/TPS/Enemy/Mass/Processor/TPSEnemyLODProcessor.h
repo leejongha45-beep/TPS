@@ -26,10 +26,10 @@ protected:
 private:
 	FMassEntityQuery EntityQuery;
 
-	/** LOD 전환 거리 (cm) */
-	static constexpr float FullActorDistance = 5000.f;
-	static constexpr float ISMDistance = 15000.f;
-	static constexpr float Hysteresis = 200.f;
+	/** LOD 전환 거리 (cm) — 2km×2km 맵 기준 */
+	static constexpr float FullActorDistance = 8000.f;
+	static constexpr float ISMDistance = 50000.f;
+	static constexpr float Hysteresis = 500.f;
 
 	/** 프레임당 최대 LOD 전환 횟수 (스파이크 방지) */
 	static constexpr int32 MaxTransitionsPerFrame = 20;
