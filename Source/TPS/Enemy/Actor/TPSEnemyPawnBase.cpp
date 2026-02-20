@@ -43,9 +43,7 @@ ATPSEnemyPawnBase::ATPSEnemyPawnBase()
 	if (!HealthComponentInst)
 	{
 		HealthComponentInst = CreateDefaultSubobject<UTPSEnemyHealthComponent>(TEXT("HealthComponent"));
-		if (ensure(HealthComponentInst))
-		{
-		}
+		ensure(HealthComponentInst);
 	}
 
 	// 풀 비활성 초기 상태
@@ -173,13 +171,19 @@ float ATPSEnemyPawnBase::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 		{
 			HealthFrag->CurrentHealth = HealthComponentInst->GetCurrentHealth();
 
-			// 사망 시 AI 상태도 동기화
-			if (HealthComponentInst->IsDead())
+			FTPSEnemyAIStateFragment* AIFrag = CachedEntityManager->GetFragmentDataPtr<FTPSEnemyAIStateFragment>(MassEntityHandle);
+			if (ensure(AIFrag))
 			{
-				FTPSEnemyAIStateFragment* AIFrag = CachedEntityManager->GetFragmentDataPtr<FTPSEnemyAIStateFragment>(MassEntityHandle);
-				if (ensure(AIFrag))
+				// 사망 시 AI 상태 동기화
+				if (HealthComponentInst->IsDead())
 				{
 					AIFrag->AIState = EEnemyAIState::Die;
+				}
+				// ③ 피격 어그로 기록 — DamageCauser 위치를 FVector 스냅샷으로 저장
+				else if (DamageCauser)
+				{
+					AIFrag->HitAggroLocation = DamageCauser->GetActorLocation();
+					AIFrag->bHasHitAggro = true;
 				}
 			}
 		}

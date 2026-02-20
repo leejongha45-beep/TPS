@@ -70,8 +70,8 @@ void UTPSEnemyTransformSyncProcessor::Execute(FMassEntityManager& EntityManager,
 
 					pEnemy->SetActorLocation(Movement.CurrentLocation);
 
-					// 플레이어 방향으로 회전
-					const FVector Direction = (SharedLocation.PlayerLocation - Movement.CurrentLocation).GetSafeNormal2D();
+					// 타겟 방향으로 회전
+					const FVector Direction = (Movement.TargetLocation - Movement.CurrentLocation).GetSafeNormal2D();
 					if (!Direction.IsNearlyZero())
 					{
 						pEnemy->SetActorRotation(Direction.Rotation());

@@ -3,6 +3,7 @@
 #include "Component/Data/TPSPlayerStateComponent.h"
 #include "Component/Data/TPSPlayerStatusComponent.h"
 #include "Component/Data/TPSFootstepComponent.h"
+#include "Core/Subsystem/TPSTargetSubsystem.h"
 
 ATPSCharacterBase::ATPSCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UTPSCMC>(ACharacter::CharacterMovementComponentName))
@@ -41,6 +42,17 @@ void ATPSCharacterBase::CreateDefaultComponents()
 	{
 		FootstepComponentInst = CreateDefaultSubobject<UTPSFootstepComponent>(TEXT("FootstepComponent"));
 		ensure(FootstepComponentInst);
+	}
+}
+
+void ATPSCharacterBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// ITargetable 등록 — Player/NPC 모든 자식 클래스 자동 등록
+	if (UTPSTargetSubsystem* TargetSS = GetWorld()->GetSubsystem<UTPSTargetSubsystem>())
+	{
+		TargetSS->RegisterTargetableActor(this);
 	}
 }
 

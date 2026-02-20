@@ -38,4 +38,24 @@ struct FTPSEnemyAIStateFragment : public FMassFragment
 
 	/** 공격→추격 복귀 히스테리시스 배율 (AttackRange * 이 값 초과 시 Chase 복귀) */
 	float AttackRangeHysteresis = 1.2f;
+
+	// ──────────── 어그로 / 타겟팅 ────────────
+
+	/** 어그로 감지 범위 (cm) — 이 거리 이내 ITargetable 탐색 */
+	float AggroRange = 3000.f;
+
+	/** 어그로 해제 범위 (cm) — 현재 타겟이 이 거리 밖이면 재탐색 */
+	float AggroReleaseRange = 5000.f;
+
+	/** 현재 추적 중인 타겟 위치 (프레임 간 보존 — 배열 변동 방어용) */
+	FVector CurrentTargetLocation = FVector::ZeroVector;
+
+	/** 현재 타겟 배열 인덱스 (매 프레임 재계산 — 보존하지 않음) */
+	int32 CurrentTargetIndex = INDEX_NONE;
+
+	/** 피격 어그로 위치 (TakeDamage 시 DamageCauser 위치 스냅샷) */
+	FVector HitAggroLocation = FVector::ZeroVector;
+
+	/** 피격 어그로 활성 여부 */
+	uint8 bHasHitAggro : 1 = false;
 };

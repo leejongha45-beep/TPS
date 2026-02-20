@@ -6,6 +6,7 @@
 #include "Utils/Interface/Action/Sprintable.h"
 #include "Utils/Interface/Action/Jumpable.h"
 #include "Utils/Interface/Action/Interactable.h"
+#include "Utils/Interface/Data/Targetable.h"
 #include "TPSCharacterBase.generated.h"
 
 /**
@@ -16,7 +17,7 @@
  */
 UCLASS(Abstract)
 class TPS_API ATPSCharacterBase
-	: public ACharacter, public IMoveable, public ISprintable, public IJumpable, public IInteractable
+	: public ACharacter, public IMoveable, public ISprintable, public IJumpable, public IInteractable, public ITargetable
 {
 	GENERATED_BODY()
 
@@ -28,6 +29,7 @@ public:
 	FORCEINLINE class UTPSFootstepComponent* GetFootstepComponent() const { return FootstepComponentInst; }
 
 protected:
+	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
 	virtual void OnJumped_Implementation() override;
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
@@ -67,5 +69,10 @@ protected:
 
 #pragma region IInteractable
 	virtual void Interact() override;
+#pragma endregion
+
+#pragma region ITargetable
+	virtual FVector GetTargetLocation() const override { return GetActorLocation(); }
+	virtual bool IsTargetable() const override { return true; }
 #pragma endregion
 };

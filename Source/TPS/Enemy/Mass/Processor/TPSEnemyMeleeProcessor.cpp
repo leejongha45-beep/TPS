@@ -5,6 +5,7 @@
 #include "Enemy/Mass/Fragment/TPSEnemyAIStateFragment.h"
 #include "Enemy/Mass/Fragment/TPSEnemyLODFragment.h"
 #include "Enemy/Mass/Fragment/TPSEnemyActorRefFragment.h"
+#include "Core/Subsystem/TPSTargetSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 
 UTPSEnemyMeleeProcessor::UTPSEnemyMeleeProcessor()
@@ -32,14 +33,13 @@ void UTPSEnemyMeleeProcessor::Execute(FMassEntityManager& EntityManager, FMassEx
 	UWorld* pWorld = EntityManager.GetWorld();
 	if (!ensure(pWorld)) return;
 
-	// TODO: 나중에 NPC 타겟도 지원할 때 타겟 선택 로직 확장
-	APawn* pTarget = UGameplayStatics::GetPlayerPawn(pWorld, 0);
-	if (!pTarget) return;
+	const UTPSTargetSubsystem* TargetSS = pWorld->GetSubsystem<UTPSTargetSubsystem>();
+	if (!ensure(TargetSS)) return;
 
 	const float DeltaTime = Context.GetDeltaTimeSeconds();
 
 	EntityQuery.ForEachEntityChunk(Context,
-		[pTarget, DeltaTime](FMassExecutionContext& Context)
+		[TargetSS, DeltaTime](FMassExecutionContext& Context)
 		{
 			const int32 NumEntities = Context.GetNumEntities();
 
@@ -66,10 +66,30 @@ void UTPSEnemyMeleeProcessor::Execute(FMassEntityManager& EntityManager, FMassEx
 				AI.AttackCooldownTimer -= DeltaTime;
 				if (AI.AttackCooldownTimer > 0.f) continue;
 
-				// 공격 실행
+				// ① CurrentTargetLocation과 가장 가까운 등록 액터 탐색
+				AActor* DamageTarget = nullptr;
+				float BestDistSq = AI.AttackRange * AI.AttackRange;
+
+				for (const TWeakObjectPtr<AActor>& WeakActor : TargetSS->GetTargetableActors())
+				{
+					AActor* Actor = WeakActor.Get();
+					if (!Actor) continue;
+
+					const float DistSq = FVector::DistSquared(
+						AI.CurrentTargetLocation, Actor->GetActorLocation());
+					if (DistSq < BestDistSq)
+					{
+						BestDistSq = DistSq;
+						DamageTarget = Actor;
+					}
+				}
+
+				if (!DamageTarget) continue;
+
+				// ② 공격 실행
 				AI.AttackCooldownTimer = AI.AttackInterval;
 				UGameplayStatics::ApplyDamage(
-					pTarget,
+					DamageTarget,
 					AI.AttackDamage,
 					nullptr,
 					ActorRef.ActorRef.Get(),
