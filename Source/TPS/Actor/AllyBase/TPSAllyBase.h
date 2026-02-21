@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Utils/Interface/Data/Targetable.h"
+#include "Utils/Interface/Data/Damageable.h"
 #include "TPSAllyBase.generated.h"
 
 DECLARE_MULTICAST_DELEGATE(FOnBaseDestroyed);
@@ -16,7 +17,7 @@ DECLARE_MULTICAST_DELEGATE(FOnBaseDestroyed);
  * 향후 확장: 파괴 연출, 스폰 포인트 비활성화 연동, HUD 체력바
  */
 UCLASS()
-class TPS_API ATPSAllyBase : public AActor, public ITargetable
+class TPS_API ATPSAllyBase : public AActor, public ITargetable, public IDamageable
 {
 	GENERATED_BODY()
 
@@ -68,5 +69,11 @@ protected:
 #pragma region ITargetable
 	virtual FVector GetTargetLocation() const override { return GetActorLocation(); }
 	virtual bool IsTargetable() const override { return CurrentHealth > 0.f; }
+#pragma endregion
+
+#pragma region IDamageable
+	virtual float ReceiveDamage(float Damage, AActor* DamageCauser) override;
+	virtual FVector GetDamageableLocation() const override { return GetActorLocation(); }
+	virtual bool IsDamageable() const override { return !bIsDestroyed; }
 #pragma endregion
 };

@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
+#include "Utils/Interface/Data/Targetable.h"
 #include "TPSTargetSubsystem.generated.h"
 
 /**
@@ -15,14 +16,14 @@ class TPS_API UTPSTargetSubsystem : public UWorldSubsystem
 	GENERATED_BODY()
 
 public:
-	/** ITargetable 액터 등록 — BeginPlay에서 호출 */
-	void RegisterTargetableActor(AActor* TargetableActor);
+	/** ITargetable 등록 — BeginPlay에서 호출 */
+	void RegisterTargetableActor(const TScriptInterface<ITargetable>& TargetableActor);
 
-	/** ITargetable 액터 해제 — OnDestroyed에서 호출 */
-	void UnregisterTargetableActor(AActor* TargetableActor);
+	/** ITargetable 해제 — EndPlay/OnDestroyed에서 호출 */
+	void UnregisterTargetableActor(const TScriptInterface<ITargetable>& TargetableActor);
 
-	/** 등록된 ITargetable 액터 목록 반환 (GameThread 전용) */
-	FORCEINLINE const TArray<TWeakObjectPtr<AActor>>& GetTargetableActors() const
+	/** 등록된 ITargetable 목록 반환 (GameThread 전용) */
+	FORCEINLINE const TArray<TScriptInterface<ITargetable>>& GetTargetableActors() const
 	{
 		return TargetableActors;
 	}
@@ -34,8 +35,8 @@ public:
 	FORCEINLINE const FVector& GetAllyBaseLocation() const { return AllyBaseLocation; }
 
 private:
-	/** 등록된 ITargetable 액터 목록 */
-	TArray<TWeakObjectPtr<AActor>> TargetableActors;
+	/** 등록된 ITargetable 목록 */
+	TArray<TScriptInterface<ITargetable>> TargetableActors;
 
 	/** 아군 기지 위치 (기본 진격 목표) */
 	FVector AllyBaseLocation = FVector::ZeroVector;

@@ -1,6 +1,8 @@
 #include "Actor/AllyBase/TPSAllyBase.h"
 #include "Components/StaticMeshComponent.h"
 #include "Core/Subsystem/TPSTargetSubsystem.h"
+#include "Core/Subsystem/TPSDamageSubsystem.h"
+#include "Engine/DamageEvents.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTPSBase, Log, All);
 DEFINE_LOG_CATEGORY(LogTPSBase);
@@ -37,8 +39,14 @@ void ATPSAllyBase::BeginPlay()
 	// ① Subsystem에 ITargetable 등록 + 기지 위치 설정
 	if (UTPSTargetSubsystem* TargetSS = GetWorld()->GetSubsystem<UTPSTargetSubsystem>())
 	{
-		TargetSS->RegisterTargetableActor(this);
+		TargetSS->RegisterTargetableActor(TScriptInterface<ITargetable>(this));
 		TargetSS->SetAllyBaseLocation(GetActorLocation());
+	}
+
+	// ② IDamageable 등록
+	if (UTPSDamageSubsystem* DamageSS = GetWorld()->GetSubsystem<UTPSDamageSubsystem>())
+	{
+		DamageSS->RegisterDamageableActor(TScriptInterface<IDamageable>(this));
 	}
 
 	UE_LOG(LogTPSBase, Log, TEXT("[AllyBase] %s initialized — HP: %.0f / %.0f"),
@@ -63,15 +71,28 @@ float ATPSAllyBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 	return ActualDamage;
 }
 
+float ATPSAllyBase::ReceiveDamage(float Damage, AActor* DamageCauser)
+{
+	if (bIsDestroyed) return 0.f;
+
+	// UE 데미지 파이프라인 활용
+	FDamageEvent DamageEvent;
+	return TakeDamage(Damage, DamageEvent, nullptr, DamageCauser);
+}
+
 void ATPSAllyBase::OnBaseDestroyed()
 {
 	if (bIsDestroyed) return;
 	bIsDestroyed = true;
 
-	// ① Subsystem에서 ITargetable 해제
+	// ① Subsystem에서 해제
 	if (UTPSTargetSubsystem* TargetSS = GetWorld()->GetSubsystem<UTPSTargetSubsystem>())
 	{
-		TargetSS->UnregisterTargetableActor(this);
+		TargetSS->UnregisterTargetableActor(TScriptInterface<ITargetable>(this));
+	}
+	if (UTPSDamageSubsystem* DamageSS = GetWorld()->GetSubsystem<UTPSDamageSubsystem>())
+	{
+		DamageSS->UnregisterDamageableActor(TScriptInterface<IDamageable>(this));
 	}
 
 	UE_LOG(LogTPSBase, Warning, TEXT("[AllyBase] %s destroyed!"), *GetName());

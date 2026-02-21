@@ -5,13 +5,12 @@
 #include "Enemy/Mass/Fragment/TPSEnemyAIStateFragment.h"
 #include "Enemy/Mass/Fragment/TPSEnemyLODFragment.h"
 #include "Enemy/Mass/Fragment/TPSEnemyActorRefFragment.h"
-#include "Core/Subsystem/TPSTargetSubsystem.h"
-#include "Kismet/GameplayStatics.h"
+#include "Core/Subsystem/TPSDamageSubsystem.h"
 
 UTPSEnemyMeleeProcessor::UTPSEnemyMeleeProcessor()
 	: EntityQuery(*this)
 {
-	// ★ GameThread 필수 — ApplyDamage 호출
+	// ★ GameThread 필수 — ReceiveDamage 호출
 	bRequiresGameThreadExecution = true;
 
 	ExecutionFlags = static_cast<int32>(EProcessorExecutionFlags::All);
@@ -33,13 +32,13 @@ void UTPSEnemyMeleeProcessor::Execute(FMassEntityManager& EntityManager, FMassEx
 	UWorld* pWorld = EntityManager.GetWorld();
 	if (!ensure(pWorld)) return;
 
-	const UTPSTargetSubsystem* TargetSS = pWorld->GetSubsystem<UTPSTargetSubsystem>();
-	if (!ensure(TargetSS)) return;
+	const UTPSDamageSubsystem* DamageSS = pWorld->GetSubsystem<UTPSDamageSubsystem>();
+	if (!ensure(DamageSS)) return;
 
 	const float DeltaTime = Context.GetDeltaTimeSeconds();
 
 	EntityQuery.ForEachEntityChunk(Context,
-		[TargetSS, DeltaTime](FMassExecutionContext& Context)
+		[DamageSS, DeltaTime](FMassExecutionContext& Context)
 		{
 			const int32 NumEntities = Context.GetNumEntities();
 
@@ -66,35 +65,28 @@ void UTPSEnemyMeleeProcessor::Execute(FMassEntityManager& EntityManager, FMassEx
 				AI.AttackCooldownTimer -= DeltaTime;
 				if (AI.AttackCooldownTimer > 0.f) continue;
 
-				// ① CurrentTargetLocation과 가장 가까운 등록 액터 탐색
-				AActor* DamageTarget = nullptr;
+				// ① CurrentTargetLocation과 가장 가까운 IDamageable 탐색
+				IDamageable* BestTarget = nullptr;
 				float BestDistSq = AI.AttackRange * AI.AttackRange;
 
-				for (const TWeakObjectPtr<AActor>& WeakActor : TargetSS->GetTargetableActors())
+				for (const TScriptInterface<IDamageable>& Damageable : DamageSS->GetDamageableActors())
 				{
-					AActor* Actor = WeakActor.Get();
-					if (!Actor) continue;
+					if (!Damageable || !Damageable->IsDamageable()) continue;
 
 					const float DistSq = FVector::DistSquared(
-						AI.CurrentTargetLocation, Actor->GetActorLocation());
+						AI.CurrentTargetLocation, Damageable->GetDamageableLocation());
 					if (DistSq < BestDistSq)
 					{
 						BestDistSq = DistSq;
-						DamageTarget = Actor;
+						BestTarget = Damageable.GetInterface();
 					}
 				}
 
-				if (!DamageTarget) continue;
+				if (!BestTarget) continue;
 
-				// ② 공격 실행
+				// ② 공격 실행 — IDamageable 인터페이스 직접 호출
 				AI.AttackCooldownTimer = AI.AttackInterval;
-				UGameplayStatics::ApplyDamage(
-					DamageTarget,
-					AI.AttackDamage,
-					nullptr,
-					ActorRef.ActorRef.Get(),
-					nullptr
-				);
+				BestTarget->ReceiveDamage(AI.AttackDamage, ActorRef.ActorRef.Get());
 			}
 		});
 }

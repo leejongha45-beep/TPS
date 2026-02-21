@@ -7,6 +7,7 @@
 #include "Utils/Interface/Action/Jumpable.h"
 #include "Utils/Interface/Action/Interactable.h"
 #include "Utils/Interface/Data/Targetable.h"
+#include "Utils/Interface/Data/Damageable.h"
 #include "TPSCharacterBase.generated.h"
 
 /**
@@ -17,7 +18,7 @@
  */
 UCLASS(Abstract)
 class TPS_API ATPSCharacterBase
-	: public ACharacter, public IMoveable, public ISprintable, public IJumpable, public IInteractable, public ITargetable
+	: public ACharacter, public IMoveable, public ISprintable, public IJumpable, public IInteractable, public ITargetable, public IDamageable
 {
 	GENERATED_BODY()
 
@@ -30,6 +31,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PostInitializeComponents() override;
 	virtual void OnJumped_Implementation() override;
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
@@ -72,7 +74,20 @@ protected:
 #pragma endregion
 
 #pragma region ITargetable
+	uint8 bIsTargetable : 1 = true;
 	virtual FVector GetTargetLocation() const override { return GetActorLocation(); }
-	virtual bool IsTargetable() const override { return true; }
+	virtual bool IsTargetable() const override { return bIsTargetable; }
+#pragma endregion
+
+#pragma region IDamageable
+	uint8 bIsDamageable : 1 = true;
+	virtual float ReceiveDamage(float Damage, AActor* DamageCauser) override;
+	virtual FVector GetDamageableLocation() const override { return GetActorLocation(); }
+	virtual bool IsDamageable() const override { return bIsDamageable; }
+
+	/** 훅 함수 — 자식에서 override하여 데미지 처리 커스텀 */
+	virtual float ProcessDamage(float Damage, AActor* DamageCauser);
+	virtual void ApplyDamageToHP(float FinalDamage);
+	virtual bool IsDead() const;
 #pragma endregion
 };

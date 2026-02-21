@@ -5,7 +5,6 @@
 #include "Enemy/Mass/Fragment/TPSPlayerLocationSharedFragment.h"
 #include "Enemy/Mass/Fragment/TPSEnemyHealthFragment.h"
 #include "Core/Subsystem/TPSTargetSubsystem.h"
-#include "Utils/Interface/Data/Targetable.h"
 #include "Kismet/GameplayStatics.h"
 
 UTPSPlayerLocationProcessor::UTPSPlayerLocationProcessor()
@@ -64,19 +63,14 @@ void UTPSPlayerLocationProcessor::Execute(FMassEntityManager& EntityManager, FMa
 			}
 			SharedLoc.LastTargetUpdateTime = CurrentTime;
 
-			// ⑥ Subsystem에서 등록된 타겟만 순회 (TActorIterator 전체 순회 회피)
+			// ⑥ Subsystem에서 등록된 타겟만 순회 — ITargetable 인터페이스 직접 호출
 			int32 Count = 0;
-			for (int32 i = TargetSS->GetTargetableActors().Num() - 1; i >= 0; --i)
+			for (const TScriptInterface<ITargetable>& Target : TargetSS->GetTargetableActors())
 			{
-				AActor* Actor = TargetSS->GetTargetableActors()[i].Get();
-				if (!Actor) continue;
+				if (!Target || !Target->IsTargetable()) continue;
+				if (Count >= FTPSPlayerLocationSharedFragment::MaxTargets) break;
 
-				const ITargetable* Target = Cast<ITargetable>(Actor);
-				if (Target && Target->IsTargetable()
-					&& Count < FTPSPlayerLocationSharedFragment::MaxTargets)
-				{
-					SharedLoc.TargetLocations[Count++] = Target->GetTargetLocation();
-				}
+				SharedLoc.TargetLocations[Count++] = Target->GetTargetLocation();
 			}
 			SharedLoc.TargetCount = Count;
 		});

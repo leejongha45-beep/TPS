@@ -4,6 +4,7 @@
 #include "Component/Data/TPSPlayerStatusComponent.h"
 #include "Component/Data/TPSFootstepComponent.h"
 #include "Core/Subsystem/TPSTargetSubsystem.h"
+#include "Core/Subsystem/TPSDamageSubsystem.h"
 
 ATPSCharacterBase::ATPSCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UTPSCMC>(ACharacter::CharacterMovementComponentName))
@@ -52,8 +53,29 @@ void ATPSCharacterBase::BeginPlay()
 	// ITargetable 등록 — Player/NPC 모든 자식 클래스 자동 등록
 	if (UTPSTargetSubsystem* TargetSS = GetWorld()->GetSubsystem<UTPSTargetSubsystem>())
 	{
-		TargetSS->RegisterTargetableActor(this);
+		TargetSS->RegisterTargetableActor(TScriptInterface<ITargetable>(this));
 	}
+
+	// IDamageable 등록
+	if (UTPSDamageSubsystem* DamageSS = GetWorld()->GetSubsystem<UTPSDamageSubsystem>())
+	{
+		DamageSS->RegisterDamageableActor(TScriptInterface<IDamageable>(this));
+	}
+}
+
+void ATPSCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UTPSTargetSubsystem* TargetSS = GetWorld()->GetSubsystem<UTPSTargetSubsystem>())
+	{
+		TargetSS->UnregisterTargetableActor(TScriptInterface<ITargetable>(this));
+	}
+
+	if (UTPSDamageSubsystem* DamageSS = GetWorld()->GetSubsystem<UTPSDamageSubsystem>())
+	{
+		DamageSS->UnregisterDamageableActor(TScriptInterface<IDamageable>(this));
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void ATPSCharacterBase::PostInitializeComponents()
@@ -187,4 +209,31 @@ void ATPSCharacterBase::StopJump()
 void ATPSCharacterBase::Interact()
 {
 	// 기본 구현: 비어있음 — 자식에서 override
+}
+
+float ATPSCharacterBase::ReceiveDamage(float Damage, AActor* DamageCauser)
+{
+	if (IsDead()) return 0.f;
+
+	const float FinalDamage = ProcessDamage(Damage, DamageCauser);
+	ApplyDamageToHP(FinalDamage);
+
+	return FinalDamage;
+}
+
+// TODO: StatusComponent에 HP 추가 시 자식에서 override
+float ATPSCharacterBase::ProcessDamage(float Damage, AActor* DamageCauser)
+{
+	return Damage;
+}
+
+// TODO: StatusComponent에 HP 추가 시 자식에서 override
+void ATPSCharacterBase::ApplyDamageToHP(float FinalDamage)
+{
+}
+
+// TODO: StatusComponent에 HP 추가 시 자식에서 override
+bool ATPSCharacterBase::IsDead() const
+{
+	return false;
 }
