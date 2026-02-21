@@ -8,6 +8,7 @@
 #include "Enemy/Mass/Fragment/TPSEnemyHealthFragment.h"
 #include "Enemy/Mass/Fragment/TPSPlayerLocationSharedFragment.h"
 
+
 UTPSEnemyAIProcessor::UTPSEnemyAIProcessor()
 	: EntityQuery(*this)
 {

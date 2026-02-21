@@ -127,10 +127,11 @@ int32 UTPSWaveManager::SpawnEntities(int32 Count)
 
 	FMassEntityManager& EntityManager = pEntitySubsystem->GetMutableEntityManager();
 
-	// ④ 아키타입
+	// ④ 아키타입 + SharedFragmentValues
 	const FMassEntityTemplate& Template = Wave.EnemyEntityConfig->GetConfig().GetOrCreateEntityTemplate(
 		*CachedWorld.Get());
 	const FMassArchetypeHandle& Archetype = Template.GetArchetype();
+	const FMassArchetypeSharedFragmentValues& SharedFragmentValues = Template.GetSharedFragmentValues();
 
 	// ⑤ 스폰 포인트 서브시스템
 	UTPSSpawnPointSubsystem* pSpawnSubsystem = CachedWorld->GetSubsystem<UTPSSpawnPointSubsystem>();
@@ -140,7 +141,7 @@ int32 UTPSWaveManager::SpawnEntities(int32 Count)
 	// Entity 1개 생성 공통 로직 — 위치만 받아서 Entity 생성 + Fragment 초기화
 	auto CreateOneEntity = [&](const FVector& SpawnLoc)
 	{
-		FMassEntityHandle NewEntity = EntityManager.CreateEntity(Archetype);
+		FMassEntityHandle NewEntity = EntityManager.CreateEntity(Archetype, SharedFragmentValues);
 
 		FTPSEnemyMovementFragment* MoveFrag = EntityManager.GetFragmentDataPtr<FTPSEnemyMovementFragment>(NewEntity);
 		if (ensure(MoveFrag))

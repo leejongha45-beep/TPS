@@ -38,24 +38,24 @@ void UTPSPlayerLocationProcessor::Execute(FMassEntityManager& EntityManager, FMa
 	const double CurrentTime = pWorld->GetTimeSeconds();
 
 	// ② Subsystem 캐시 (100ms 주기 갱신에 사용)
-	const UTPSTargetSubsystem* TargetSS = pWorld->GetSubsystem<UTPSTargetSubsystem>();
+	const UTPSTargetSubsystem* pTargetSubSystem = pWorld->GetSubsystem<UTPSTargetSubsystem>();
 
 	// ③ SharedFragment 갱신
 	EntityQuery.ForEachEntityChunk(Context,
-		[&PlayerLocation, &CurrentTime, &TargetSS](FMassExecutionContext& Context)
+		[&PlayerLocation, &CurrentTime, &pTargetSubSystem](FMassExecutionContext& Context)
 		{
 			FTPSPlayerLocationSharedFragment& SharedLoc =
 				Context.GetMutableSharedFragment<FTPSPlayerLocationSharedFragment>();
 
 			// ④ 플레이어 위치 + 기지 위치 — 매 프레임 갱신 (가벼움)
 			SharedLoc.PlayerLocation = PlayerLocation;
-			if (TargetSS)
+			if (pTargetSubSystem)
 			{
-				SharedLoc.AllyBaseLocation = TargetSS->GetAllyBaseLocation();
+				SharedLoc.AllyBaseLocation = pTargetSubSystem->GetAllyBaseLocation();
 			}
 
 			// ⑤ ITargetable 배열 — 100ms 주기로만 갱신
-			if (!TargetSS
+			if (!pTargetSubSystem
 				|| CurrentTime - SharedLoc.LastTargetUpdateTime
 					< FTPSPlayerLocationSharedFragment::TargetUpdateInterval)
 			{
@@ -65,7 +65,7 @@ void UTPSPlayerLocationProcessor::Execute(FMassEntityManager& EntityManager, FMa
 
 			// ⑥ Subsystem에서 등록된 타겟만 순회 — ITargetable 인터페이스 직접 호출
 			int32 Count = 0;
-			for (const TScriptInterface<ITargetable>& Target : TargetSS->GetTargetableActors())
+			for (const TScriptInterface<ITargetable>& Target : pTargetSubSystem->GetTargetableActors())
 			{
 				if (!Target || !Target->IsTargetable()) continue;
 				if (Count >= FTPSPlayerLocationSharedFragment::MaxTargets) break;

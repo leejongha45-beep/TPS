@@ -25,6 +25,7 @@ public:
 	/** 등록된 ITargetable 목록 반환 (GameThread 전용) */
 	FORCEINLINE const TArray<TScriptInterface<ITargetable>>& GetTargetableActors() const
 	{
+		checkSlow(IsInGameThread());
 		return TargetableActors;
 	}
 

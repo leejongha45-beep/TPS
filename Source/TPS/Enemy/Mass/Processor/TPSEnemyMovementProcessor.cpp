@@ -6,6 +6,7 @@
 #include "Enemy/Mass/Fragment/TPSEnemyAIStateFragment.h"
 #include "Enemy/Mass/Fragment/TPSEnemyMovementFragment.h"
 
+
 UTPSEnemyMovementProcessor::UTPSEnemyMovementProcessor()
 	: EntityQuery(*this)
 {

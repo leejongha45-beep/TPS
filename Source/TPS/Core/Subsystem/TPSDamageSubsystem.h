@@ -16,6 +16,7 @@ public:
 
 	FORCEINLINE const TArray<TScriptInterface<IDamageable>>& GetDamageableActors() const
 	{
+		checkSlow(IsInGameThread());
 		return DamageableActors;
 	}
 

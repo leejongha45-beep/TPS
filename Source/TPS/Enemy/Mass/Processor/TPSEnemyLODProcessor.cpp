@@ -10,6 +10,7 @@
 #include "Enemy/Pool/TPSEnemyActorPoolSubsystem.h"
 #include "Enemy/Visualization/TPSEnemyISMSubsystem.h"
 
+
 UTPSEnemyLODProcessor::UTPSEnemyLODProcessor()
 	: EntityQuery(*this)
 {

@@ -6,6 +6,7 @@
 #include "Enemy/Mass/Fragment/TPSEnemyTypeFragment.h"
 #include "Enemy/Mass/Fragment/TPSEnemyLODFragment.h"
 #include "Enemy/Mass/Fragment/TPSEnemyActorRefFragment.h"
+#include "Enemy/Mass/Fragment/TPSPlayerLocationSharedFragment.h"
 
 void UTPSMeleeEnemyTrait::BuildTemplate(FMassEntityTemplateBuildContext& BuildContext, const UWorld& World) const
 {
@@ -34,4 +35,7 @@ void UTPSMeleeEnemyTrait::BuildTemplate(FMassEntityTemplateBuildContext& BuildCo
 
 	// ⑥ ActorRefFragment — Actor 참조 (초기 nullptr)
 	BuildContext.AddFragment<FTPSEnemyActorRefFragment>();
+
+	// ⑦ SharedFragment — 플레이어/기지/타겟 위치 (같은 아키타입 Entity 전체가 공유)
+	BuildContext.AddSharedFragment(FSharedStruct::Make<FTPSPlayerLocationSharedFragment>());
 }
