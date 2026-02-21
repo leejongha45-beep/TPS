@@ -1,5 +1,5 @@
 #include "Animation/Notify/TPSAnimNotify_ReloadComplete.h"
-#include "Component/Action/TPSFireComponent.h"
+#include "Character/Component/Action/TPSFireComponent.h"
 
 void UTPSAnimNotify_ReloadComplete::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {

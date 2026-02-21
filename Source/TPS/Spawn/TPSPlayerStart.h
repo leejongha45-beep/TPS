@@ -7,7 +7,7 @@
  * 커스텀 PlayerStart — 미니맵 스폰 선택 UI용
  * - 레벨에 다수 배치, 플레이어가 UI에서 선택
  * - 기지 파괴 시 Deactivate()로 선택 불가 처리
- * - ATPSEnemySpawnPoint와 동일한 Activate/Deactivate 패턴
+ * - Activate/Deactivate 패턴으로 선택 가능 여부 제어
  */
 UCLASS()
 class TPS_API ATPSPlayerStart : public APlayerStart

@@ -12,16 +12,11 @@ public class TPS : ModuleRules
 
 		PublicIncludePaths.AddRange(new string[] { ModuleDirectory });
 
+		// EnTT (header-only ECS 라이브러리)
+		PublicIncludePaths.Add(System.IO.Path.Combine(ModuleDirectory, "ThirdParty", "EnTT", "include"));
+
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "GameplayTags" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimationLocomotionLibraryRuntime", "AnimationWarpingRuntime", "Slate", "SlateCore", "Niagara", "PhysicsCore", "DeveloperSettings", "MediaAssets" });
-
-		// Mass Entity — 대군단 적 시스템 (Phase 3+)
-		PublicDependencyModuleNames.AddRange(new string[] { "MassEntity", "MassCommon", "MassSpawner", "StructUtils" });
-		
-		// Uncomment if you are using online features
-		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
-
-		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
 	}
 }

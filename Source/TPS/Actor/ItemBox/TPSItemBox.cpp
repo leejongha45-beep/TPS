@@ -1,11 +1,11 @@
 ﻿#include "Actor/ItemBox/TPSItemBox.h"
 #include "Actor/ItemBox/TPSItemBoxInteractionComponent.h"
-#include "Component/Action/TPSEquipComponent.h"
+#include "Character/Component/Action/TPSEquipComponent.h"
 #include "Weapon/TPSWeaponBase.h"
-#include "Component/Action/TPSPlayerInteractionComponent.h"
+#include "Character/Component/Action/TPSPlayerInteractionComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Pawn/Character/Player/TPSPlayer.h"
+#include "Character/Player/TPSPlayer.h"
 
 DEFINE_LOG_CATEGORY(LogItemBox);
 

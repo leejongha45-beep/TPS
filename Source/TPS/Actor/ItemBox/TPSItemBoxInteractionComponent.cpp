@@ -1,8 +1,8 @@
 ﻿#include "Actor/ItemBox/TPSItemBoxInteractionComponent.h"
 #include "Actor/ItemBox/TPSItemBox.h"
 #include "Blueprint/UserWidget.h"
-#include "Component/Action/TPSPlayerInteractionComponent.h"
-#include "Pawn/Character/Player/TPSPlayer.h"
+#include "Character/Component/Action/TPSPlayerInteractionComponent.h"
+#include "Character/Player/TPSPlayer.h"
 #include "UI/Widget/ItemBox/TPSItemBoxWidget.h"
 
 void UTPSItemBoxInteractionComponent::ToggleItemBox(bool bInput, APlayerController* InputController)

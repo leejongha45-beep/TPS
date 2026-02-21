@@ -2,7 +2,7 @@
 #include "UI/ViewModel/AmmoViewModel.h"
 #include "UI/Widget/Ammo/TPSAmmoWidget.h"
 #include "UI/Widget/SpawnSelect/TPSSpawnSelectWidget.h"
-#include "Pawn/Character/Player/TPSPlayer.h"
+#include "Character/Player/TPSPlayer.h"
 #include "Spawn/TPSPlayerSpawnSubsystem.h"
 #include "Core/GameMode/TPSGameModeBase.h"
 #include "Blueprint/UserWidget.h"

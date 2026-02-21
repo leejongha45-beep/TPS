@@ -1,7 +1,7 @@
 ﻿#include "UI/Widget/ItemBox/TPSItemBoxWidget.h"
-#include "Component/Action/TPSPlayerInteractionComponent.h"
+#include "Character/Component/Action/TPSPlayerInteractionComponent.h"
 #include "Components/Button.h"
-#include "Pawn/Character/Player/TPSPlayer.h"
+#include "Character/Player/TPSPlayer.h"
 
 DEFINE_LOG_CATEGORY(LogItemBoxWidget);
 

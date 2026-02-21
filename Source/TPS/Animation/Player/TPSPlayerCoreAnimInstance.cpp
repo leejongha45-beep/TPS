@@ -2,10 +2,10 @@
 
 #include "KismetAnimationLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Component/Action/TPSEquipComponent.h"
-#include "Component/Action/TPSFireComponent.h"
-#include "Component/Data/TPSPlayerStateComponent.h"
-#include "Pawn/Character/Player/TPSPlayer.h"
+#include "Character/Component/Action/TPSEquipComponent.h"
+#include "Character/Component/Action/TPSFireComponent.h"
+#include "Character/Component/Data/TPSPlayerStateComponent.h"
+#include "Character/Player/TPSPlayer.h"
 
 void UTPSPlayerCoreAnimInstance::NativeInitializeAnimation()
 {
