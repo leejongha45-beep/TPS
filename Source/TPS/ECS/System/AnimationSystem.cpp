@@ -9,8 +9,9 @@ void Write(CAnimation& OutAnim, float DeltaTime, float CachedAnimTime,
 	float NewAnimIndex;
 	switch (CachedState)
 	{
-	case EEnemyState::Idle:        NewAnimIndex = 0.f; break;
-	case EEnemyState::Moving:      NewAnimIndex = 1.f; break;
+	case EEnemyState::Idle:           NewAnimIndex = 0.f; break;
+	case EEnemyState::AttackCooldown: NewAnimIndex = 0.f; break;
+	case EEnemyState::Moving:         NewAnimIndex = 1.f; break;
 	case EEnemyState::AttackReady: NewAnimIndex = 2.f; break;
 	case EEnemyState::Attacking:   NewAnimIndex = 3.f; break;
 	case EEnemyState::Dying:       NewAnimIndex = 4.f; break;

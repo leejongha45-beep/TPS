@@ -64,7 +64,7 @@ protected:
 	 *  비소유 참조 (AEnemyRenderActor가 소유, UEnemyManagerSubsystem이 수명 관리) */
 	class UHierarchicalInstancedStaticMeshComponent* HISMRef = nullptr;
 
-	/** AI 공격 판정 거리 — AISystem에서 AttackReady/Attacking 전환 기준 */
+	/** AI 공격 판정 거리 — AISystem에서 AttackCooldown 진입 기준 */
 	float AttackRange = 150.f;
 
 	/** 스케줄러 활성 상태 — false면 IsTickable()이 false를 반환하여 Tick 중단 */

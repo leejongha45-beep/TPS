@@ -47,8 +47,9 @@ FVector GetPlayerPosition(const UWorld* World)
  * │ [GameThread→Worker] Phase 3. AI (ParallelFor)                         │
  * │   R: Prev 컴포넌트   W: CEnemyState, CMovement   PushToPrev           │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ [GameThread] Phase 3.1. Attack (순차 — 쿨다운 틱 + 데미지 집계)       │
- * │   R: CAttackPrev, CEnemyStatePrev   W: CAttack   PushToPrev           │
+ * │ [GameThread] Phase 3.1. Attack (순차 — 3단계 상태 머신 + 데미지 집계) │
+ * │   R: CAttackPrev, CEnemyStatePrev, CAnimationPrev                     │
+ * │   W: CAttack, CEnemyState → PushToPrev                               │
  * │   UObject: IDamageable::ReceiveDamage (프레임당 1회 집계 호출)         │
  * ├─────────────────────────────────────────────────────────────────────────┤
  * │ [WorkerThread] Phase 3.5+4. Separation ∥ Death (TaskGraph 병렬)       │

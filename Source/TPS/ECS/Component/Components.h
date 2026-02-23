@@ -16,6 +16,7 @@ enum class EEnemyState : uint8
 {
 	Idle,
 	Moving,
+	AttackCooldown,   // 공격 범위 내 쿨다운 대기
 	AttackReady,
 	Attacking,
 	Dying,     // 사망 애니메이션 재생 중
@@ -36,8 +37,10 @@ namespace ECSConstants
 	constexpr float SeparationCullingRadiusSq = SeparationCullingRadius * SeparationCullingRadius;
 
 	// ── Attack (공격 수행) ──
-	constexpr float AttackDamage   = 10.f;
-	constexpr float AttackCooldown = 1.5f;
+	constexpr float AttackDamage          = 10.f;
+	constexpr float AttackCooldown        = 1.5f;
+	constexpr float AttackReadyDuration   = 0.5f;
+	constexpr float AttackDuration        = 0.3f;
 }
 
 // ── Current (쓰기용) ──

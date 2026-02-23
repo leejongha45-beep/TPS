@@ -18,7 +18,7 @@ void FSpatialGrid::Build(entt::registry& Registry, float InCellSize,
 	{
 		const EEnemyState CachedState = View.get<CEnemyStatePrev>(Entity).State;
 
-		// Dying/Dead만 제외 — Idle, Moving, AttackReady, Attacking 전부 포함
+		// Dying/Dead만 제외 — Idle, Moving, AttackCooldown, AttackReady, Attacking 전부 포함
 		if (CachedState == EEnemyState::Dying || CachedState == EEnemyState::Dead) { continue; }
 
 		const FVector& Pos = View.get<CTransformPrev>(Entity).Position;

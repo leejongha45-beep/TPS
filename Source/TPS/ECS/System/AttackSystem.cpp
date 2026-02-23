@@ -23,36 +23,62 @@ void AttackSystem::Tick(entt::registry& Registry, float DeltaTime, IDamageable* 
 {
 	float TotalDamage = 0.f;
 
-	auto View = Registry.view<CAttack, CAttackPrev, CEnemyState, CEnemyStatePrev>();
+	auto View = Registry.view<CAttack, CAttackPrev, CEnemyState, CEnemyStatePrev, CAnimationPrev>();
 
 	for (auto Entity : View)
 	{
 		// ① Read: Prev → Cached 지역변수
-		const EEnemyState CachedState    = View.get<CEnemyStatePrev>(Entity).State;
-		const float CachedTimer          = View.get<CAttackPrev>(Entity).CooldownTimer;
-		const float CachedDamage         = View.get<CAttackPrev>(Entity).Damage;
-		const float CachedCooldown       = View.get<CAttackPrev>(Entity).Cooldown;
+		const EEnemyState CachedState   = View.get<CEnemyStatePrev>(Entity).State;
+		const float CachedTimer         = View.get<CAttackPrev>(Entity).CooldownTimer;
+		const float CachedDamage        = View.get<CAttackPrev>(Entity).Damage;
+		const float CachedCooldown      = View.get<CAttackPrev>(Entity).Cooldown;
+		const float CachedAnimTime      = View.get<CAnimationPrev>(Entity).AnimTime;
 
-		// 공격 상태가 아닌 Entity는 스킵
-		if (CachedState != EEnemyState::AttackReady && CachedState != EEnemyState::Attacking) { continue; }
-
-		// 쿨다운 틱
-		float NewTimer = CachedTimer - DeltaTime;
-		if (NewTimer <= 0.f)
+		// AttackCooldown: 쿨다운 틱 → 만료 시 AttackReady 전환
+		if (CachedState == EEnemyState::AttackCooldown)
 		{
-			TotalDamage += CachedDamage;
-			NewTimer += CachedCooldown;    // 오버슈트 보상
-
-			// ② Write — 쿨다운 만료 = 공격 실행
-			Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
-			      NewTimer, EEnemyState::Attacking);
+			float NewTimer = CachedTimer - DeltaTime;
+			if (NewTimer <= 0.f)
+			{
+				Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
+				      0.f, EEnemyState::AttackReady);
+			}
+			else
+			{
+				Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
+				      NewTimer, EEnemyState::AttackCooldown);
+			}
 		}
-		else
+		// AttackReady: 준비 모션 종료 → Attacking 전환
+		else if (CachedState == EEnemyState::AttackReady)
 		{
-			// ② Write — 쿨다운 틱 중 = 준비 상태
-			Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
-			      NewTimer, EEnemyState::AttackReady);
+			if (CachedAnimTime >= ECSConstants::AttackReadyDuration)
+			{
+				Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
+				      CachedTimer, EEnemyState::Attacking);
+			}
+			else
+			{
+				Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
+				      CachedTimer, EEnemyState::AttackReady);
+			}
 		}
+		// Attacking: 공격 모션 종료 → 데미지 집계 + AttackCooldown 전환
+		else if (CachedState == EEnemyState::Attacking)
+		{
+			if (CachedAnimTime >= ECSConstants::AttackDuration)
+			{
+				TotalDamage += CachedDamage;
+				Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
+				      CachedCooldown, EEnemyState::AttackCooldown);
+			}
+			else
+			{
+				Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
+				      CachedTimer, EEnemyState::Attacking);
+			}
+		}
+		else { continue; }
 
 		// ③ PushToPrev
 		PushToPrev(View.get<CAttackPrev>(Entity), View.get<CEnemyStatePrev>(Entity),
