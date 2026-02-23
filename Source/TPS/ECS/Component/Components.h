@@ -34,6 +34,10 @@ namespace ECSConstants
 	constexpr float MaxSeparationForce        = 200.f;
 	constexpr float SeparationCullingRadius   = 3000.f;
 	constexpr float SeparationCullingRadiusSq = SeparationCullingRadius * SeparationCullingRadius;
+
+	// ── Attack (공격 수행) ──
+	constexpr float AttackDamage   = 10.f;
+	constexpr float AttackCooldown = 1.5f;
 }
 
 // ── Current (쓰기용) ──
@@ -79,6 +83,14 @@ struct CAnimation
 	float PlayRate  = 1.f;
 };
 
+/** 공격 — 쿨다운 기반 데미지 수행 */
+struct CAttack
+{
+	float Damage        = 10.f;
+	float Cooldown      = 1.5f;
+	float CooldownTimer = 0.f;
+};
+
 // ── Prev (읽기용) ──
 
 /** 적 상태 — 이전 프레임 */
@@ -120,4 +132,12 @@ struct CAnimationPrev
 	float AnimIndex = 0.f;
 	float AnimTime  = 0.f;
 	float PlayRate  = 1.f;
+};
+
+/** 공격 — 이전 프레임 */
+struct CAttackPrev
+{
+	float Damage        = 10.f;
+	float Cooldown      = 1.5f;
+	float CooldownTimer = 0.f;
 };

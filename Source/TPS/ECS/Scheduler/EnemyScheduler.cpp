@@ -7,8 +7,10 @@
 #include "ECS/System/AnimationSystem.h"
 #include "ECS/System/MovementSystem.h"
 #include "ECS/System/VisualizationSystem.h"
+#include "ECS/System/AttackSystem.h"
 #include "ECS/System/CleanupSystem.h"
 #include "GameFramework/Pawn.h"
+#include "Utils/Interface/Data/Damageable.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utils/Template/Getter.h"
 #include "Async/TaskGraphInterfaces.h"
@@ -44,6 +46,10 @@ FVector GetPlayerPosition(const UWorld* World)
  * ├─────────────────────────────────────────────────────────────────────────┤
  * │ [GameThread→Worker] Phase 3. AI (ParallelFor)                         │
  * │   R: Prev 컴포넌트   W: CEnemyState, CMovement   PushToPrev           │
+ * ├─────────────────────────────────────────────────────────────────────────┤
+ * │ [GameThread] Phase 3.1. Attack (순차 — 쿨다운 틱 + 데미지 집계)       │
+ * │   R: CAttackPrev, CEnemyStatePrev   W: CAttack   PushToPrev           │
+ * │   UObject: IDamageable::ReceiveDamage (프레임당 1회 집계 호출)         │
  * ├─────────────────────────────────────────────────────────────────────────┤
  * │ [WorkerThread] Phase 3.5+4. Separation ∥ Death (TaskGraph 병렬)       │
  * │   Separation: R: CTransformPrev, Grid(읽기전용)                       │
@@ -85,12 +91,16 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	// 1. UObject 접근 — 지역변수 캐싱
 	const FVector PlayerPosition = GetFrom<FVector>(World, GetPlayerPosition);
 	UHierarchicalInstancedStaticMeshComponent* const pHISM = HISMRef;
+	IDamageable* pCharacterDamageable = Cast<IDamageable>(UGameplayStatics::GetPlayerPawn(World, 0));
 
 	// 2. Phase_Damage (큐 소비 → CHealth 감산 → PushToPrev)
 	DamageSystem::Tick(Registry, DamageQueue, InstanceToEntity);
 
 	// 3. Phase_AI
 	AISystem::Tick(Registry, DeltaTime, PlayerPosition, AttackRange);
+
+	// 3.1. Phase_Attack (쿨다운 틱 + 데미지 집계 → IDamageable)
+	AttackSystem::Tick(Registry, DeltaTime, pCharacterDamageable);
 
 	// 3.5+4. Phase_Separation ∥ Phase_Death ── [WorkerThread] TaskGraph 병렬 실행
 	// Separation writes: CMovement (비-Dying Entity)

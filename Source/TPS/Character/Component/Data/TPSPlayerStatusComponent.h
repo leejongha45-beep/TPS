@@ -23,6 +23,12 @@ public:
 	FORCEINLINE float GetDefaultWalkSpeed() const { return DefaultWalkSpeed; }
 	FORCEINLINE float GetDefaultSprintSpeed() const { return DefaultSprintSpeed; }
 
+	FORCEINLINE void SetCurrentHP(float InHP) { CurrentHP = FMath::Clamp(InHP, 0.f, MaxHP); }
+	FORCEINLINE void SetMaxHP(float InMaxHP) { MaxHP = InMaxHP; }
+
+	FORCEINLINE float GetCurrentHP() const { return CurrentHP; }
+	FORCEINLINE float GetMaxHP() const { return MaxHP; }
+
 protected:
 	/** 기본 걷기 속도 (CMC에서 초기화) */
 	UPROPERTY(VisibleDefaultsOnly, Category="Speed")
@@ -31,4 +37,12 @@ protected:
 	/** 기본 달리기 속도 */
 	UPROPERTY(VisibleDefaultsOnly, Category="Speed")
 	float DefaultSprintSpeed = 0.f;
+
+	/** 현재 체력 */
+	UPROPERTY(VisibleDefaultsOnly, Category="Health")
+	float CurrentHP = 100.f;
+
+	/** 최대 체력 */
+	UPROPERTY(VisibleDefaultsOnly, Category="Health")
+	float MaxHP = 100.f;
 };

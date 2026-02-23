@@ -229,13 +229,19 @@ float ATPSCharacterBase::ProcessDamage(float Damage, AActor* DamageCauser)
 	return Damage;
 }
 
-// TODO: StatusComponent에 HP 추가 시 자식에서 override
 void ATPSCharacterBase::ApplyDamageToHP(float FinalDamage)
 {
+	if (ensure(StatusComponentInst.Get()))
+	{
+		StatusComponentInst->SetCurrentHP(StatusComponentInst->GetCurrentHP() - FinalDamage);
+	}
 }
 
-// TODO: StatusComponent에 HP 추가 시 자식에서 override
 bool ATPSCharacterBase::IsDead() const
 {
+	if (ensure(StatusComponentInst.Get()))
+	{
+		return StatusComponentInst->GetCurrentHP() <= 0.f;
+	}
 	return false;
 }

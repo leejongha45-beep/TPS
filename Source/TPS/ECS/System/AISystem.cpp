@@ -66,8 +66,8 @@ void AISystem::Tick(entt::registry& Registry, float DeltaTime, const FVector& Pl
 
 			if (DistSq <= AttackRangeSq)
 			{
-				NewState = (CachedState == EEnemyState::AttackReady)
-					? EEnemyState::Attacking
+				NewState = (CachedState == EEnemyState::AttackReady || CachedState == EEnemyState::Attacking)
+					? CachedState
 					: EEnemyState::AttackReady;
 				NewVelocity = FVector::ZeroVector;
 			}
