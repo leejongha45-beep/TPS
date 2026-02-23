@@ -3,16 +3,19 @@
 
 AEnemyRenderActor::AEnemyRenderActor()
 {
-	if (!HISMComponent)
+	if (!HISMComponentInst)
 	{
-		HISMComponent = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISM"));
-		if (ensure(HISMComponent))
+		HISMComponentInst = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("HISM"));
+		if (ensure(HISMComponentInst))
 		{
-			RootComponent = HISMComponent;
+			RootComponent = HISMComponentInst;
 
 			// 프로젝타일 물리 충돌 대응 (라인 트레이스 불필요)
-			HISMComponent->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-			HISMComponent->SetCollisionProfileName(TEXT("BlockAll"));
+			if (ensure(HISMComponentInst))
+			{
+				HISMComponentInst->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+				HISMComponentInst->SetCollisionProfileName(TEXT("BlockAll"));
+			}
 		}
 	}
 }

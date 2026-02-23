@@ -97,7 +97,7 @@ UHierarchicalInstancedStaticMeshComponent* UEnemyManagerSubsystem::GetHISM() con
 {
 	if (ensure(RenderActorInst))
 	{
-		return RenderActorInst->HISMComponent;
+		return RenderActorInst->HISMComponentInst;
 	}
 	return nullptr;
 }
