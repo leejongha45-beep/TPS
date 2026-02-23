@@ -1,7 +1,7 @@
 #include "TPSFireComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
-#include "Core/Subsystem/TPSProjectilePoolSubsystem.h"
+#include "Weapon/Projectile/TPSProjectilePoolSubsystem.h"
 #include "Weapon/TPSWeaponBase.h"
 #include "Weapon/Projectile/TPSProjectileBase.h"
 

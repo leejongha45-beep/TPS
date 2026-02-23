@@ -4,7 +4,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
-#include "Core/Subsystem/TPSProjectilePoolSubsystem.h"
+#include "Weapon/Projectile/TPSProjectilePoolSubsystem.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(ProjectileLog, Log, All);
 DEFINE_LOG_CATEGORY(ProjectileLog);

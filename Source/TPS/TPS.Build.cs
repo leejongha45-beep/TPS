@@ -7,6 +7,7 @@ public class TPS : ModuleRules
 	public TPS(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		CppStandard = CppStandardVersion.Latest;
 		bUseUnity = false;
 		bEnforceIWYU = false;
 
