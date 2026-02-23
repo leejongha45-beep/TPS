@@ -85,6 +85,14 @@ void UEnemyManagerSubsystem::StartWave(int32 WaveNumber)
 	}
 }
 
+void UEnemyManagerSubsystem::ApplyDamage(int32 InstanceIndex, float Damage)
+{
+	if (ensure(EnemySchedulerInst))
+	{
+		EnemySchedulerInst->QueueDamage(InstanceIndex, Damage);
+	}
+}
+
 UHierarchicalInstancedStaticMeshComponent* UEnemyManagerSubsystem::GetHISM() const
 {
 	if (ensure(RenderActorInst))

@@ -28,6 +28,11 @@ public:
 	 */
 	void StartWave(int32 WaveNumber);
 
+	/** 외부 데미지 적용 — 프로젝타일 OnHit에서 호출
+	 *  @param InstanceIndex  HISM 인스턴스 인덱스 (FHitResult.Item)
+	 *  @param Damage         데미지량 */
+	void ApplyDamage(int32 InstanceIndex, float Damage);
+
 	FORCEINLINE FEnemyScheduler* GetScheduler() const { return EnemySchedulerInst.Get(); }
 	class UHierarchicalInstancedStaticMeshComponent* GetHISM() const;
 

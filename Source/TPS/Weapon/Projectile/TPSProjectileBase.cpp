@@ -5,6 +5,8 @@
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Weapon/Projectile/TPSProjectilePoolSubsystem.h"
+#include "ECS/Scheduler/EnemyManagerSubsystem.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(ProjectileLog, Log, All);
 DEFINE_LOG_CATEGORY(ProjectileLog);
@@ -116,7 +118,23 @@ void ATPSProjectileBase::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 	}
 
 	// ① 대상에 데미지 적용
-	UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, nullptr);
+	if (Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp))
+	{
+		// HISM 충돌 → ECS 데미지 경로
+		if (Hit.Item != INDEX_NONE)
+		{
+			UEnemyManagerSubsystem* pEnemyMgr = GetWorld()->GetSubsystem<UEnemyManagerSubsystem>();
+			if (ensure(pEnemyMgr))
+			{
+				pEnemyMgr->ApplyDamage(Hit.Item, Damage);
+			}
+		}
+	}
+	else
+	{
+		// 기존 액터 기반 데미지
+		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, nullptr);
+	}
 
 	// ② 충돌 지점에 이펙트 스폰
 	if (ImpactEffectAsset)
