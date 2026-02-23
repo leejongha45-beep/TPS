@@ -4,6 +4,7 @@
 #include "ECS/System/SpawnSystem.h"
 #include "ECS/Component/Components.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Engine/World.h"
 
 UEnemyManagerSubsystem::~UEnemyManagerSubsystem()
 {
@@ -30,7 +31,7 @@ void UEnemyManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if (!RenderActorInst)
 		{
 			RenderActorInst = pWorld->SpawnActor<AEnemyRenderActor>();
-			if (ensure(RenderActorInst))
+			if (ensure(RenderActorInst.Get()))
 			{
 				EnemySchedulerInst->SetHISM(GetHISM());
 			}
@@ -48,7 +49,7 @@ void UEnemyManagerSubsystem::Deinitialize()
 	EnemySchedulerInst.Reset();
 
 	// ② 렌더 액터 파괴
-	if (ensure(RenderActorInst))
+	if (ensure(RenderActorInst.Get()))
 	{
 		RenderActorInst->Destroy();
 		RenderActorInst = nullptr;
@@ -95,7 +96,7 @@ void UEnemyManagerSubsystem::ApplyDamage(int32 InstanceIndex, float Damage)
 
 UHierarchicalInstancedStaticMeshComponent* UEnemyManagerSubsystem::GetHISM() const
 {
-	if (ensure(RenderActorInst))
+	if (ensure(RenderActorInst.Get()))
 	{
 		return RenderActorInst->HISMComponentInst;
 	}

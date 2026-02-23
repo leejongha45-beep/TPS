@@ -10,10 +10,10 @@ void ATPSMainMenuHUD::BeginPlay()
 	if (!ensure(pPC)) return;
 
 	// ① 메뉴 위젯 생성
-	if (ensure(MainMenuWidgetClass))
+	if (ensure(MainMenuWidgetClass.Get()))
 	{
 		MainMenuWidgetInst = CreateWidget<UTPSMainMenuWidget>(pPC, MainMenuWidgetClass);
-		if (ensure(MainMenuWidgetInst))
+		if (ensure(MainMenuWidgetInst.Get()))
 		{
 			MainMenuWidgetInst->AddToViewport();
 		}

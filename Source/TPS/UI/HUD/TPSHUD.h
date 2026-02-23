@@ -5,8 +5,6 @@
 #include "UI/ViewModel/CrosshairViewModel.h"
 #include "TPSHUD.generated.h"
 
-class ATPSGameModeBase;
-
 /**
  * 게임 HUD
  * - Canvas 기반 크로스헤어 드로잉
@@ -21,7 +19,7 @@ class TPS_API ATPSHUD : public AHUD
 
 public:
 	/** 스폰 선택 UI 표시 */
-	void ShowSpawnSelect(ATPSGameModeBase* InGameMode);
+	void ShowSpawnSelect(class ATPSGameModeBase* InGameMode);
 
 	/** 스폰 선택 UI 숨김 */
 	void HideSpawnSelect();

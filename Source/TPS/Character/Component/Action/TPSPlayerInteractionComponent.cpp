@@ -130,11 +130,11 @@ void UTPSPlayerInteractionComponent::ShowPrompt()
 
 	APlayerController* pController = Cast<APlayerController>(pPlayer->GetController());
 	if (!ensure(pController)) return;
-	if (!ensure(InteractionPromptWidgetClass)) return;
+	if (!ensure(InteractionPromptWidgetClass.Get())) return;
 
 	// ② 위젯 생성 → 텍스트 설정 → 뷰포트 추가
 	InteractionPromptWidgetInst = CreateWidget<UTPSInteractionPromptWidget>(pController, InteractionPromptWidgetClass);
-	if (ensure(InteractionPromptWidgetInst))
+	if (ensure(InteractionPromptWidgetInst.Get()))
 	{
 		InteractionPromptWidgetInst->SetPromptText(InteractionPromptText);
 		InteractionPromptWidgetInst->AddToViewport();

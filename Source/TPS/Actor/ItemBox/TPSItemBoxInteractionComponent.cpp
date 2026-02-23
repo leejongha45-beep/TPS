@@ -17,7 +17,7 @@ void UTPSItemBoxInteractionComponent::ToggleItemBox(bool bInput, APlayerControll
 
 		if (!ItemBoxWidgetInst)
 		{
-			if (!ensure(ItemBoxWidgetClass)) return;
+			if (!ensure(ItemBoxWidgetClass.Get())) return;
 
 			APlayerController* pController = InputController;
 			if (!ensure(pController)) return;
@@ -26,7 +26,7 @@ void UTPSItemBoxInteractionComponent::ToggleItemBox(bool bInput, APlayerControll
 		}
 
 		// ② 오너 참조 설정 + 뷰포트 추가
-		if (ensure(ItemBoxWidgetInst))
+		if (ensure(ItemBoxWidgetInst.Get()))
 		{
 			ItemBoxWidgetInst->SetOwningItemBox(pItemBox);
 

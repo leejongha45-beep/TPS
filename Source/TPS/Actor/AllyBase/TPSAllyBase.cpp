@@ -3,6 +3,7 @@
 #include "Core/Subsystem/TPSTargetSubsystem.h"
 #include "Core/Subsystem/TPSDamageSubsystem.h"
 #include "Engine/DamageEvents.h"
+#include "Engine/World.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTPSBase, Log, All);
 DEFINE_LOG_CATEGORY(LogTPSBase);
@@ -13,15 +14,15 @@ ATPSAllyBase::ATPSAllyBase()
 	if (!SceneRootInst)
 	{
 		SceneRootInst = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
-		if (ensure(SceneRootInst))
+		if (ensure(SceneRootInst.Get()))
 		{
-			RootComponent = SceneRootInst;
+			RootComponent = SceneRootInst.Get();
 
 			// ② StaticMesh — SceneRoot에 부착
 			if (!MeshComponentInst)
 			{
 				MeshComponentInst = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
-				if (ensure(MeshComponentInst))
+				if (ensure(MeshComponentInst.Get()))
 				{
 					MeshComponentInst->SetupAttachment(SceneRootInst);
 				}

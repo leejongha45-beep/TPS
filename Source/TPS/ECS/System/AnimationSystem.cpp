@@ -1,5 +1,6 @@
 #include "ECS/System/AnimationSystem.h"
 #include "ECS/Component/Components.h"
+#include "Async/ParallelFor.h"
 
 /** ② Write: 상태 기반 AnimIndex 결정 + AnimTime 갱신 (상태 전환 시 리셋) */
 void Write(CAnimation& OutAnim, float DeltaTime, float CachedAnimTime,
@@ -54,8 +55,18 @@ void AnimationSystem::Tick(entt::registry& Registry, float DeltaTime)
 {
 	auto View = Registry.view<CAnimation, CAnimationPrev, CEnemyStatePrev>();
 
-	for (auto Entity : View)
+	// ── Entity 수집 ──
+	TArray<entt::entity, TInlineAllocator<3000>> Entities;
+	Entities.Reserve(View.size_hint());
+	for (auto Entity : View) { Entities.Add(Entity); }
+
+	const int32 Count = Entities.Num();
+
+	// ── ParallelFor: Entity별 독립 처리 ── [WorkerThread]
+	ParallelFor(Count, [&](int32 Index)
 	{
+		const entt::entity Entity = Entities[Index];
+
 		// ① Read: Prev → Cached 지역변수
 		const float CachedAnimIndex   = View.get<CAnimationPrev>(Entity).AnimIndex;
 		const float CachedAnimTime    = View.get<CAnimationPrev>(Entity).AnimTime;
@@ -67,5 +78,5 @@ void AnimationSystem::Tick(entt::registry& Registry, float DeltaTime)
 
 		// ③ PushToPrev
 		PushToPrev(View.get<CAnimationPrev>(Entity), View.get<CAnimation>(Entity));
-	}
+	});
 }

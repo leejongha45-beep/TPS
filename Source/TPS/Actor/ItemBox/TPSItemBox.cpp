@@ -1,5 +1,6 @@
 ﻿#include "Actor/ItemBox/TPSItemBox.h"
 #include "Actor/ItemBox/TPSItemBoxInteractionComponent.h"
+#include "Engine/World.h"
 #include "Character/Component/Action/TPSEquipComponent.h"
 #include "Weapon/TPSWeaponBase.h"
 #include "Character/Component/Action/TPSPlayerInteractionComponent.h"
@@ -17,9 +18,9 @@ ATPSItemBox::ATPSItemBox()
 	if (!MeshInst)
 	{
 		MeshInst = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-		if (ensure(MeshInst))
+		if (ensure(MeshInst.Get()))
 		{
-			SetRootComponent(MeshInst);
+			SetRootComponent(MeshInst.Get());
 		}
 	}
 
@@ -27,7 +28,7 @@ ATPSItemBox::ATPSItemBox()
 	if (!BoxCollisionInst)
 	{
 		BoxCollisionInst = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
-		if (ensure(BoxCollisionInst))
+		if (ensure(BoxCollisionInst.Get()))
 		{
 			BoxCollisionInst->SetupAttachment(RootComponent);
 			BoxCollisionInst->SetCollisionProfileName(TEXT("Trigger"));
@@ -49,7 +50,7 @@ ATPSItemBox::ATPSItemBox()
 	if (!InteractionComponentInst)
 	{
 		InteractionComponentInst = CreateDefaultSubobject<UTPSItemBoxInteractionComponent>(TEXT("InteractionComponent"));
-		ensure(InteractionComponentInst);
+		ensure(InteractionComponentInst.Get());
 	}
 }
 
@@ -59,7 +60,7 @@ void ATPSItemBox::SpawnWeapon(EWeaponType TargetWeapon)
 
 	if (ensure(ItemClassArray.IsValidIndex(ItemIndex)))
 	{
-		if (!ensure(ItemClassArray[ItemIndex])) return;
+		if (!ensure(ItemClassArray[ItemIndex].Get())) return;
 
 		if (!SpawnedWeapon)
 		{
@@ -84,7 +85,7 @@ void ATPSItemBox::SpawnWeapon(EWeaponType TargetWeapon)
 
 void ATPSItemBox::Interact()
 {
-	if (ensure(InteractionComponentInst))
+	if (ensure(InteractionComponentInst.Get()))
 	{
 		if (ensure(InteractableInterface))
 		{
@@ -105,7 +106,8 @@ void ATPSItemBox::OnBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AA
 	if (!ensure(pPlayer)) return;
 
 	// ① 상호작용 대상 인터페이스 캐싱
-	InteractableInterface = pPlayer;
+	InteractableInterface.SetObject(pPlayer);
+	InteractableInterface.SetInterface(Cast<IInteractable>(pPlayer));
 	ensure(InteractableInterface);
 
 	// ② 플레이어의 InteractionComponent에 자신을 타겟으로 등록
@@ -130,7 +132,8 @@ void ATPSItemBox::OnBoxEndOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 		pInteractionComponent->ClearCurrentTarget(this);
 	}
 
-	InteractableInterface = nullptr;
+	InteractableInterface.SetObject(nullptr);
+	InteractableInterface.SetInterface(nullptr);
 	ensure(!InteractableInterface);
 
 	UE_LOG(LogItemBox, Log, TEXT("[OnBoxEndOverlap] Player left trigger zone"));

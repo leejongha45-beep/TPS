@@ -11,6 +11,6 @@ class AEnemyRenderActor : public AActor
 public:
 	AEnemyRenderActor();
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleDefaultsOnly)
 	TObjectPtr<class UHierarchicalInstancedStaticMeshComponent> HISMComponentInst;
 };

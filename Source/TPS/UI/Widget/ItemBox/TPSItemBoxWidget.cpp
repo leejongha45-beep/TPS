@@ -1,4 +1,6 @@
 ﻿#include "UI/Widget/ItemBox/TPSItemBoxWidget.h"
+
+#include "Actor/ItemBox/TPSItemBox.h"
 #include "Character/Component/Action/TPSPlayerInteractionComponent.h"
 #include "Components/Button.h"
 #include "Character/Player/TPSPlayer.h"

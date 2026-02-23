@@ -1,4 +1,5 @@
 #include "Animation/Notify/TPSAnimNotify_EquipLayerSwitch.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Character/Component/Data/TPSAnimLayerComponent.h"
 
 void UTPSAnimNotify_EquipLayerSwitch::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)

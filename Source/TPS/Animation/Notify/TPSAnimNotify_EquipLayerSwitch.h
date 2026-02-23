@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+#include "Animation/Player/TPSLinkedAnimInstance.h"
 #include "TPSAnimNotify_EquipLayerSwitch.generated.h"
 
 /**

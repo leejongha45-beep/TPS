@@ -20,7 +20,7 @@ void ATPSHUD::BeginPlay()
 
 	// ① 크로스헤어 뷰모델 초기화
 	CrosshairViewModelInst = NewObject<UCrosshairViewModel>(this);
-	if (ensure(CrosshairViewModelInst))
+	if (ensure(CrosshairViewModelInst.Get()))
 	{
 		CrosshairViewModelInst->Initialize(pPlayer, CrosshairConfig);
 	}
@@ -29,7 +29,7 @@ void ATPSHUD::BeginPlay()
 	if (AmmoWidgetClass)
 	{
 		AmmoWidgetInst = CreateWidget<UTPSAmmoWidget>(pPC, AmmoWidgetClass);
-		if (ensure(AmmoWidgetInst))
+		if (ensure(AmmoWidgetInst.Get()))
 		{
 			AmmoWidgetInst->AddToViewport();
 			AmmoWidgetInst->SetVisibility(ESlateVisibility::Collapsed);
@@ -56,7 +56,7 @@ void ATPSHUD::DrawHUD()
 
 void ATPSHUD::DrawCrosshair()
 {
-	if (!ensure(CrosshairViewModelInst)) return;
+	if (!ensure(CrosshairViewModelInst.Get())) return;
 
 	// ① 플레이어 참조 유효성 확인 (무효 시 재초기화)
 	if (!CrosshairViewModelInst->IsPlayerValid())
@@ -127,7 +127,7 @@ void ATPSHUD::OnAmmoViewModelChanged(UAmmoViewModel* InAmmoViewModel)
 		// ① 장착 — ViewModel 참조 세팅 + Widget 표시
 		AmmoViewModelRef = InAmmoViewModel;
 
-		if (ensure(AmmoWidgetInst))
+		if (ensure(AmmoWidgetInst.Get()))
 		{
 			AmmoWidgetInst->SetVisibility(ESlateVisibility::HitTestInvisible);
 			AmmoWidgetInst->UpdateAmmoDisplay(InAmmoViewModel->GetCurrentAmmo(), InAmmoViewModel->GetMaxAmmo(), InAmmoViewModel->GetAmmoColor());
@@ -138,7 +138,7 @@ void ATPSHUD::OnAmmoViewModelChanged(UAmmoViewModel* InAmmoViewModel)
 		// ② 해제 — 참조 해제 + Widget 숨김
 		AmmoViewModelRef.Reset();
 
-		if (ensure(AmmoWidgetInst))
+		if (ensure(AmmoWidgetInst.Get()))
 		{
 			AmmoWidgetInst->SetVisibility(ESlateVisibility::Collapsed);
 		}
@@ -148,7 +148,7 @@ void ATPSHUD::OnAmmoViewModelChanged(UAmmoViewModel* InAmmoViewModel)
 void ATPSHUD::UpdateAmmoWidget()
 {
 	if (!AmmoViewModelRef.IsValid()) return;
-	if (!ensure(AmmoWidgetInst)) return;
+	if (!ensure(AmmoWidgetInst.Get())) return;
 
 	UAmmoViewModel* pViewModel = AmmoViewModelRef.Get();
 	if (!ensure(pViewModel)) return;
@@ -170,16 +170,16 @@ void ATPSHUD::ShowSpawnSelect(ATPSGameModeBase* InGameMode)
 	bIsSpawnSelecting = true;
 
 	// ① 위젯 생성 (최초 1회)
-	if (!SpawnSelectWidgetInst && SpawnSelectWidgetClass)
+	if (SpawnSelectWidgetInst.Get() == nullptr && SpawnSelectWidgetClass)
 	{
 		SpawnSelectWidgetInst = CreateWidget<UTPSSpawnSelectWidget>(pPC, SpawnSelectWidgetClass);
-		if (ensure(SpawnSelectWidgetInst))
+		if (ensure(SpawnSelectWidgetInst.Get()))
 		{
 			SpawnSelectWidgetInst->AddToViewport(10); // 최상위 Z-Order
 		}
 	}
 
-	if (!ensure(SpawnSelectWidgetInst)) return;
+	if (!ensure(SpawnSelectWidgetInst.Get())) return;
 
 	// ② 활성 스폰 포인트 → 위젯에 전달
 	UWorld* pWorld = GetWorld();

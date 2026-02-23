@@ -1,4 +1,5 @@
 #pragma once
+
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Utils/Interface/Data/Targetable.h"

@@ -11,8 +11,10 @@
  * - Phase별 시스템 실행 순서 제어
  *
  * [GameThread] Tick()
- *   → PushToPrev_RenderProxy → Phase_Damage → Phase_AI → Phase_Death
- *   → Phase_Animation → Phase_Movement → Phase_Visualization → Phase_Cleanup
+ *   Phase 0~4: 순차 실행 (Damage → AI → Death), AI/Death 내부 ParallelFor
+ *   Phase 5+6: AnimationSystem + MovementSystem TaskGraph 병렬 실행
+ *   ── Barrier ──
+ *   Phase 7~8: Visualization → Cleanup (GameThread, HISM UObject)
  */
 class FEnemyScheduler : public FTickableGameObject
 {

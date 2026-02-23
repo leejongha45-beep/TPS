@@ -1,7 +1,8 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/EngineTypes.h"
+#include "FAIControlTickFunction.h"
+#include "Engine/EngineBaseTypes.h"
 
 /**
  * 보간 전용 커스텀 Tick 함수

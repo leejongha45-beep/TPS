@@ -7,8 +7,11 @@
 #include "ECS/System/MovementSystem.h"
 #include "ECS/System/VisualizationSystem.h"
 #include "ECS/System/CleanupSystem.h"
+#include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utils/Template/Getter.h"
+#include "Async/TaskGraphInterfaces.h"
+#include "Engine/Engine.h"
 
 FEnemyScheduler::FEnemyScheduler()
 {
@@ -26,53 +29,36 @@ FVector GetPlayerPosition(const UWorld* World)
 }
 
 /**
- * ECS 파이프라인 — 매 프레임 GameThread에서 순차 실행
+ * ECS 파이프라인 — 멀티스레드 실행
  *
  * ┌─────────────────────────────────────────────────────────────────────────┐
- * │ Phase 0. PushToPrev_RenderProxy                                       │
+ * │ [GameThread] Phase 0. PushToPrev_RenderProxy                          │
  * │   Cleanup이 갱신한 CRenderProxy.Current → Prev 반영                    │
- * │   (다른 컴포넌트는 각 시스템 내부에서 PushToPrev 수행)                    │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ Phase 1. UObject 접근                                                 │
+ * │ [GameThread] Phase 1. UObject 접근                                    │
  * │   PlayerPosition, HISM 등 UObject를 지역변수로 캐싱                     │
- * │   (이후 Phase는 순수 데이터 연산만 수행)                                 │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ Phase 2. Damage                                                       │
- * │   R: DamageQueue (외부 입력), InstanceToEntity (O(1) 룩업)             │
- * │   W: CHealth.Current -= Damage                                        │
- * │   PushToPrev: CHealth → CHealthPrev                                   │
- * │   Dying/Dead/HP≤0 Entity 스킵                                         │
+ * │ [GameThread] Phase 2. Damage (순차 — 같은 Entity 다중 히트)            │
+ * │   R: DamageQueue, InstanceToEntity   W: CHealth   PushToPrev          │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ Phase 3. AI                                                           │
- * │   R: CTransformPrev, CHealthPrev, CMovementPrev, CEnemyStatePrev      │
- * │   W: CEnemyState (Idle/Moving/AttackReady/Attacking/Dying), CMovement  │
- * │   Dying/Dead Entity는 스킵                                            │
+ * │ [GameThread→Worker] Phase 3. AI (ParallelFor)                         │
+ * │   R: Prev 컴포넌트   W: CEnemyState, CMovement   PushToPrev           │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ Phase 4. Death (마킹)                                                 │
- * │   R: CEnemyStatePrev (Dying 필터), CAnimationPrev (AnimTime ≥ Duration)│
- * │   W: CEnemyState = Dead                                               │
- * │   AI와 CEnemyState 쓰기 대상 Entity 상호 배타적                         │
+ * │ [GameThread→Worker] Phase 4. Death (ParallelFor)                      │
+ * │   R: CEnemyStatePrev(Dying), CAnimationPrev   W: CEnemyState=Dead     │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ Phase 5. Animation                                                    │
- * │   R: CAnimationPrev, CEnemyStatePrev                                  │
- * │   W: CAnimation (AnimIndex, AnimTime)                                 │
- * │   상태 전환 시 AnimTime 리셋 — 잔류값 방지                              │
- * │   Dying: 비루핑 클램프 / Dead: 최종 포즈 유지                           │
+ * │ [WorkerThread] Phase 5+6. Animation ∥ Movement (TaskGraph 병렬)       │
+ * │   Animation: W: CAnimation, CAnimationPrev                            │
+ * │   Movement:  W: CTransform, CTransformPrev                            │
+ * │   Write 대상 완전 분리, CEnemyStatePrev Read-Only 공유                  │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ Phase 6. Movement                                                     │
- * │   R: CMovementPrev, CTransformPrev, CEnemyStatePrev                   │
- * │   W: CTransform (Position += Velocity * DeltaTime)                    │
- * │   Moving 상태만 처리                                                   │
+ * │ ── Barrier: WaitUntilTasksComplete ──                                 │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ Phase 7. Visualization                                                │
- * │   R: CTransformPrev, CAnimationPrev, CRenderProxyPrev                 │
- * │   → HISM UpdateInstanceTransform + SetCustomDataValue                 │
- * │   ECS → HISM 단방향 동기화 (읽기 전용)                                  │
+ * │ [GameThread] Phase 7. Visualization (HISM UObject)                    │
+ * │   R: CTransformPrev, CAnimationPrev, CRenderProxyPrev → HISM 동기화   │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ Phase 8. Cleanup                                                      │
- * │   R: CEnemyStatePrev (Dead 필터), CRenderProxyPrev (InstanceIndex)     │
- * │   W: CRenderProxy.Current (swap 보정, O(1) 룩업 테이블)                │
- * │   내림차순 HISM RemoveInstance → InstanceToEntity 동기화 → Entity 파괴  │
+ * │ [GameThread] Phase 8. Cleanup (HISM + Registry.destroy)               │
+ * │   Dead Entity 수집 → 내림차순 RemoveInstance → swap 보정 → 파괴        │
  * └─────────────────────────────────────────────────────────────────────────┘
  */
 void FEnemyScheduler::Tick(float DeltaTime)
@@ -102,11 +88,28 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	// 4. Phase_Death (마킹: Dying → Dead)
 	DeathSystem::Tick(Registry);
 
-	// 5. Phase_Animation
-	AnimationSystem::Tick(Registry, DeltaTime);
+	// 5+6. Phase_Animation ∥ Phase_Movement ── [WorkerThread] TaskGraph 병렬 실행
+	// Animation writes: CAnimation, CAnimationPrev
+	// Movement writes:  CTransform, CTransformPrev
+	// Write 대상 완전 분리 — CEnemyStatePrev는 양쪽 Read-Only
+	FGraphEventRef AnimTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+		[&Registry = Registry, DeltaTime]()
+		{
+			AnimationSystem::Tick(Registry, DeltaTime);
+		},
+		TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
+	);
 
-	// 6. Phase_Movement
-	MovementSystem::Tick(Registry, DeltaTime);
+	FGraphEventRef MoveTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+		[&Registry = Registry, DeltaTime]()
+		{
+			MovementSystem::Tick(Registry, DeltaTime);
+		},
+		TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
+	);
+
+	// ── Barrier: Phase 5+6 완료 대기 ── [GameThread]
+	FTaskGraphInterface::Get().WaitUntilTasksComplete({AnimTask, MoveTask});
 
 	// 7. Phase_Visualization
 	if (ensure(pHISM))

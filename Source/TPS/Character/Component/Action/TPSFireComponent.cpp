@@ -1,4 +1,7 @@
 #include "TPSFireComponent.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
+#include "GameFramework/Pawn.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Weapon/Projectile/TPSProjectilePoolSubsystem.h"

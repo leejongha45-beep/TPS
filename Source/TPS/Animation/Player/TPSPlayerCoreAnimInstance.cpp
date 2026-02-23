@@ -1,6 +1,7 @@
 ﻿#include "TPSPlayerCoreAnimInstance.h"
 
 #include "KismetAnimationLibrary.h"
+#include "Engine/World.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Character/Component/Action/TPSEquipComponent.h"
 #include "Character/Component/Action/TPSFireComponent.h"
@@ -220,7 +221,7 @@ void UTPSPlayerCoreAnimInstance::OnFireStateChanged(bool bFiring)
 
 void UTPSPlayerCoreAnimInstance::OnFireOnce()
 {
-	if (!ensure(FireMontageAsset)) return;
+	if (!ensure(FireMontageAsset.Get())) return;
 
 	// 발사 1회: 몽타주 처음부터 재생 (연사 시 매번 리셋)
 	Montage_Play(FireMontageAsset, 1.f, EMontagePlayReturnType::MontageLength, 0.f);
@@ -228,7 +229,7 @@ void UTPSPlayerCoreAnimInstance::OnFireOnce()
 
 void UTPSPlayerCoreAnimInstance::PlayReloadMontage()
 {
-	if (!ensure(ReloadMontageAsset)) return;
+	if (!ensure(ReloadMontageAsset.Get())) return;
 
 	// ① 몽타주 재생 + 종료 델리게이트 바인딩
 	Montage_Play(ReloadMontageAsset);

@@ -1,5 +1,7 @@
 #include "Character/Base/TPSCharacterBase.h"
+#include "Engine/World.h"
 #include "Character/Component/Action/TPSCMC.h"
+#include "Engine/World.h"
 #include "Character/Component/Data/TPSPlayerStateComponent.h"
 #include "Character/Component/Data/TPSPlayerStatusComponent.h"
 #include "Character/Component/Data/TPSFootstepComponent.h"
@@ -22,7 +24,7 @@ void ATPSCharacterBase::CreateDefaultComponents()
 	if (!StateComponentInst)
 	{
 		StateComponentInst = CreateDefaultSubobject<UTPSPlayerStateComponent>(TEXT("StateComponent"));
-		if (ensure(StateComponentInst))
+		if (ensure(StateComponentInst.Get()))
 		{
 			StateComponentInst->ClearState();
 			StateComponentInst->AddState(EActionState::Idle);
@@ -32,7 +34,7 @@ void ATPSCharacterBase::CreateDefaultComponents()
 	if (!StatusComponentInst)
 	{
 		StatusComponentInst = CreateDefaultSubobject<UTPSPlayerStatusComponent>(TEXT("StatusComponent"));
-		if (ensure(StatusComponentInst))
+		if (ensure(StatusComponentInst.Get()))
 		{
 			StatusComponentInst->SetDefaultSprintSpeed(700.f);
 			StatusComponentInst->SetDefaultWalkSpeed(500.f);
@@ -42,7 +44,7 @@ void ATPSCharacterBase::CreateDefaultComponents()
 	if (!FootstepComponentInst)
 	{
 		FootstepComponentInst = CreateDefaultSubobject<UTPSFootstepComponent>(TEXT("FootstepComponent"));
-		ensure(FootstepComponentInst);
+		ensure(FootstepComponentInst.Get());
 	}
 }
 
@@ -86,12 +88,12 @@ void ATPSCharacterBase::PostInitializeComponents()
 	if (!CMCInst)
 	{
 		CMCInst = Cast<UTPSCMC>(GetCharacterMovement());
-		if (ensure(CMCInst))
+		if (ensure(CMCInst.Get()))
 		{
 			CMCInst->SetOrientRotationToMovement(true);
 			CMCInst->SetRotationRate(FRotator(0.f, 700.f, 0.f));
 
-			if (ensure(StatusComponentInst))
+			if (ensure(StatusComponentInst.Get()))
 			{
 				CMCInst->SetMaxWalkSpeed(StatusComponentInst->GetDefaultWalkSpeed());
 			}
@@ -103,7 +105,7 @@ void ATPSCharacterBase::OnJumped_Implementation()
 {
 	Super::OnJumped_Implementation();
 
-	if (ensure(StateComponentInst))
+	if (ensure(StateComponentInst.Get()))
 	{
 		StateComponentInst->AddState(EActionState::Jumping);
 	}
@@ -113,7 +115,7 @@ void ATPSCharacterBase::OnMovementModeChanged(EMovementMode PrevMovementMode, ui
 {
 	Super::OnMovementModeChanged(PrevMovementMode, PreviousCustomMode);
 
-	if (!ensure(StateComponentInst) || !ensure(CMCInst)) return;
+	if (!ensure(StateComponentInst.Get()) || !ensure(CMCInst.Get())) return;
 
 	const EMovementMode CurrentMode = CMCInst->MovementMode;
 
@@ -130,7 +132,7 @@ void ATPSCharacterBase::OnMovementModeChanged(EMovementMode PrevMovementMode, ui
 
 void ATPSCharacterBase::StartMove()
 {
-	if (ensure(StateComponentInst))
+	if (ensure(StateComponentInst.Get()))
 	{
 		StateComponentInst->RemoveState(EActionState::Idle);
 		StateComponentInst->AddState(EActionState::Moving);
@@ -156,7 +158,7 @@ void ATPSCharacterBase::Move(const FVector2D& InputVector)
 
 void ATPSCharacterBase::StopMove()
 {
-	if (ensure(StateComponentInst))
+	if (ensure(StateComponentInst.Get()))
 	{
 		StateComponentInst->RemoveState(EActionState::Moving);
 
@@ -171,11 +173,11 @@ void ATPSCharacterBase::StopMove()
 
 void ATPSCharacterBase::StartSprint()
 {
-	if (!ensure(StateComponentInst)) return;
+	if (!ensure(StateComponentInst.Get())) return;
 
 	if (!StateComponentInst->HasState(EActionState::Moving) || StateComponentInst->HasState(EActionState::Aiming)) return;
 
-	if (ensure(CMCInst) && ensure(StatusComponentInst))
+	if (ensure(CMCInst.Get()) && ensure(StatusComponentInst.Get()))
 	{
 		CMCInst->UpdateSprintSpeed(StatusComponentInst->GetDefaultSprintSpeed());
 		StateComponentInst->AddState(EActionState::Sprinting);
@@ -184,11 +186,11 @@ void ATPSCharacterBase::StartSprint()
 
 void ATPSCharacterBase::StopSprint()
 {
-	if (!ensure(StateComponentInst)) return;
+	if (!ensure(StateComponentInst.Get())) return;
 
 	if (!StateComponentInst->HasState(EActionState::Sprinting)) return;
 
-	if (ensure(CMCInst) && ensure(StatusComponentInst))
+	if (ensure(CMCInst.Get()) && ensure(StatusComponentInst.Get()))
 	{
 		CMCInst->UpdateSprintSpeed(StatusComponentInst->GetDefaultWalkSpeed());
 	}

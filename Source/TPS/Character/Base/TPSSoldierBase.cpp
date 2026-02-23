@@ -19,19 +19,19 @@ void ATPSSoldierBase::CreateDefaultComponents()
 	if (!EquipComponentInst)
 	{
 		EquipComponentInst = CreateDefaultSubobject<UTPSEquipComponent>(TEXT("EquipComponent"));
-		ensure(EquipComponentInst);
+		ensure(EquipComponentInst.Get());
 	}
 
 	if (!AnimLayerComponentInst)
 	{
 		AnimLayerComponentInst = CreateDefaultSubobject<UTPSAnimLayerComponent>(TEXT("AnimLayerComponent"));
-		ensure(AnimLayerComponentInst);
+		ensure(AnimLayerComponentInst.Get());
 	}
 
 	if (!FireComponentInst)
 	{
 		FireComponentInst = CreateDefaultSubobject<UTPSFireComponent>(TEXT("FireComponent"));
-		ensure(FireComponentInst);
+		ensure(FireComponentInst.Get());
 	}
 }
 
@@ -39,7 +39,7 @@ void ATPSSoldierBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (ensure(AnimLayerComponentInst))
+	if (ensure(AnimLayerComponentInst.Get()))
 	{
 		AnimLayerComponentInst->LinkAnimLayer(AnimLayerComponentInst->GetUnArmedLayerClass());
 	}
@@ -54,7 +54,7 @@ void ATPSSoldierBase::PostInitializeComponents()
 
 void ATPSSoldierBase::BindDelegate()
 {
-	if (ensure(EquipComponentInst))
+	if (ensure(EquipComponentInst.Get()))
 	{
 		if (!EquipComponentInst->OnEquipStateChangedDelegate.IsBoundToObject(this))
 		{
@@ -62,7 +62,7 @@ void ATPSSoldierBase::BindDelegate()
 		}
 	}
 
-	if (ensure(FireComponentInst))
+	if (ensure(FireComponentInst.Get()))
 	{
 		if (!FireComponentInst->OnFireStateChangedDelegate.IsBoundToObject(this))
 		{
@@ -78,7 +78,7 @@ void ATPSSoldierBase::BindDelegate()
 
 void ATPSSoldierBase::StartAim()
 {
-	if (!ensure(StateComponentInst)) return;
+	if (!ensure(StateComponentInst.Get())) return;
 
 	if (!StateComponentInst->HasState(EActionState::Equipping)) return;
 
@@ -90,7 +90,7 @@ void ATPSSoldierBase::StartAim()
 		StopSprint();
 	}
 
-	if (ensure(CMCInst))
+	if (ensure(CMCInst.Get()))
 	{
 		CMCInst->SetOrientRotationToMovement(false);
 	}
@@ -98,7 +98,7 @@ void ATPSSoldierBase::StartAim()
 
 void ATPSSoldierBase::StopAim()
 {
-	if (!ensure(StateComponentInst)) return;
+	if (!ensure(StateComponentInst.Get())) return;
 
 	if (!StateComponentInst->HasState(EActionState::Equipping)) return;
 
@@ -108,7 +108,7 @@ void ATPSSoldierBase::StopAim()
 
 void ATPSSoldierBase::Equip()
 {
-	if (!ensure(StateComponentInst) || !ensure(EquipComponentInst)) return;
+	if (!ensure(StateComponentInst.Get()) || !ensure(EquipComponentInst.Get())) return;
 
 	// ① 사격 중이면 먼저 중단
 	if (StateComponentInst->HasState(EActionState::Firing))
@@ -119,7 +119,7 @@ void ATPSSoldierBase::Equip()
 	// ② 재장전 중이면 취소
 	if (StateComponentInst->HasState(EActionState::Reloading))
 	{
-		if (ensure(FireComponentInst))
+		if (ensure(FireComponentInst.Get()))
 		{
 			FireComponentInst->CancelReload();
 		}
@@ -132,7 +132,7 @@ void ATPSSoldierBase::Equip()
 
 void ATPSSoldierBase::Unequip()
 {
-	if (!ensure(StateComponentInst) || !ensure(EquipComponentInst)) return;
+	if (!ensure(StateComponentInst.Get()) || !ensure(EquipComponentInst.Get())) return;
 
 	if (StateComponentInst->HasState(EActionState::Equipping))
 	{
@@ -149,7 +149,7 @@ void ATPSSoldierBase::StartFire()
 
 void ATPSSoldierBase::StopFire()
 {
-	if (ensure(FireComponentInst))
+	if (ensure(FireComponentInst.Get()))
 	{
 		FireComponentInst->StopFire();
 	}
@@ -157,7 +157,7 @@ void ATPSSoldierBase::StopFire()
 
 void ATPSSoldierBase::OnEquipStateChanged(bool bIsEquipped)
 {
-	if (!ensure(StateComponentInst) || !ensure(CMCInst)) return;
+	if (!ensure(StateComponentInst.Get()) || !ensure(CMCInst.Get())) return;
 
 	if (bIsEquipped)
 	{
@@ -168,7 +168,7 @@ void ATPSSoldierBase::OnEquipStateChanged(bool bIsEquipped)
 	else
 	{
 		// 공통: 사격/재장전/조준 중단 + 상태 제거 + CMC 복원
-		if (ensure(FireComponentInst))
+		if (ensure(FireComponentInst.Get()))
 		{
 			if (FireComponentInst->GetIsFiring())
 			{
@@ -193,7 +193,7 @@ void ATPSSoldierBase::OnEquipStateChanged(bool bIsEquipped)
 
 void ATPSSoldierBase::Reload()
 {
-	if (!ensure(StateComponentInst) || !ensure(EquipComponentInst) || !ensure(FireComponentInst)) return;
+	if (!ensure(StateComponentInst.Get()) || !ensure(EquipComponentInst.Get()) || !ensure(FireComponentInst.Get())) return;
 
 	// ① 장착 상태 확인
 	if (!StateComponentInst->HasState(EActionState::Equipping)) return;
@@ -216,7 +216,7 @@ void ATPSSoldierBase::Reload()
 
 void ATPSSoldierBase::OnReloadStateChanged(bool bIsReloading)
 {
-	if (!ensure(StateComponentInst)) return;
+	if (!ensure(StateComponentInst.Get())) return;
 
 	if (bIsReloading)
 	{
@@ -230,7 +230,7 @@ void ATPSSoldierBase::OnReloadStateChanged(bool bIsReloading)
 
 void ATPSSoldierBase::OnFireStateChanged(bool bIsFiring)
 {
-	if (!ensure(StateComponentInst)) return;
+	if (!ensure(StateComponentInst.Get())) return;
 
 	if (bIsFiring)
 	{

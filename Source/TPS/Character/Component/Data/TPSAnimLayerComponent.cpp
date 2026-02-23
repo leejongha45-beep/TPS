@@ -1,4 +1,5 @@
 #include "Character/Component/Data/TPSAnimLayerComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Character.h"
 #include "Animation/Player/TPSLinkedAnimInstance.h"
 

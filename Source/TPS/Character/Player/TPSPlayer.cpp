@@ -32,7 +32,7 @@ void ATPSPlayer::CreateDefaultComponents()
 	if (!SpringArmComponentInst)
 	{
 		SpringArmComponentInst = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
-		if (ensure(SpringArmComponentInst))
+		if (ensure(SpringArmComponentInst.Get()))
 		{
 			SpringArmComponentInst->SetupAttachment(RootComponent);
 			SpringArmComponentInst->SetRelativeLocation(FVector(0.f, 20.f, 60.f));
@@ -41,7 +41,7 @@ void ATPSPlayer::CreateDefaultComponents()
 			if (!CameraComponentInst)
 			{
 				CameraComponentInst = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
-				if (ensure(CameraComponentInst))
+				if (ensure(CameraComponentInst.Get()))
 				{
 					CameraComponentInst->SetupAttachment(SpringArmComponentInst);
 					CameraComponentInst->bUsePawnControlRotation = false;
@@ -49,7 +49,7 @@ void ATPSPlayer::CreateDefaultComponents()
 					if (!CameraControlComponentInst)
 					{
 						CameraControlComponentInst = CreateDefaultSubobject<UTPSCameraControlComponent>(TEXT("CameraControlComponent"));
-						ensure(CameraControlComponentInst);
+						ensure(CameraControlComponentInst.Get());
 					}
 				}
 			}
@@ -59,7 +59,7 @@ void ATPSPlayer::CreateDefaultComponents()
 	if (!InteractionComponentInst)
 	{
 		InteractionComponentInst = CreateDefaultSubobject<UTPSPlayerInteractionComponent>(TEXT("InteractionComponent"));
-		ensure(InteractionComponentInst);
+		ensure(InteractionComponentInst.Get());
 	}
 }
 
@@ -68,9 +68,9 @@ void ATPSPlayer::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	// Player 전용: 카메라 컨트롤 초기화
-	if (ensure(CameraControlComponentInst))
+	if (ensure(CameraControlComponentInst.Get()))
 	{
-		CameraControlComponentInst->Initialize(SpringArmComponentInst, CameraComponentInst);
+		CameraControlComponentInst->Initialize(SpringArmComponentInst.Get(), CameraComponentInst.Get());
 	}
 }
 
@@ -95,7 +95,7 @@ void ATPSPlayer::RegisterActorTickFunctions(bool bRegister)
 
 void ATPSPlayer::Interact()
 {
-	if (ensure(InteractionComponentInst))
+	if (ensure(InteractionComponentInst.Get()))
 	{
 		InteractionComponentInst->HandleInteraction();
 	}
@@ -103,11 +103,11 @@ void ATPSPlayer::Interact()
 
 void ATPSPlayer::StartAim()
 {
-	if (!ensure(StateComponentInst)) return;
+	if (!ensure(StateComponentInst.Get())) return;
 
 	if (!StateComponentInst->HasState(EActionState::Equipping)) return;
 
-	if (ensure(CameraControlComponentInst))
+	if (ensure(CameraControlComponentInst.Get()))
 	{
 		// ① 공통 조준 처리 (State + Sprint중단 + CMC)
 		Super::StartAim();
@@ -117,7 +117,7 @@ void ATPSPlayer::StartAim()
 
 		// ③ 보간 Tick 활성화 + ADS AnimLayer 전환
 		SetInterpolateTickEnabled(true);
-		if (ensure(AnimLayerComponentInst))
+		if (ensure(AnimLayerComponentInst.Get()))
 		{
 			AnimLayerComponentInst->LinkAnimLayer(AnimLayerComponentInst->GetRifleADSLayerClass());
 		}
@@ -126,11 +126,11 @@ void ATPSPlayer::StartAim()
 
 void ATPSPlayer::StopAim()
 {
-	if (!ensure(StateComponentInst)) return;
+	if (!ensure(StateComponentInst.Get())) return;
 
 	if (!StateComponentInst->HasState(EActionState::Equipping)) return;
 
-	if (ensure(CameraControlComponentInst))
+	if (ensure(CameraControlComponentInst.Get()))
 	{
 		// ① 공통 조준 해제 (State 제거)
 		Super::StopAim();
@@ -141,7 +141,7 @@ void ATPSPlayer::StopAim()
 		// ③ 보간 Tick 비활성화 + HipFire AnimLayer 전환
 		SetInterpolateTickEnabled(false);
 
-		if (ensure(AnimLayerComponentInst))
+		if (ensure(AnimLayerComponentInst.Get()))
 		{
 			AnimLayerComponentInst->LinkAnimLayer(AnimLayerComponentInst->GetRifleHipFireLayerClass());
 		}
@@ -150,7 +150,7 @@ void ATPSPlayer::StopAim()
 
 void ATPSPlayer::StartFire()
 {
-	if (!ensure(StateComponentInst) || !ensure(EquipComponentInst) || !ensure(FireComponentInst)) return;
+	if (!ensure(StateComponentInst.Get()) || !ensure(EquipComponentInst.Get()) || !ensure(FireComponentInst.Get())) return;
 
 	// ① 장착 상태 확인
 	if (!StateComponentInst->HasState(EActionState::Equipping)) return;
@@ -183,7 +183,7 @@ void ATPSPlayer::OnEquipStateChanged(bool bIsEquipped)
 		SetInterpolateTickEnabled(true);
 
 		// ③ AmmoViewModel 브로드캐스트 → HUD에서 수신
-		if (ensure(EquipComponentInst))
+		if (ensure(EquipComponentInst.Get()))
 		{
 			ATPSWeaponBase* pWeapon = EquipComponentInst->GetWeaponActor();
 			if (ensure(pWeapon))

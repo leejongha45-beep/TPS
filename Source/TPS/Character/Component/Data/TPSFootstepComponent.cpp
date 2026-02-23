@@ -1,4 +1,6 @@
 #include "Character/Component/Data/TPSFootstepComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/World.h"
 #include "Character/Component/Data/TPSPlayerStateComponent.h"
 #include "Engine/DataTable.h"
 #include "Kismet/GameplayStatics.h"
@@ -27,7 +29,7 @@ void UTPSFootstepComponent::BeginPlay()
 
 void UTPSFootstepComponent::CacheFootstepRows()
 {
-	if (!ensure(FootstepDataTableAsset)) return;
+	if (!ensure(FootstepDataTableAsset.Get())) return;
 
 	// ① 전체 Row를 한 번에 가져옴
 	TArray<FFootstepSoundRow*> AllRows;

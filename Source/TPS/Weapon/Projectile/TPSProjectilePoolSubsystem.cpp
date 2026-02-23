@@ -1,4 +1,6 @@
 #include "TPSProjectilePoolSubsystem.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
 #include "TPSProjectilePoolConfig.h"
 #include "Weapon/Projectile/TPSProjectileBase.h"
 
@@ -13,7 +15,7 @@ void UTPSProjectilePoolSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 	ConfigAsset = LoadObject<UTPSProjectilePoolConfig>(
 		nullptr, TEXT("/Game/Assets/Data/DA_ProjectilePoolConfig.DA_ProjectilePoolConfig"));
 
-	if (!ensure(ConfigAsset))
+	if (!ensure(ConfigAsset.Get()))
 	{
 		UE_LOG(PoolLog, Error, TEXT("[Initialize] DA_ProjectilePoolConfig not found. Create DataAsset at /Game/Assets/Data/DA_ProjectilePoolConfig"));
 		return;
@@ -30,14 +32,14 @@ void UTPSProjectilePoolSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	Super::OnWorldBeginPlay(InWorld);
 
 	// ① 투사체 클래스 동기 로드 (SoftObjectPtr)
-	if (!ConfigAsset || ConfigAsset->ProjectileClassPath.IsNull())
+	if (ConfigAsset.Get() == nullptr || ConfigAsset->ProjectileClassPath.IsNull())
 	{
 		UE_LOG(PoolLog, Warning, TEXT("[OnWorldBeginPlay] ProjectileClassPath is not set. Pool will not be initialized."));
 		return;
 	}
 
 	LoadedProjectileClass = ConfigAsset->ProjectileClassPath.LoadSynchronous();
-	if (!ensure(LoadedProjectileClass))
+	if (!ensure(LoadedProjectileClass.Get()))
 	{
 		UE_LOG(PoolLog, Error, TEXT("[OnWorldBeginPlay] Failed to load ProjectileClass from soft reference."));
 		return;
@@ -84,7 +86,7 @@ ATPSProjectileBase* UTPSProjectilePoolSubsystem::GetProjectile()
 
 	UWorld* pWorld = GetWorld();
 	if (!ensure(pWorld)) return nullptr;
-	if (!ensure(LoadedProjectileClass)) return nullptr;
+	if (!ensure(LoadedProjectileClass.Get())) return nullptr;
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -109,7 +111,7 @@ void UTPSProjectilePoolSubsystem::SpawnProjectileBatch(int32 InCount)
 {
 	UWorld* pWorld = GetWorld();
 	if (!ensure(pWorld)) return;
-	if (!ensure(LoadedProjectileClass)) return;
+	if (!ensure(LoadedProjectileClass.Get())) return;
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;

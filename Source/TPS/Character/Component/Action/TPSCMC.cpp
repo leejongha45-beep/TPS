@@ -1,4 +1,6 @@
 #include "Character/Component/Action/TPSCMC.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(SprintSpeedTickLog, Warning, All);
 

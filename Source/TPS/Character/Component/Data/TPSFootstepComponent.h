@@ -3,10 +3,9 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Containers/StaticArray.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Utils/UENUM/SurfaceType.h"
 #include "TPSFootstepComponent.generated.h"
-
-struct FFootstepSoundRow;
 
 DECLARE_LOG_CATEGORY_EXTERN(FootstepLog, Log, All);
 
@@ -33,7 +32,7 @@ public:
 	 * @param TraceDistance	LineTrace 거리 (cm)
 	 */
 	void PlayFootstepSound(
-		USkeletalMeshComponent* MeshComp,
+		class USkeletalMeshComponent* MeshComp,
 		const FName& FootBoneName,
 		float TraceDistance
 	);
@@ -50,7 +49,7 @@ private:
 	void CacheFootstepRows();
 
 	/** 캐시에서 해당 SurfaceType의 Row 조회 (O(1)), 미스 시 Default fallback */
-	const FFootstepSoundRow* FindCachedRow(ESurfaceType SurfaceType) const;
+	const struct FFootstepSoundRow* FindCachedRow(ESurfaceType SurfaceType) const;
 
 	/** LineTrace로 바닥 PhysicalMaterial의 SurfaceType 감지 */
 	static ESurfaceType DetectSurfaceType(
@@ -65,5 +64,5 @@ private:
 	static ESurfaceType ConvertPhysicalSurface(EPhysicalSurface InSurface);
 
 	/** ESurfaceType별 캐싱된 Row 포인터 (DataTable UPROPERTY가 GC 수명 보장) */
-	TStaticArray<const FFootstepSoundRow*, static_cast<uint32>(ESurfaceType::MAX)> CachedRows;
+	TStaticArray<const struct FFootstepSoundRow*, static_cast<uint32>(ESurfaceType::MAX)> CachedRows;
 };

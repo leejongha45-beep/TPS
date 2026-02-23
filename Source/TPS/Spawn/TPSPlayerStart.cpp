@@ -8,7 +8,7 @@ ATPSPlayerStart::ATPSPlayerStart(const FObjectInitializer& ObjectInitializer)
 	if (!BillboardComponentInst)
 	{
 		BillboardComponentInst = CreateDefaultSubobject<UBillboardComponent>(TEXT("Billboard"));
-		if (ensure(BillboardComponentInst))
+		if (ensure(BillboardComponentInst.Get()))
 		{
 			BillboardComponentInst->SetupAttachment(RootComponent);
 			BillboardComponentInst->SetHiddenInGame(true);

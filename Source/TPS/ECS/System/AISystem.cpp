@@ -1,5 +1,6 @@
 #include "ECS/System/AISystem.h"
 #include "ECS/Component/Components.h"
+#include "Async/ParallelFor.h"
 
 /** ② Write: 캐싱된 읽기값을 파라미터로 받아 Current에만 쓰기 */
 void Write(CEnemyState& OutState, CMovement& OutMovement, EEnemyState NewState, const FVector& NewVelocity)
@@ -18,21 +19,32 @@ void PushToPrev(CEnemyStatePrev& OutStatePrev, CMovementPrev& OutMovementPrev,
 }
 
 /**
- * Read는 Cached 지역변수로 값을 복사해야 하므로 함수 래핑 불가 — Tick 본문에 직접 노출
- * Write/PushToPrev만 함수로 분리하여 Tick 루프의 가독성 확보
+ * Read는 Cached 지역변수로 값을 복사해야 하므로 함수 래핑 불가 — ParallelFor 본문에 직접 노출
+ * Write/PushToPrev만 함수로 분리하여 가독성 확보
  */
 void AISystem::Tick(entt::registry& Registry, float DeltaTime, const FVector& PlayerPosition, float AttackRange)
 {
 	const float AttackRangeSq = AttackRange * AttackRange;
 
 	auto View = Registry.view<CEnemyState, CEnemyStatePrev, CMovement, CMovementPrev, CTransformPrev, CHealthPrev>();
-	for (auto Entity : View)
+
+	// ── Entity 수집 — 단일 스레드에서 view 순회 (EnTT pool 구조 읽기) ──
+	TArray<entt::entity, TInlineAllocator<3000>> Entities;
+	Entities.Reserve(View.size_hint());
+	for (auto Entity : View) { Entities.Add(Entity); }
+
+	const int32 Count = Entities.Num();
+
+	// ── ParallelFor: Entity별 독립 처리 ── [WorkerThread]
+	ParallelFor(Count, [&](int32 Index)
 	{
-		// ① Read: Prev에서 지역변수로 POD 값 복사
+		const entt::entity Entity = Entities[Index];
+
+		// ① Read: Prev → Cached 지역변수
 		const EEnemyState CachedState = View.get<CEnemyStatePrev>(Entity).State;
 
 		// Dying/Dead Entity는 AI 갱신 불필요
-		if (CachedState == EEnemyState::Dying || CachedState == EEnemyState::Dead) { continue; }
+		if (CachedState == EEnemyState::Dying || CachedState == EEnemyState::Dead) { return; }
 
 		const FVector CachedPosition = View.get<CTransformPrev>(Entity).Position;
 		const float CachedHealth = View.get<CHealthPrev>(Entity).Current;
@@ -72,5 +84,5 @@ void AISystem::Tick(entt::registry& Registry, float DeltaTime, const FVector& Pl
 		// ③ PushToPrev
 		PushToPrev(View.get<CEnemyStatePrev>(Entity), View.get<CMovementPrev>(Entity),
 		           View.get<CEnemyState>(Entity), View.get<CMovement>(Entity));
-	}
+	});
 }

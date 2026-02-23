@@ -7,9 +7,9 @@ ATPSWeaponBase::ATPSWeaponBase()
 	if (!WeaponMeshInst)
 	{
 		WeaponMeshInst = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
-		if (ensure(WeaponMeshInst))
+		if (ensure(WeaponMeshInst.Get()))
 		{
-			SetRootComponent(WeaponMeshInst);
+			SetRootComponent(WeaponMeshInst.Get());
 		}
 	}
 
@@ -24,7 +24,7 @@ void ATPSWeaponBase::PostInitializeComponents()
 	if (!AmmoViewModelInst)
 	{
 		AmmoViewModelInst = NewObject<UAmmoViewModel>(this);
-		if (ensure(AmmoViewModelInst))
+		if (ensure(AmmoViewModelInst.Get()))
 		{
 			AmmoViewModelInst->SetAmmo(CurrentAmmo, MaxAmmo);
 		}
@@ -53,7 +53,7 @@ void ATPSWeaponBase::Detach(USkeletalMeshComponent* InTargetMesh)
 
 FTransform ATPSWeaponBase::GetMuzzleTransform() const
 {
-	if (ensure(WeaponMeshInst))
+	if (ensure(WeaponMeshInst.Get()))
 	{
 		return WeaponMeshInst->GetSocketTransform(MuzzleSocketName);
 	}
@@ -67,7 +67,7 @@ void ATPSWeaponBase::ConsumeAmmo()
 		--CurrentAmmo;
 	}
 
-	if (ensure(AmmoViewModelInst))
+	if (ensure(AmmoViewModelInst.Get()))
 	{
 		AmmoViewModelInst->SetAmmo(CurrentAmmo, MaxAmmo);
 	}
@@ -77,7 +77,7 @@ void ATPSWeaponBase::ReloadAmmo()
 {
 	CurrentAmmo = MaxAmmo;
 
-	if (ensure(AmmoViewModelInst))
+	if (ensure(AmmoViewModelInst.Get()))
 	{
 		AmmoViewModelInst->SetAmmo(CurrentAmmo, MaxAmmo);
 	}

@@ -4,8 +4,6 @@
 #include "Animation/AnimInstance.h"
 #include "TPSLinkedAnimInstance.generated.h"
 
-class UTPSPlayerCoreAnimInstance;
-
 /**
  * ALI(Animation Layer Interface)용 링크드 애님 인스턴스 베이스
  * - CoreAnimInstance에서 ThreadSafe Getter로 값을 가져와 로컬 캐시
@@ -72,7 +70,7 @@ protected:
 
 public:
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
-	UTPSPlayerCoreAnimInstance* GetCoreAnimInstance() const;
+	class UTPSPlayerCoreAnimInstance* GetCoreAnimInstance() const;
 
 	/** Thread-safe getters (SM 트랜지션 룰에서 안전하게 접근) */
 	UFUNCTION(BlueprintPure, Category="Animation", meta=(BlueprintThreadSafe))
