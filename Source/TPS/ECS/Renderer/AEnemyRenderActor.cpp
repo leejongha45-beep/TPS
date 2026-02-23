@@ -11,11 +11,8 @@ AEnemyRenderActor::AEnemyRenderActor()
 			RootComponent = HISMComponentInst;
 
 			// 프로젝타일 물리 충돌 대응 (라인 트레이스 불필요)
-			if (ensure(HISMComponentInst))
-			{
-				HISMComponentInst->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
-				HISMComponentInst->SetCollisionProfileName(TEXT("BlockAll"));
-			}
+			HISMComponentInst->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+			HISMComponentInst->SetCollisionProfileName(TEXT("BlockAll"));
 		}
 	}
 }
