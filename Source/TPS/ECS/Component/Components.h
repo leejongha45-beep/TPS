@@ -26,6 +26,14 @@ enum class EEnemyState : uint8
 namespace ECSConstants
 {
 	constexpr float DeathAnimDuration = 2.f;
+
+	// ── Separation (겹침 방지) ──
+	constexpr float SeparationRadius          = 150.f;
+	constexpr float SeparationRadiusSq        = SeparationRadius * SeparationRadius;
+	constexpr float SeparationWeight          = 0.6f;
+	constexpr float MaxSeparationForce        = 200.f;
+	constexpr float SeparationCullingRadius   = 3000.f;
+	constexpr float SeparationCullingRadiusSq = SeparationCullingRadius * SeparationCullingRadius;
 }
 
 // ── Current (쓰기용) ──

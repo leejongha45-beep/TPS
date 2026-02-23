@@ -2,6 +2,7 @@
 #include "ECS/Component/Components.h"
 #include "ECS/System/DamageSystem.h"
 #include "ECS/System/AISystem.h"
+#include "ECS/System/SeparationSystem.h"
 #include "ECS/System/DeathSystem.h"
 #include "ECS/System/AnimationSystem.h"
 #include "ECS/System/MovementSystem.h"
@@ -44,8 +45,14 @@ FVector GetPlayerPosition(const UWorld* World)
  * │ [GameThread→Worker] Phase 3. AI (ParallelFor)                         │
  * │   R: Prev 컴포넌트   W: CEnemyState, CMovement   PushToPrev           │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ [GameThread→Worker] Phase 4. Death (ParallelFor)                      │
- * │   R: CEnemyStatePrev(Dying), CAnimationPrev   W: CEnemyState=Dead     │
+ * │ [WorkerThread] Phase 3.5+4. Separation ∥ Death (TaskGraph 병렬)       │
+ * │   Separation: R: CTransformPrev, Grid(읽기전용)                       │
+ * │               W: CMovement.Velocity (비-Dying Entity) PushToPrev      │
+ * │   Death:      R: CEnemyStatePrev, CAnimationPrev                      │
+ * │               W: CEnemyState=Dead (Dying Entity만)                    │
+ * │   Write 대상 완전 분리 + 엔티티 범위 상호 배타                          │
+ * ├─────────────────────────────────────────────────────────────────────────┤
+ * │ ── Barrier: WaitUntilTasksComplete (Separation + Death) ──            │
  * ├─────────────────────────────────────────────────────────────────────────┤
  * │ [WorkerThread] Phase 5+6. Animation ∥ Movement (TaskGraph 병렬)       │
  * │   Animation: W: CAnimation, CAnimationPrev                            │
@@ -85,8 +92,28 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	// 3. Phase_AI
 	AISystem::Tick(Registry, DeltaTime, PlayerPosition, AttackRange);
 
-	// 4. Phase_Death (마킹: Dying → Dead)
-	DeathSystem::Tick(Registry);
+	// 3.5+4. Phase_Separation ∥ Phase_Death ── [WorkerThread] TaskGraph 병렬 실행
+	// Separation writes: CMovement (비-Dying Entity)
+	// Death writes:      CEnemyState (Dying Entity만)
+	// Write 대상 완전 분리 + 엔티티 범위 상호 배타
+	FGraphEventRef SepTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+		[&Registry = Registry, &PlayerPosition]()
+		{
+			SeparationSystem::Tick(Registry, PlayerPosition);
+		},
+		TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
+	);
+
+	FGraphEventRef DeathTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+		[&Registry = Registry]()
+		{
+			DeathSystem::Tick(Registry);
+		},
+		TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
+	);
+
+	// ── Barrier: Separation + Death 완료 대기 ──
+	FTaskGraphInterface::Get().WaitUntilTasksComplete({SepTask, DeathTask});
 
 	// 5+6. Phase_Animation ∥ Phase_Movement ── [WorkerThread] TaskGraph 병렬 실행
 	// Animation writes: CAnimation, CAnimationPrev
