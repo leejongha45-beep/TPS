@@ -18,5 +18,5 @@
  */
 namespace AISystem
 {
-	void Tick(entt::registry& Registry, float DeltaTime, const FVector& PlayerPosition, float AttackRange);
+	void Tick(entt::registry& Registry, const FVector& PlayerPosition, float AttackRange);
 };

@@ -33,8 +33,8 @@ void LODSystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 	auto View = Registry.view<CLOD, CLODPrev, CTransformPrev>();
 
 	// Entity 수집 (GameThread — View 순회는 단일 스레드)
-	TArray<entt::entity> Entities;
-	Entities.Reserve(static_cast<int32>(View.size_hint()));
+	TArray<entt::entity, TInlineAllocator<3000>> Entities;
+	Entities.Reserve(View.size_hint());
 	for (auto Entity : View)
 	{
 		Entities.Add(Entity);
@@ -52,6 +52,7 @@ void LODSystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 		const auto& LODPrev = View.get<CLODPrev>(Entity);
 
 		// ① 이전 프레임에 틱했으면 AccumDT 리셋
+		// NOTE: AccumDT는 Current에 직접 읽기/쓰기 — 누적 특성상 Read→Prev 패턴 적용 불가
 		if (LODPrev.bShouldTick)
 		{
 			LOD.AccumulatedDeltaTime = 0.f;

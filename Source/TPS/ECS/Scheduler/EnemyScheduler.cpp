@@ -25,7 +25,6 @@ FEnemyScheduler::~FEnemyScheduler()
 {
 }
 
-
 FVector GetPlayerPosition(const UWorld* World)
 {
 	APawn* Player = UGameplayStatics::GetPlayerPawn(World, 0);
@@ -110,7 +109,7 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	DamageSystem::Tick(Registry, DamageQueue, InstanceToEntity);
 
 	// 3. Phase_AI
-	AISystem::Tick(Registry, DeltaTime, PlayerPosition, AttackRange);
+	AISystem::Tick(Registry, PlayerPosition, AttackRange);
 
 	// 3.1. Phase_Attack (쿨다운 틱 + 데미지 집계 → IDamageable)
 	AttackSystem::Tick(Registry, DeltaTime, pCharacterDamageable);

@@ -63,7 +63,7 @@ void UEnemyManagerSubsystem::StartWave(int32 WaveNumber)
 	if (!ensure(EnemySchedulerInst)) { return; }
 
 	CurrentWave = WaveNumber;
-	const int32 EnemyCount = 20 + (WaveNumber * 10);
+	const int32 EnemyCount = FMath::Min(20 + (WaveNumber * 10), 3000);
 
 	UHierarchicalInstancedStaticMeshComponent* pHISM = GetHISM();
 	if (!ensure(pHISM)) { return; }

@@ -27,7 +27,7 @@ void PushToPrev(CEnemyStatePrev& OutStatePrev, CMovementPrev& OutMovementPrev,
  * Read는 Cached 지역변수로 값을 복사해야 하므로 함수 래핑 불가 — ParallelFor 본문에 직접 노출
  * Write/PushToPrev만 함수로 분리하여 가독성 확보
  */
-void AISystem::Tick(entt::registry& Registry, float DeltaTime, const FVector& PlayerPosition, float AttackRange)
+void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition, float AttackRange)
 {
 	const float AttackRangeSq = AttackRange * AttackRange;
 

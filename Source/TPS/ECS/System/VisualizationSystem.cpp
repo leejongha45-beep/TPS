@@ -24,6 +24,8 @@ void VisualizationSystem::Tick(entt::registry& Registry,
 	auto View = Registry.view<CRenderProxyPrev, CTransformPrev, CAnimationPrev,
 	                          CLODPrev, CVisCache, CVisCachePrev>();
 
+	bool bDirty = false;
+
 	for (auto Entity : View)
 	{
 		// ① Read: Prev → Cached 지역변수
@@ -62,6 +64,8 @@ void VisualizationSystem::Tick(entt::registry& Registry,
 			HISM->SetCustomDataValue(CachedIndex, 1, CachedAnimTime);
 		}
 
+		bDirty = true;
+
 		// ③ CVisCache 갱신 + PushToPrev
 		CVisCache& OutCache = View.get<CVisCache>(Entity);
 		OutCache.Position   = CachedPosition;
@@ -72,6 +76,9 @@ void VisualizationSystem::Tick(entt::registry& Registry,
 		PushToPrev(View.get<CVisCachePrev>(Entity), OutCache);
 	}
 
-	// 전체 갱신 완료 후 한 번만 리빌드
-	HISM->MarkRenderStateDirty();
+	// 실제 갱신이 있었을 때만 리빌드
+	if (bDirty)
+	{
+		HISM->MarkRenderStateDirty();
+	}
 }

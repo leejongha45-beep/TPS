@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "Tickable.h"
 #include <entt/entt.hpp>
-#include "ECS/System/DamageSystem.h"
+#include "ECS/Data/DamageEvent.h"
 
 /**
  * 적 ECS 스케줄러 — FTickableGameObject 기반

@@ -1,14 +1,7 @@
 #pragma once
 
-#include "CoreMinimal.h"
+#include "ECS/Data/DamageEvent.h"
 #include <entt/entt.hpp>
-
-/** 데미지 이벤트 — 프로젝타일 OnHit에서 큐에 적재, DamageSystem에서 소비 */
-struct FDamageEvent
-{
-	int32 InstanceIndex;
-	float Damage;
-};
 
 /**
  * 데미지 시스템 — 외부 데미지 큐 → CHealth 반영
