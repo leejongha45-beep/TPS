@@ -11,10 +11,14 @@
  * - Phase별 시스템 실행 순서 제어
  *
  * [GameThread] Tick()
- *   Phase 0~4: 순차 실행 (Damage → AI → Death), AI/Death 내부 ParallelFor
- *   Phase 5+6: AnimationSystem + MovementSystem TaskGraph 병렬 실행
+ *   Phase 0:     PushToPrev_RenderProxy
+ *   Phase 1:     UObject 캐싱
+ *   Phase 1.5:   LODSystem (AccumDT + bShouldTick 결정)
+ *   Phase 2~4:   Damage → AI → Attack → Separation ∥ Death
+ *   Phase 5+6:   Animation ∥ Movement (TaskGraph)
  *   ── Barrier ──
- *   Phase 7~8: Visualization → Cleanup (GameThread, HISM UObject)
+ *   Phase 7~8:   Visualization → Cleanup
+ *   ++FrameCounter
  */
 class FEnemyScheduler : public FTickableGameObject
 {
@@ -69,4 +73,7 @@ protected:
 
 	/** 스케줄러 활성 상태 — false면 IsTickable()이 false를 반환하여 Tick 중단 */
 	uint8 bIsActive : 1 = false;
+
+	/** LOD 틱 주기 계산용 프레임 카운터 — FrameOffset과 조합하여 엔티티별 틱 시점 분산 */
+	uint32 FrameCounter = 0;
 };

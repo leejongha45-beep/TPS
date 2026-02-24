@@ -54,7 +54,7 @@ void PushToPrev(CAnimationPrev& OutPrev, const CAnimation& InCurrent)
 
 void AnimationSystem::Tick(entt::registry& Registry, float DeltaTime)
 {
-	auto View = Registry.view<CAnimation, CAnimationPrev, CEnemyStatePrev>();
+	auto View = Registry.view<CAnimation, CAnimationPrev, CEnemyStatePrev, CLODPrev>();
 
 	// ── Entity 수집 ──
 	TArray<entt::entity, TInlineAllocator<3000>> Entities;
@@ -69,13 +69,17 @@ void AnimationSystem::Tick(entt::registry& Registry, float DeltaTime)
 		const entt::entity Entity = Entities[Index];
 
 		// ① Read: Prev → Cached 지역변수
+		const CLODPrev& CachedLOD = View.get<CLODPrev>(Entity);
+		if (!CachedLOD.bShouldTick) { return; }
+
+		const float CachedAccumDT     = CachedLOD.AccumulatedDeltaTime;
 		const float CachedAnimIndex   = View.get<CAnimationPrev>(Entity).AnimIndex;
 		const float CachedAnimTime    = View.get<CAnimationPrev>(Entity).AnimTime;
 		const float CachedPlayRate    = View.get<CAnimationPrev>(Entity).PlayRate;
 		const EEnemyState CachedState = View.get<CEnemyStatePrev>(Entity).State;
 
-		// ② Write
-		Write(View.get<CAnimation>(Entity), DeltaTime, CachedAnimTime, CachedPlayRate, CachedAnimIndex, CachedState);
+		// ② Write (AccumDT로 스킵 프레임 시간 보상)
+		Write(View.get<CAnimation>(Entity), CachedAccumDT, CachedAnimTime, CachedPlayRate, CachedAnimIndex, CachedState);
 
 		// ③ PushToPrev
 		PushToPrev(View.get<CAnimationPrev>(Entity), View.get<CAnimation>(Entity));

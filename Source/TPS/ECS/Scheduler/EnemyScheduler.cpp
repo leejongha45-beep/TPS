@@ -9,6 +9,7 @@
 #include "ECS/System/VisualizationSystem.h"
 #include "ECS/System/AttackSystem.h"
 #include "ECS/System/CleanupSystem.h"
+#include "ECS/System/LODSystem.h"
 #include "GameFramework/Pawn.h"
 #include "Utils/Interface/Data/Damageable.h"
 #include "Kismet/GameplayStatics.h"
@@ -41,11 +42,15 @@ FVector GetPlayerPosition(const UWorld* World)
  * │ [GameThread] Phase 1. UObject 접근                                    │
  * │   PlayerPosition, HISM 등 UObject를 지역변수로 캐싱                     │
  * ├─────────────────────────────────────────────────────────────────────────┤
+ * │ [GameThread→Worker] Phase 1.5. LODSystem (ParallelFor)                │
+ * │   AccumDT 리셋/누적, 거리→LOD Level, bShouldTick 결정                  │
+ * │   W: CLOD → PushToPrev → CLODPrev                                    │
+ * ├─────────────────────────────────────────────────────────────────────────┤
  * │ [GameThread] Phase 2. Damage (순차 — 같은 Entity 다중 히트)            │
  * │   R: DamageQueue, InstanceToEntity   W: CHealth   PushToPrev          │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ [GameThread→Worker] Phase 3. AI (ParallelFor)                         │
- * │   R: Prev 컴포넌트   W: CEnemyState, CMovement   PushToPrev           │
+ * │ [GameThread→Worker] Phase 3. AI (ParallelFor) — LOD SKIP              │
+ * │   R: Prev 컴포넌트, CLODPrev   W: CEnemyState, CMovement   PushToPrev │
  * ├─────────────────────────────────────────────────────────────────────────┤
  * │ [GameThread] Phase 3.1. Attack (순차 — 3단계 상태 머신 + 데미지 집계) │
  * │   R: CAttackPrev, CEnemyStatePrev, CAnimationPrev                     │
@@ -62,17 +67,21 @@ FVector GetPlayerPosition(const UWorld* World)
  * │ ── Barrier: WaitUntilTasksComplete (Separation + Death) ──            │
  * ├─────────────────────────────────────────────────────────────────────────┤
  * │ [WorkerThread] Phase 5+6. Animation ∥ Movement (TaskGraph 병렬)       │
+ * │   — LOD SKIP + AccumDT 보상                                          │
  * │   Animation: W: CAnimation, CAnimationPrev                            │
  * │   Movement:  W: CTransform, CTransformPrev                            │
- * │   Write 대상 완전 분리, CEnemyStatePrev Read-Only 공유                  │
+ * │   Write 대상 완전 분리, CEnemyStatePrev/CLODPrev Read-Only 공유        │
  * ├─────────────────────────────────────────────────────────────────────────┤
  * │ ── Barrier: WaitUntilTasksComplete ──                                 │
  * ├─────────────────────────────────────────────────────────────────────────┤
- * │ [GameThread] Phase 7. Visualization (HISM UObject)                    │
- * │   R: CTransformPrev, CAnimationPrev, CRenderProxyPrev → HISM 동기화   │
+ * │ [GameThread] Phase 7. Visualization — LOD SKIP + 변경 감지            │
+ * │   R: CTransformPrev, CAnimationPrev, CRenderProxyPrev, CLODPrev,      │
+ * │      CVisCachePrev   W: HISM, CVisCache → PushToPrev                  │
  * ├─────────────────────────────────────────────────────────────────────────┤
  * │ [GameThread] Phase 8. Cleanup (HISM + Registry.destroy)               │
  * │   Dead Entity 수집 → 내림차순 RemoveInstance → swap 보정 → 파괴        │
+ * ├─────────────────────────────────────────────────────────────────────────┤
+ * │ ++FrameCounter (LOD 틱 주기 산정용)                                   │
  * └─────────────────────────────────────────────────────────────────────────┘
  */
 void FEnemyScheduler::Tick(float DeltaTime)
@@ -93,6 +102,9 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	const FVector PlayerPosition = GetFrom<FVector>(World, GetPlayerPosition);
 	UHierarchicalInstancedStaticMeshComponent* const pHISM = HISMRef;
 	IDamageable* pCharacterDamageable = Cast<IDamageable>(UGameplayStatics::GetPlayerPawn(World, 0));
+
+	// 1.5. Phase_LOD (AccumDT 누적/리셋 + bShouldTick 결정)
+	LODSystem::Tick(Registry, PlayerPosition, DeltaTime, FrameCounter);
 
 	// 2. Phase_Damage (큐 소비 → CHealth 감산 → PushToPrev)
 	DamageSystem::Tick(Registry, DamageQueue, InstanceToEntity);
@@ -160,6 +172,8 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	{
 		CleanupSystem::Tick(Registry, pHISM, InstanceToEntity);
 	}
+
+	++FrameCounter;
 }
 
 TStatId FEnemyScheduler::GetStatId() const

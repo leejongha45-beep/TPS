@@ -26,7 +26,7 @@ void AISystem::Tick(entt::registry& Registry, float DeltaTime, const FVector& Pl
 {
 	const float AttackRangeSq = AttackRange * AttackRange;
 
-	auto View = Registry.view<CEnemyState, CEnemyStatePrev, CMovement, CMovementPrev, CTransformPrev, CHealthPrev>();
+	auto View = Registry.view<CEnemyState, CEnemyStatePrev, CMovement, CMovementPrev, CTransformPrev, CHealthPrev, CLODPrev>();
 
 	// ── Entity 수집 — 단일 스레드에서 view 순회 (EnTT pool 구조 읽기) ──
 	TArray<entt::entity, TInlineAllocator<3000>> Entities;
@@ -45,6 +45,9 @@ void AISystem::Tick(entt::registry& Registry, float DeltaTime, const FVector& Pl
 
 		// Dying/Dead Entity는 AI 갱신 불필요
 		if (CachedState == EEnemyState::Dying || CachedState == EEnemyState::Dead) { return; }
+
+		// LOD 스킵 — 스킵 시 Write/PushToPrev 건너뜀 → Velocity/State 유지 (관성 이동)
+		if (!View.get<CLODPrev>(Entity).bShouldTick) { return; }
 
 		const FVector CachedPosition = View.get<CTransformPrev>(Entity).Position;
 		const float CachedHealth = View.get<CHealthPrev>(Entity).Current;

@@ -21,7 +21,7 @@ void PushToPrev(CTransformPrev& OutPrev, const CTransform& InCurrent)
  */
 void MovementSystem::Tick(entt::registry& Registry, float DeltaTime)
 {
-	auto View = Registry.view<CTransform, CTransformPrev, CMovementPrev, CEnemyStatePrev>();
+	auto View = Registry.view<CTransform, CTransformPrev, CMovementPrev, CEnemyStatePrev, CLODPrev>();
 
 	// ── Entity 수집 ──
 	TArray<entt::entity, TInlineAllocator<3000>> Entities;
@@ -36,13 +36,17 @@ void MovementSystem::Tick(entt::registry& Registry, float DeltaTime)
 		const entt::entity Entity = Entities[Index];
 
 		// ① Read
+		const CLODPrev& CachedLOD = View.get<CLODPrev>(Entity);
+		if (!CachedLOD.bShouldTick) { return; }
+
 		const EEnemyState CachedState = View.get<CEnemyStatePrev>(Entity).State;
 		if (CachedState != EEnemyState::Moving) { return; }
 
 		const FVector CachedVelocity = View.get<CMovementPrev>(Entity).Velocity;
+		const float CachedAccumDT = CachedLOD.AccumulatedDeltaTime;
 
-		// ② Write
-		Write(View.get<CTransform>(Entity), DeltaTime, CachedVelocity);
+		// ② Write (AccumDT로 스킵 프레임 시간 보상)
+		Write(View.get<CTransform>(Entity), CachedAccumDT, CachedVelocity);
 
 		// ③ PushToPrev
 		PushToPrev(View.get<CTransformPrev>(Entity), View.get<CTransform>(Entity));

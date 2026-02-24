@@ -23,6 +23,14 @@ enum class EEnemyState : uint8
 	Dead       // 애니메이션 완료 → Cleanup 대상
 };
 
+/** LOD 레벨 — 거리 기반 틱 빈도 제어 */
+enum class ELODLevel : uint8
+{
+	Near,   // 0~30000u (300m) — 매 프레임
+	Mid,    // 30000~50000u (500m) — 2프레임 주기
+	Far     // 50000u+ — 4프레임 주기
+};
+
 /** ECS 상수 — 시스템 간 공유 */
 namespace ECSConstants
 {
@@ -41,6 +49,22 @@ namespace ECSConstants
 	constexpr float AttackCooldown        = 1.5f;
 	constexpr float AttackReadyDuration   = 0.5f;
 	constexpr float AttackDuration        = 0.3f;
+
+	// ── LOD (거리 기반 틱 빈도 제어) ──
+	constexpr float LODNearRadius       = 30000.f;                         // 300m
+	constexpr float LODNearRadiusSq     = LODNearRadius * LODNearRadius;
+	constexpr float LODMidRadius        = 50000.f;                         // 500m
+	constexpr float LODMidRadiusSq      = LODMidRadius * LODMidRadius;
+	constexpr int32 LODNearTickInterval = 1;   // 매 프레임
+	constexpr int32 LODMidTickInterval  = 2;   // 2프레임 주기
+	constexpr int32 LODFarTickInterval  = 4;   // 4프레임 주기
+
+	// ── LOD 히스테리시스 (경계 진동 방지) ──
+	constexpr float LODHysteresisMargin   = 2000.f;                                        // 20m
+	constexpr float LODMidToNearRadiusSq  = (LODNearRadius - LODHysteresisMargin)           // 28000²
+	                                      * (LODNearRadius - LODHysteresisMargin);
+	constexpr float LODFarToMidRadiusSq   = (LODMidRadius  - LODHysteresisMargin)           // 48000²
+	                                      * (LODMidRadius  - LODHysteresisMargin);
 }
 
 // ── Current (쓰기용) ──
@@ -94,6 +118,16 @@ struct CAttack
 	float CooldownTimer = 0.f;
 };
 
+/** LOD — 거리 기반 틱 빈도 제어 */
+struct CLOD
+{
+	ELODLevel Level = ELODLevel::Near;
+	uint8 FrameOffset = 0;                  // Entity별 프레임 오프셋 (부하 분산)
+	int32 TickInterval = 1;                 // 현재 LOD의 틱 주기
+	float AccumulatedDeltaTime = 0.f;       // 스킵 프레임 누적 시간
+	uint8 bShouldTick : 1 = true;           // 이번 프레임 틱 여부
+};
+
 // ── Prev (읽기용) ──
 
 /** 적 상태 — 이전 프레임 */
@@ -129,6 +163,24 @@ struct CRenderProxyPrev
 	int32 InstanceIndex = INDEX_NONE;
 };
 
+/** 시각화 캐시 — HISM에 마지막으로 기록한 값 (변경 감지용) */
+struct CVisCache
+{
+	FVector Position = FVector(ForceInit);
+	FQuat Rotation = FQuat::Identity;
+	float AnimIndex = -1.f;   // 초기값 -1 → 첫 프레임 반드시 갱신
+	float AnimTime  = -1.f;
+};
+
+/** 시각화 캐시 — 이전 프레임 */
+struct CVisCachePrev
+{
+	FVector Position = FVector(ForceInit);
+	FQuat Rotation = FQuat::Identity;
+	float AnimIndex = -1.f;
+	float AnimTime  = -1.f;
+};
+
 /** 애니메이션 — 이전 프레임 */
 struct CAnimationPrev
 {
@@ -143,4 +195,14 @@ struct CAttackPrev
 	float Damage        = 10.f;
 	float Cooldown      = 1.5f;
 	float CooldownTimer = 0.f;
+};
+
+/** LOD — 이전 프레임 */
+struct CLODPrev
+{
+	ELODLevel Level = ELODLevel::Near;
+	uint8 FrameOffset = 0;
+	int32 TickInterval = 1;
+	float AccumulatedDeltaTime = 0.f;
+	uint8 bShouldTick : 1 = true;
 };
