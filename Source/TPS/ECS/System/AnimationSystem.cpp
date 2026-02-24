@@ -2,6 +2,9 @@
 #include "ECS/Component/Components.h"
 #include "Async/ParallelFor.h"
 
+namespace
+{
+
 /** ② Write: 상태 기반 AnimIndex 결정 + AnimTime 갱신 (상태 전환 시 리셋) */
 void Write(CAnimation& OutAnim, float DeltaTime, float CachedAnimTime,
            float CachedPlayRate, float CachedAnimIndex, EEnemyState CachedState)
@@ -51,6 +54,8 @@ void PushToPrev(CAnimationPrev& OutPrev, const CAnimation& InCurrent)
 	OutPrev.AnimTime  = InCurrent.AnimTime;
 	OutPrev.PlayRate  = InCurrent.PlayRate;
 }
+
+} // anonymous namespace
 
 void AnimationSystem::Tick(entt::registry& Registry, float DeltaTime)
 {

@@ -2,6 +2,9 @@
 #include "ECS/Component/Components.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
+namespace
+{
+
 /** PushToPrev: CVisCache → CVisCachePrev */
 void PushToPrev(CVisCachePrev& OutPrev, const CVisCache& InCurrent)
 {
@@ -10,6 +13,8 @@ void PushToPrev(CVisCachePrev& OutPrev, const CVisCache& InCurrent)
 	OutPrev.AnimIndex = InCurrent.AnimIndex;
 	OutPrev.AnimTime  = InCurrent.AnimTime;
 }
+
+} // anonymous namespace
 
 void VisualizationSystem::Tick(entt::registry& Registry,
                                UHierarchicalInstancedStaticMeshComponent* HISM)

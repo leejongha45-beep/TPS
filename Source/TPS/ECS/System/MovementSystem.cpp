@@ -2,6 +2,9 @@
 #include "ECS/Component/Components.h"
 #include "Async/ParallelFor.h"
 
+namespace
+{
+
 /** ② Write: 캐싱된 읽기값을 파라미터로 받아 Current에만 쓰기 */
 void Write(CTransform& OutTransform, float DeltaTime, const FVector& CachedVelocity)
 {
@@ -14,6 +17,8 @@ void PushToPrev(CTransformPrev& OutPrev, const CTransform& InCurrent)
 	OutPrev.Position = InCurrent.Position;
 	OutPrev.Rotation = InCurrent.Rotation;
 }
+
+} // anonymous namespace
 
 /**
  * Read는 Cached 지역변수로 값을 복사해야 하므로 함수 래핑 불가 — ParallelFor 본문에 직접 노출

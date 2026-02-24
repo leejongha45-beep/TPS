@@ -2,6 +2,9 @@
 #include "ECS/Component/Components.h"
 #include "Utils/Interface/Data/Damageable.h"
 
+namespace
+{
+
 /** ② Write: 쿨다운 타이머 + 상태 갱신 */
 void Write(CAttack& OutAttack, CEnemyState& OutState, float NewTimer, EEnemyState NewEnemyState)
 {
@@ -18,6 +21,8 @@ void PushToPrev(CAttackPrev& OutAttackPrev, CEnemyStatePrev& OutStatePrev,
 	OutAttackPrev.CooldownTimer = InAttack.CooldownTimer;
 	OutStatePrev.State          = InState.State;
 }
+
+} // anonymous namespace
 
 void AttackSystem::Tick(entt::registry& Registry, float DeltaTime, IDamageable* PlayerDamageable)
 {

@@ -2,6 +2,9 @@
 #include "ECS/Component/Components.h"
 #include "Async/ParallelFor.h"
 
+namespace
+{
+
 /** ② Write: Dying → Dead 전환 */
 void Write(CEnemyState& OutState)
 {
@@ -13,6 +16,8 @@ void PushToPrev(CEnemyStatePrev& OutPrev, const CEnemyState& InCurrent)
 {
 	OutPrev.State = InCurrent.State;
 }
+
+} // anonymous namespace
 
 void DeathSystem::Tick(entt::registry& Registry)
 {

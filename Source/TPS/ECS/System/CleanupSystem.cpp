@@ -6,12 +6,12 @@
 
 namespace
 {
-	struct FDeadEntry
-	{
-		entt::entity Entity;
-		int32 InstanceIndex;
-	};
-}
+
+struct FDeadEntry
+{
+	entt::entity Entity;
+	int32 InstanceIndex;
+};
 
 /** ② Write: HISM RemoveInstance (내림차순) + O(1) swap 보정 + Entity 파괴 */
 void Write(entt::registry& Registry, UHierarchicalInstancedStaticMeshComponent* HISM,
@@ -50,6 +50,8 @@ void Write(entt::registry& Registry, UHierarchicalInstancedStaticMeshComponent* 
 		Registry.destroy(Entry.Entity);
 	}
 }
+
+} // anonymous namespace
 
 void CleanupSystem::Tick(entt::registry& Registry, UHierarchicalInstancedStaticMeshComponent* HISM,
                          TArray<entt::entity>& InstanceToEntity)

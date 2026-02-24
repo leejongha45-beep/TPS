@@ -40,6 +40,9 @@ void FSpatialGrid::Build(entt::registry& Registry, float InCellSize,
 
 // ── SeparationSystem ──
 
+namespace
+{
+
 /** ② Write: 분리력 블렌딩된 속도를 CMovement에 쓰기 */
 void Write(CMovement& OutMovement, const FVector& BlendedVelocity)
 {
@@ -52,6 +55,8 @@ void PushToPrev(CMovementPrev& OutPrev, const CMovement& InCurrent)
 	OutPrev.Velocity = InCurrent.Velocity;
 	OutPrev.MaxSpeed = InCurrent.MaxSpeed;
 }
+
+} // anonymous namespace
 
 void SeparationSystem::Tick(entt::registry& Registry, const FVector& PlayerPosition)
 {

@@ -1,6 +1,9 @@
 #include "ECS/System/DamageSystem.h"
 #include "ECS/Component/Components.h"
 
+namespace
+{
+
 /** ② Write: 데미지 적용 (0 클램프) */
 void Write(CHealth& OutHealth, float Damage)
 {
@@ -12,6 +15,8 @@ void PushToPrev(CHealthPrev& OutPrev, const CHealth& InCurrent)
 {
 	OutPrev.Current = InCurrent.Current;
 }
+
+} // anonymous namespace
 
 void DamageSystem::Tick(entt::registry& Registry,
                         TArray<FDamageEvent>& DamageQueue,

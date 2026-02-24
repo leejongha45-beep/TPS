@@ -3,6 +3,9 @@
 #include "Async/ParallelFor.h"
 #include "ECS/Component/Components.h"
 
+namespace
+{
+
 /** ② Write: LOD Level + TickInterval + bShouldTick 갱신 */
 void Write(CLOD& OutLOD, ELODLevel NewLevel, int32 NewTickInterval,
            uint8 bNewShouldTick)
@@ -21,6 +24,8 @@ void PushToPrev(CLODPrev& OutPrev, const CLOD& InCurrent)
 	OutPrev.AccumulatedDeltaTime = InCurrent.AccumulatedDeltaTime;
 	OutPrev.bShouldTick          = InCurrent.bShouldTick;
 }
+
+} // anonymous namespace
 
 void LODSystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
                      float DeltaTime, uint32 FrameCounter)

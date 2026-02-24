@@ -2,6 +2,9 @@
 #include "ECS/Component/Components.h"
 #include "Async/ParallelFor.h"
 
+namespace
+{
+
 /** ② Write: 캐싱된 읽기값을 파라미터로 받아 Current에만 쓰기 */
 void Write(CEnemyState& OutState, CMovement& OutMovement, EEnemyState NewState, const FVector& NewVelocity)
 {
@@ -17,6 +20,8 @@ void PushToPrev(CEnemyStatePrev& OutStatePrev, CMovementPrev& OutMovementPrev,
 	OutMovementPrev.Velocity = InMovement.Velocity;
 	OutMovementPrev.MaxSpeed = InMovement.MaxSpeed;
 }
+
+} // anonymous namespace
 
 /**
  * Read는 Cached 지역변수로 값을 복사해야 하므로 함수 래핑 불가 — ParallelFor 본문에 직접 노출
