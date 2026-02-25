@@ -18,7 +18,7 @@ public:
 	ATPSGameModeBase();
 
 	/** 스폰 선택 UI 콜백 — 선택된 위치로 Pawn 텔레포트 */
-	void OnSpawnPointSelected(class ATPSPlayerStart* InSpawnPoint);
+	virtual void OnSpawnPointSelected(class ATPSPlayerStart* InSpawnPoint);
 
 protected:
 	virtual void BeginPlay() override;

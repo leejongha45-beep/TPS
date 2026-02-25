@@ -16,5 +16,5 @@ class UHierarchicalInstancedStaticMeshComponent;
  */
 namespace CleanupSystem
 {
-	void Tick(entt::registry& Registry, UHierarchicalInstancedStaticMeshComponent* HISM, TArray<entt::entity>& InstanceToEntity);
+	int32 Tick(entt::registry& Registry, UHierarchicalInstancedStaticMeshComponent* HISM, TArray<entt::entity>& InstanceToEntity);
 };

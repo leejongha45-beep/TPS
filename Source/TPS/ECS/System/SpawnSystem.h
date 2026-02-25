@@ -1,7 +1,7 @@
 #pragma once
 
 #include <entt/entt.hpp>
-#include "Math/Vector.h"
+#include "ECS/Data/EnemySpawnParams.h"
 
 /**
  * 스폰 시스템 — Entity 생성 + 모든 컴포넌트(Current/Prev 쌍) emplace
@@ -11,8 +11,5 @@
  */
 namespace SpawnSystem
 {
-	entt::entity Spawn(entt::registry& Registry,
-	                   const FVector& Position,
-	                   float MaxHealth,
-	                   float MaxSpeed);
+	entt::entity Spawn(entt::registry& Registry, const FEnemySpawnParams& Params);
 };

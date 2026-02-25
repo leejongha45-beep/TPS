@@ -1,21 +1,21 @@
 #include "ECS/Scheduler/EnemyScheduler.h"
+#include "Async/TaskGraphInterfaces.h"
 #include "ECS/Component/Components.h"
-#include "ECS/System/DamageSystem.h"
 #include "ECS/System/AISystem.h"
-#include "ECS/System/SeparationSystem.h"
-#include "ECS/System/DeathSystem.h"
 #include "ECS/System/AnimationSystem.h"
-#include "ECS/System/MovementSystem.h"
-#include "ECS/System/VisualizationSystem.h"
 #include "ECS/System/AttackSystem.h"
 #include "ECS/System/CleanupSystem.h"
+#include "ECS/System/DamageSystem.h"
+#include "ECS/System/DeathSystem.h"
 #include "ECS/System/LODSystem.h"
-#include "GameFramework/Pawn.h"
-#include "Utils/Interface/Data/Damageable.h"
-#include "Kismet/GameplayStatics.h"
-#include "Utils/Template/Getter.h"
-#include "Async/TaskGraphInterfaces.h"
+#include "ECS/System/MovementSystem.h"
+#include "ECS/System/SeparationSystem.h"
+#include "ECS/System/VisualizationSystem.h"
 #include "Engine/Engine.h"
+#include "GameFramework/Pawn.h"
+#include "Kismet/GameplayStatics.h"
+#include "Utils/Interface/Data/Damageable.h"
+#include "Utils/Template/Getter.h"
 
 FEnemyScheduler::FEnemyScheduler()
 {
@@ -87,6 +87,9 @@ void FEnemyScheduler::Tick(float DeltaTime)
 {
 	UWorld* World = GEngine ? GEngine->GetCurrentPlayWorld() : nullptr;
 	if (!World) { return; }
+
+	// Pre-Tick: 큐잉된 스폰 요청 일괄 처리 (Phase 0 전에 실행)
+	if (PreTickCallback) { PreTickCallback(); }
 
 	// 0. PushToPrev_RenderProxy — Cleanup에서 갱신된 CRenderProxy 반영
 	{

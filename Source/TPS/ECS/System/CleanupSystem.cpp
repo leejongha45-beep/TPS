@@ -53,10 +53,10 @@ void Write(entt::registry& Registry, UHierarchicalInstancedStaticMeshComponent* 
 
 } // anonymous namespace
 
-void CleanupSystem::Tick(entt::registry& Registry, UHierarchicalInstancedStaticMeshComponent* HISM,
-                         TArray<entt::entity>& InstanceToEntity)
+int32 CleanupSystem::Tick(entt::registry& Registry, UHierarchicalInstancedStaticMeshComponent* HISM,
+                          TArray<entt::entity>& InstanceToEntity)
 {
-	if (!ensure(HISM)) { return; }
+	if (!ensure(HISM)) { return 0; }
 
 	auto View = Registry.view<CEnemyStatePrev, CRenderProxyPrev>();
 
@@ -74,8 +74,10 @@ void CleanupSystem::Tick(entt::registry& Registry, UHierarchicalInstancedStaticM
 		if (Count >= 3000) { break; }
 	}
 
-	if (Count == 0) { return; }
+	if (Count == 0) { return 0; }
 
 	// ② Write
 	Write(Registry, HISM, InstanceToEntity, std::span(DeadEntries, Count));
+
+	return Count;
 }

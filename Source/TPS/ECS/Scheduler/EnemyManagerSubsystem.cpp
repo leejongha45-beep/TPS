@@ -1,9 +1,9 @@
 #include "ECS/Scheduler/EnemyManagerSubsystem.h"
-#include "ECS/Scheduler/EnemyScheduler.h"
-#include "ECS/Renderer/AEnemyRenderActor.h"
-#include "ECS/System/SpawnSystem.h"
-#include "ECS/Component/Components.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "ECS/Component/Components.h"
+#include "ECS/Renderer/AEnemyRenderActor.h"
+#include "ECS/Scheduler/EnemyScheduler.h"
+#include "ECS/System/SpawnSystem.h"
 #include "Engine/World.h"
 
 UEnemyManagerSubsystem::~UEnemyManagerSubsystem()
@@ -21,6 +21,7 @@ void UEnemyManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		if (ensure(EnemySchedulerInst))
 		{
 			EnemySchedulerInst->Initialize();
+			EnemySchedulerInst->PreTickCallback = [this]() { FlushSpawnQueue(); };
 		}
 	}
 
@@ -55,6 +56,8 @@ void UEnemyManagerSubsystem::Deinitialize()
 		RenderActorInst = nullptr;
 	}
 
+	SpawnQueue.Empty();
+
 	Super::Deinitialize();
 }
 
@@ -65,17 +68,46 @@ void UEnemyManagerSubsystem::StartWave(int32 WaveNumber)
 	CurrentWave = WaveNumber;
 	const int32 EnemyCount = FMath::Min(20 + (WaveNumber * 10), 3000);
 
+	// ① QueueSpawn으로 일괄 등록
+	for (int32 i = 0; i < EnemyCount; ++i)
+	{
+		FEnemySpawnParams Params;
+		Params.Position = FVector(FMath::RandRange(-2000.f, 2000.f),
+		                          FMath::RandRange(-2000.f, 2000.f), 0.f);
+		Params.MaxHealth      = 50.f;
+		Params.MaxSpeed       = 300.f;
+		Params.AttackDamage   = ECSConstants::AttackDamage;
+		Params.AttackCooldown = ECSConstants::AttackCooldown;
+
+		QueueSpawn(Params);
+	}
+
+	// ② 즉시 처리
+	FlushSpawnQueue();
+}
+
+void UEnemyManagerSubsystem::QueueSpawn(const FEnemySpawnParams& Params)
+{
+	SpawnQueue.Add(Params);
+}
+
+void UEnemyManagerSubsystem::FlushSpawnQueue()
+{
+	if (!ensure(EnemySchedulerInst)) { return; }
+
 	UHierarchicalInstancedStaticMeshComponent* pHISM = GetHISM();
 	if (!ensure(pHISM)) { return; }
 
-	for (int32 i = 0; i < EnemyCount; ++i)
+	const int32 QueueCount = SpawnQueue.Num();
+	for (int32 i = 0; i < QueueCount; ++i)
 	{
+		const FEnemySpawnParams& Params = SpawnQueue[i];
+
 		// ① ECS Entity 생성
-		const FVector SpawnPosition(FMath::RandRange(-2000.f, 2000.f), FMath::RandRange(-2000.f, 2000.f), 0.f);
-		entt::entity Entity = SpawnSystem::Spawn(EnemySchedulerInst->GetRegistry(), SpawnPosition, 50.f, 300.f);
+		entt::entity Entity = SpawnSystem::Spawn(EnemySchedulerInst->GetRegistry(), Params);
 
 		// ② HISM 인스턴스 등록 → CRenderProxy 세팅
-		const FTransform InstanceTransform(FQuat::Identity, SpawnPosition);
+		const FTransform InstanceTransform(FQuat::Identity, Params.Position);
 		const int32 InstanceIndex = pHISM->AddInstance(InstanceTransform, true);
 
 		EnemySchedulerInst->GetRegistry().get<CRenderProxy>(Entity).InstanceIndex = InstanceIndex;
@@ -84,6 +116,8 @@ void UEnemyManagerSubsystem::StartWave(int32 WaveNumber)
 		// ③ 역방향 룩업 테이블 등록
 		EnemySchedulerInst->GetInstanceToEntity().Add(Entity);
 	}
+
+	SpawnQueue.Reset();
 }
 
 void UEnemyManagerSubsystem::ApplyDamage(int32 InstanceIndex, float Damage)

@@ -128,6 +128,12 @@ struct CLOD
 	uint8 bShouldTick : 1 = true;           // 이번 프레임 틱 여부
 };
 
+/** 적 타입 인덱스 — 멀티 HISM 라우팅용 */
+struct CEnemyTypeId
+{
+	uint8 TypeIndex = 0;
+};
+
 // ── Prev (읽기용) ──
 
 /** 적 상태 — 이전 프레임 */
@@ -205,4 +211,10 @@ struct CLODPrev
 	int32 TickInterval = 1;
 	float AccumulatedDeltaTime = 0.f;
 	uint8 bShouldTick : 1 = true;
+};
+
+/** 적 타입 인덱스 — 이전 프레임 */
+struct CEnemyTypeIdPrev
+{
+	uint8 TypeIndex = 0;
 };

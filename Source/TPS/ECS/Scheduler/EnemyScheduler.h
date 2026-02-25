@@ -45,6 +45,10 @@ public:
 
 	FORCEINLINE TArray<entt::entity>& GetInstanceToEntity() { return InstanceToEntity; }
 
+	/** Tick 진입 시 호출할 콜백 — Subsystem이 FlushSpawnQueue를 바인딩
+	 *  Scheduler가 Subsystem 타입에 직접 의존하지 않도록 TFunction 사용 (D 원칙) */
+	TFunction<void()> PreTickCallback;
+
 	/** 외부에서 데미지 이벤트 적재 (프로젝타일 OnHit → EnemyManagerSubsystem 경유) */
 	FORCEINLINE void QueueDamage(int32 InstanceIndex, float Damage)
 	{
