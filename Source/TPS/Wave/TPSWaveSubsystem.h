@@ -60,6 +60,7 @@ protected:
 	float NextBigWaveGroupTime = 0.f;
 
 	// ── 캐시 (Initialize에서 세팅) ──
+	TObjectPtr<const class UTPSWaveSettings> CachedSettingsInst = nullptr;
 	TArray<TObjectPtr<class UTPSEnemyTypeDataAsset>> LoadedEnemyTypes;
 	FVector AllyBaseLocation = FVector::ZeroVector;
 

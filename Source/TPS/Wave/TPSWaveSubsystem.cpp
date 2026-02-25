@@ -2,8 +2,10 @@
 
 #include "Wave/TPSWaveSubsystem.h"
 #include "Wave/TPSWaveSettings.h"
+#include "Engine/World.h"
 #include "ECS/Data/TPSEnemyTypeDataAsset.h"
 #include "ECS/Scheduler/EnemyManagerSubsystem.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Core/Subsystem/TPSTargetSubsystem.h"
 
 void UTPSWaveSubsystem::Initialize(FSubsystemCollectionBase& Collection)

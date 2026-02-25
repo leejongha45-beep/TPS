@@ -1,6 +1,7 @@
 // TPSCombatGameMode.cpp
 
 #include "Core/GameMode/TPSCombatGameMode.h"
+#include "Engine/World.h"
 #include "Wave/TPSWaveSubsystem.h"
 
 void ATPSCombatGameMode::OnSpawnPointSelected(ATPSPlayerStart* InSpawnPoint)
