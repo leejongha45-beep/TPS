@@ -13,11 +13,11 @@ public class TPS : ModuleRules
 
 		PublicIncludePaths.AddRange(new string[] { ModuleDirectory });
 
-		// EnTT (header-only ECS 라이브러리)
-		PublicIncludePaths.Add(System.IO.Path.Combine(ModuleDirectory, "ThirdParty", "EnTT", "include"));
-
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "GameplayTags" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimationLocomotionLibraryRuntime", "AnimationWarpingRuntime", "Slate", "SlateCore", "Niagara", "PhysicsCore", "DeveloperSettings", "MediaAssets" });
+
+		// Mass Entity — 대군단 적 시스템
+		PublicDependencyModuleNames.AddRange(new string[] { "MassEntity", "MassCommon", "MassSpawner", "StructUtils" });
 	}
 }
