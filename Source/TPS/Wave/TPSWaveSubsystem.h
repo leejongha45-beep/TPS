@@ -6,7 +6,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Tickable.h"
 #include "Wave/WaveTypes.h"
-#include "ECS/Data/EnemySpawnParams.h"
+#include "Enemy/Data/EnemySpawnParams.h"
 #include "TPSWaveSubsystem.generated.h"
 
 /** 스폰 예약 엔트리 — 시간순 처리 */
@@ -22,7 +22,7 @@ struct FWaveSpawnRequest
  * - 트리클: TrickleSpawnInterval마다 소그룹 스폰 (항상 동작)
  * - 빅웨이브: BigWavePeriod마다 대규모 그룹 분할 스폰
  * - 수식 기반 스케일링: 웨이브 레벨 × 배율로 적 스탯 증가
- * - PendingSpawnQueue에 시간 예약 → FlushReadySpawns에서 EnemyManagerSubsystem에 전달
+ * - PendingSpawnQueue에 시간 예약 → FlushReadySpawns에서 스폰 서브시스템에 전달
  */
 UCLASS()
 class TPS_API UTPSWaveSubsystem : public UTickableWorldSubsystem
@@ -80,7 +80,7 @@ protected:
 	 */
 	void ScheduleSpawnGroup(int32 Count, float AtTime, float StaggerDelay);
 
-	/** 예약 시각이 도래한 스폰 요청을 EnemyManagerSubsystem에 전달 */
+	/** 예약 시각이 도래한 스폰 요청을 스폰 서브시스템에 전달 */
 	void FlushReadySpawns();
 
 	/**

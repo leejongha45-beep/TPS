@@ -3,9 +3,7 @@
 #include "Wave/TPSWaveSubsystem.h"
 #include "Wave/TPSWaveSettings.h"
 #include "Engine/World.h"
-#include "ECS/Data/TPSEnemyTypeDataAsset.h"
-#include "ECS/Scheduler/EnemyManagerSubsystem.h"
-#include "Components/HierarchicalInstancedStaticMeshComponent.h"
+#include "Enemy/Data/TPSEnemyTypeDataAsset.h"
 #include "Core/Subsystem/TPSTargetSubsystem.h"
 
 void UTPSWaveSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -124,16 +122,8 @@ void UTPSWaveSubsystem::TickTrickleSpawn()
 {
 	if (ElapsedTime - LastTrickleSpawnTime < CachedSettingsInst->TrickleSpawnInterval) { return; }
 
-	// MaxEnemyCount 캡 체크
-	UEnemyManagerSubsystem* pEnemySub = GetWorld()->GetSubsystem<UEnemyManagerSubsystem>();
-	if (!ensure(pEnemySub)) { return; }
-
-	UHierarchicalInstancedStaticMeshComponent* pHISM = pEnemySub->GetHISM();
-	if (!ensure(pHISM)) { return; }
-
-	const int32 CurrentCount = pHISM->GetInstanceCount() + PendingSpawnQueue.Num();
-	if (CurrentCount >= CachedSettingsInst->MaxEnemyCount) { return; }
-
+	// TODO: Mass Entity 연동 시 현재 적 수 체크 로직 구현
+	// 현재는 MaxEnemyCount 캡 없이 스폰 예약만 진행
 	ScheduleSpawnGroup(CachedSettingsInst->TrickleGroupSize,
 	                   ElapsedTime,
 	                   CachedSettingsInst->TrickleGroupSpawnDelay);
@@ -181,14 +171,12 @@ void UTPSWaveSubsystem::FlushReadySpawns()
 {
 	if (PendingSpawnQueue.Num() == 0) { return; }
 
-	UEnemyManagerSubsystem* pEnemySub = GetWorld()->GetSubsystem<UEnemyManagerSubsystem>();
-	if (!ensure(pEnemySub)) { return; }
-
+	// TODO: Mass Entity 스폰 서브시스템 연동
+	// 현재는 시간 도래한 요청을 큐에서 제거만 수행
 	for (int32 i = PendingSpawnQueue.Num() - 1; i >= 0; --i)
 	{
 		if (PendingSpawnQueue[i].ScheduledTime <= ElapsedTime)
 		{
-			pEnemySub->QueueSpawn(PendingSpawnQueue[i].Params);
 			PendingSpawnQueue.RemoveAtSwap(i);
 		}
 	}
