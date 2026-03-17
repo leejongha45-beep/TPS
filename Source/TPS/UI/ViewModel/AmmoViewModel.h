@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Styling/SlateColor.h"
 #include "UObject/NoExportTypes.h"
 #include "AmmoViewModel.generated.h"
 

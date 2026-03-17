@@ -1,6 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "Engine/EngineTypes.h"
+#include "Engine/EngineBaseTypes.h"
 
 /**
  * AI 제어 전용 커스텀 Tick 함수

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
+#include "Sound/SoundBase.h"
 #include "TPSAnimNotify_FireSound.generated.h"
 
 /**

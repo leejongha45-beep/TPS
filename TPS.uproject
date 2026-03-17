@@ -56,6 +56,10 @@
 				"Win64",
 				"Android"
 			]
+		},
+		{
+			"Name": "AnimToTexture",
+			"Enabled": true
 		}
 	]
 }

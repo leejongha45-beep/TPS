@@ -1,9 +1,9 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Utils/UENUM/WeaponType.h"
-#include "Blueprint/UserWidget.h"
 #include "Actor/ItemBox/TPSItemBox.h"
+#include "Blueprint/UserWidget.h"
+#include "Character/Player/TPSPlayer.h"
 #include "TPSItemBoxWidget.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogItemBoxWidget, Log, All);
@@ -21,7 +21,7 @@ class TPS_API UTPSItemBoxWidget : public UUserWidget
 
 public:
 	FORCEINLINE void SetOwningItemBox(ATPSItemBox* InItemBox) { OwningItemBoxRef = InItemBox; }
-	FORCEINLINE void SetOwningPlayer(class ATPSPlayer* InPlayer) { OwningPlayerRef = InPlayer; }
+	FORCEINLINE void SetOwningPlayer(ATPSPlayer* InPlayer) { OwningPlayerRef = InPlayer; }
 
 protected:
 	virtual void NativeConstruct() override;
@@ -47,5 +47,5 @@ protected:
 	TWeakObjectPtr<ATPSItemBox> OwningItemBoxRef;
 
 	/** 소유 플레이어 참조 (WeakPtr) */
-	TWeakObjectPtr<class ATPSPlayer> OwningPlayerRef;
+	TWeakObjectPtr<ATPSPlayer> OwningPlayerRef;
 };

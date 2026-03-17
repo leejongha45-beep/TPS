@@ -1,4 +1,7 @@
 #include "Core/Controller/TPSPlayerController.h"
+#include "Engine/World.h"
+#include "Engine/LocalPlayer.h"
+#include "GameFramework/Pawn.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
@@ -23,63 +26,63 @@ void ATPSPlayerController::SetupInputComponent()
 	UEnhancedInputLocalPlayerSubsystem* pSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
 	if (ensure(pSubsystem))
 	{
-		if (ensure(DefaultMappingContextAsset))
+		if (ensure(DefaultMappingContextAsset.Get()))
 		{
-			pSubsystem->AddMappingContext(DefaultMappingContextAsset, 0);
+			pSubsystem->AddMappingContext(DefaultMappingContextAsset.Get(), 0);
 		}
 	}
 
 	// ② 입력 액션 바인딩 (Look, Move, Sprint, Aim, Jump, Equip, Interact, Fire)
 	UEnhancedInputComponent* pEnhancedInput = CastChecked<UEnhancedInputComponent>(InputComponent);
-	if (ensure(LookActionAsset))
+	if (ensure(LookActionAsset.Get()))
 	{
-		pEnhancedInput->BindAction(LookActionAsset, ETriggerEvent::Triggered, this, &ATPSPlayerController::Look);
+		pEnhancedInput->BindAction(LookActionAsset.Get(), ETriggerEvent::Triggered, this, &ATPSPlayerController::Look);
 	}
 
-	if (ensure(MoveActionAsset))
+	if (ensure(MoveActionAsset.Get()))
 	{
-		pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartMoveInput);
-		pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Triggered, this, &ATPSPlayerController::MoveInput);
-		pEnhancedInput->BindAction(MoveActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopMoveInput);
+		pEnhancedInput->BindAction(MoveActionAsset.Get(), ETriggerEvent::Started, this, &ATPSPlayerController::StartMoveInput);
+		pEnhancedInput->BindAction(MoveActionAsset.Get(), ETriggerEvent::Triggered, this, &ATPSPlayerController::MoveInput);
+		pEnhancedInput->BindAction(MoveActionAsset.Get(), ETriggerEvent::Completed, this, &ATPSPlayerController::StopMoveInput);
 	}
 
-	if (ensure(SprintActionAsset))
+	if (ensure(SprintActionAsset.Get()))
 	{
-		pEnhancedInput->BindAction(SprintActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartSprintInput);
-		pEnhancedInput->BindAction(SprintActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopSprintInput);
+		pEnhancedInput->BindAction(SprintActionAsset.Get(), ETriggerEvent::Started, this, &ATPSPlayerController::StartSprintInput);
+		pEnhancedInput->BindAction(SprintActionAsset.Get(), ETriggerEvent::Completed, this, &ATPSPlayerController::StopSprintInput);
 	}
 
-	if (ensure(AimActionAsset))
+	if (ensure(AimActionAsset.Get()))
 	{
-		pEnhancedInput->BindAction(AimActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartAimInput);
-		pEnhancedInput->BindAction(AimActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopAimInput);
+		pEnhancedInput->BindAction(AimActionAsset.Get(), ETriggerEvent::Started, this, &ATPSPlayerController::StartAimInput);
+		pEnhancedInput->BindAction(AimActionAsset.Get(), ETriggerEvent::Completed, this, &ATPSPlayerController::StopAimInput);
 	}
 
-	if (ensure(JumpActionAsset))
+	if (ensure(JumpActionAsset.Get()))
 	{
-		pEnhancedInput->BindAction(JumpActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartJumpInput);
-		pEnhancedInput->BindAction(JumpActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopJumpInput);
+		pEnhancedInput->BindAction(JumpActionAsset.Get(), ETriggerEvent::Started, this, &ATPSPlayerController::StartJumpInput);
+		pEnhancedInput->BindAction(JumpActionAsset.Get(), ETriggerEvent::Completed, this, &ATPSPlayerController::StopJumpInput);
 	}
 
-	if (ensure(EquipActionAsset))
+	if (ensure(EquipActionAsset.Get()))
 	{
-		pEnhancedInput->BindAction(EquipActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::EquipInput);
+		pEnhancedInput->BindAction(EquipActionAsset.Get(), ETriggerEvent::Started, this, &ATPSPlayerController::EquipInput);
 	}
 
-	if (ensure(InteractActionAsset))
+	if (ensure(InteractActionAsset.Get()))
 	{
-		pEnhancedInput->BindAction(InteractActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::InteractInput);
+		pEnhancedInput->BindAction(InteractActionAsset.Get(), ETriggerEvent::Started, this, &ATPSPlayerController::InteractInput);
 	}
 
-	if (ensure(FireActionAsset))
+	if (ensure(FireActionAsset.Get()))
 	{
-		pEnhancedInput->BindAction(FireActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::StartFireInput);
-		pEnhancedInput->BindAction(FireActionAsset, ETriggerEvent::Completed, this, &ATPSPlayerController::StopFireInput);
+		pEnhancedInput->BindAction(FireActionAsset.Get(), ETriggerEvent::Started, this, &ATPSPlayerController::StartFireInput);
+		pEnhancedInput->BindAction(FireActionAsset.Get(), ETriggerEvent::Completed, this, &ATPSPlayerController::StopFireInput);
 	}
 
-	if (ensure(ReloadActionAsset))
+	if (ensure(ReloadActionAsset.Get()))
 	{
-		pEnhancedInput->BindAction(ReloadActionAsset, ETriggerEvent::Started, this, &ATPSPlayerController::ReloadInput);
+		pEnhancedInput->BindAction(ReloadActionAsset.Get(), ETriggerEvent::Started, this, &ATPSPlayerController::ReloadInput);
 	}
 }
 
@@ -90,25 +93,53 @@ void ATPSPlayerController::OnPossess(APawn* InPawn)
 	// TScriptInterface 캐싱 — 모든 액션 인터페이스를 Pawn에서 획득
 	if (ensure(InPawn))
 	{
-		if (!MoveableInterface) MoveableInterface = InPawn;
+		if (!MoveableInterface)
+		{
+			MoveableInterface.SetObject(InPawn);
+			MoveableInterface.SetInterface(Cast<IMoveable>(InPawn));
+		}
 		ensure(MoveableInterface);
 
-		if (!SprintableInterface) SprintableInterface = InPawn;
+		if (!SprintableInterface)
+		{
+			SprintableInterface.SetObject(InPawn);
+			SprintableInterface.SetInterface(Cast<ISprintable>(InPawn));
+		}
 		ensure(SprintableInterface);
 
-		if (!AimableInterface) AimableInterface = InPawn;
+		if (!AimableInterface)
+		{
+			AimableInterface.SetObject(InPawn);
+			AimableInterface.SetInterface(Cast<IAimable>(InPawn));
+		}
 		ensure(AimableInterface);
 
-		if (!JumpableInterface) JumpableInterface = InPawn;
+		if (!JumpableInterface)
+		{
+			JumpableInterface.SetObject(InPawn);
+			JumpableInterface.SetInterface(Cast<IJumpable>(InPawn));
+		}
 		ensure(JumpableInterface);
 
-		if (!EquippableInterface) EquippableInterface = InPawn;
+		if (!EquippableInterface)
+		{
+			EquippableInterface.SetObject(InPawn);
+			EquippableInterface.SetInterface(Cast<IEquippable>(InPawn));
+		}
 		ensure(EquippableInterface);
 
-		if (!InteractableInterface) InteractableInterface = InPawn;
+		if (!InteractableInterface)
+		{
+			InteractableInterface.SetObject(InPawn);
+			InteractableInterface.SetInterface(Cast<IInteractable>(InPawn));
+		}
 		ensure(InteractableInterface);
 
-		if (!FireableInterface) FireableInterface = InPawn;
+		if (!FireableInterface)
+		{
+			FireableInterface.SetObject(InPawn);
+			FireableInterface.SetInterface(Cast<IFireable>(InPawn));
+		}
 		ensure(FireableInterface);
 	}
 }

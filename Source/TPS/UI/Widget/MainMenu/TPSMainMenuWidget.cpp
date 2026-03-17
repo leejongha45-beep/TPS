@@ -9,27 +9,27 @@ void UTPSMainMenuWidget::NativeConstruct()
 	Super::NativeConstruct();
 
 	// ① 버튼 클릭 바인딩
-	if (ensure(StartGameButton))
+	if (ensure(StartGameButton.Get()))
 	{
 		StartGameButton->OnClicked.AddDynamic(this, &UTPSMainMenuWidget::OnStartGameClicked);
 	}
 
-	if (ensure(QuitGameButton))
+	if (ensure(QuitGameButton.Get()))
 	{
 		QuitGameButton->OnClicked.AddDynamic(this, &UTPSMainMenuWidget::OnQuitGameClicked);
 	}
 
 	// ② 배경 동영상 루프 재생
-	if (ensure(BackgroundMediaPlayerAsset) && ensure(BackgroundMediaSourceAsset))
+	if (ensure(BackgroundMediaPlayerAsset.Get()) && ensure(BackgroundMediaSourceAsset.Get()))
 	{
 		BackgroundMediaPlayerAsset->SetLooping(true);
-		BackgroundMediaPlayerAsset->OpenSource(BackgroundMediaSourceAsset);
+		BackgroundMediaPlayerAsset->OpenSource(BackgroundMediaSourceAsset.Get());
 	}
 }
 
 void UTPSMainMenuWidget::NativeDestruct()
 {
-	if (ensure(BackgroundMediaPlayerAsset))
+	if (ensure(BackgroundMediaPlayerAsset.Get()))
 	{
 		BackgroundMediaPlayerAsset->Close();
 	}

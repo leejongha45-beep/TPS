@@ -1,6 +1,9 @@
 #include "TPSLinkedAnimInstance.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/World.h"
 
 #include "TPSPlayerCoreAnimInstance.h"
+#include "Engine/World.h"
 
 void UTPSLinkedAnimInstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {

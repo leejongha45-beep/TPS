@@ -7,6 +7,7 @@ public class TPS : ModuleRules
 	public TPS(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		CppStandard = CppStandardVersion.Latest;
 		bUseUnity = false;
 		bEnforceIWYU = false;
 
@@ -16,12 +17,7 @@ public class TPS : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimationLocomotionLibraryRuntime", "AnimationWarpingRuntime", "Slate", "SlateCore", "Niagara", "PhysicsCore", "DeveloperSettings", "MediaAssets" });
 
-		// Mass Entity — 대군단 적 시스템 (Phase 3+)
+		// Mass Entity — 대군단 적 시스템
 		PublicDependencyModuleNames.AddRange(new string[] { "MassEntity", "MassCommon", "MassSpawner", "StructUtils" });
-		
-		// Uncomment if you are using online features
-		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
-
-		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
 	}
 }

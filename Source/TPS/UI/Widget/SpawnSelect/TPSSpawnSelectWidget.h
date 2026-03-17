@@ -1,13 +1,11 @@
 #pragma once
+
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "TPSSpawnSelectWidget.generated.h"
 
-class ATPSPlayerStart;
-class UTPSSpawnSelectMarkerWidget;
-
 /** 스폰 위치 확정 델리게이트 (선택된 PlayerStart 전달) */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnSpawnPointConfirmed, ATPSPlayerStart*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnSpawnPointConfirmed, class ATPSPlayerStart*);
 
 /**
  * 미니맵 스폰 선택 위젯
@@ -26,7 +24,7 @@ public:
 	 * 활성 스폰 포인트를 WBP 마커와 DisplayName으로 매칭
 	 * @param InSpawnPoints  활성 포인트 배열
 	 */
-	void InitializeSpawnPoints(const TArray<ATPSPlayerStart*>& InSpawnPoints);
+	void InitializeSpawnPoints(const TArray<class ATPSPlayerStart*>& InSpawnPoints);
 
 	/** 스폰 위치 확정 델리게이트 */
 	FOnSpawnPointConfirmed OnSpawnPointConfirmedDelegate;
@@ -52,15 +50,15 @@ private:
 	void OnConfirmButtonClicked();
 
 	/** 마커 클릭 콜백 */
-	void OnMarkerClicked(ATPSPlayerStart* InSpawnPoint);
+	void OnMarkerClicked(class ATPSPlayerStart* InSpawnPoint);
 
 	/** WBP 자식에서 마커 위젯 자동 수집 */
 	void CollectMarkerWidgets();
 
 	/** 현재 선택된 포인트 */
-	TWeakObjectPtr<ATPSPlayerStart> SelectedSpawnPoint;
+	TWeakObjectPtr<class ATPSPlayerStart> SelectedSpawnPoint;
 
 	/** WBP에서 수집된 마커 위젯 목록 */
 	UPROPERTY()
-	TArray<TObjectPtr<UTPSSpawnSelectMarkerWidget>> MarkerWidgets;
+	TArray<TObjectPtr<class UTPSSpawnSelectMarkerWidget>> MarkerWidgets;
 };

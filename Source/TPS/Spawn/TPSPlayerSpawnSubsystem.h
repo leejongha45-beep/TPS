@@ -1,12 +1,11 @@
 #pragma once
+
 #include "CoreMinimal.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "TPSPlayerSpawnSubsystem.generated.h"
 
-class ATPSPlayerStart;
-
 /** 플레이어 스폰 포인트 비활성화 통보 (비활성화된 포인트) */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnPlayerSpawnDeactivated, ATPSPlayerStart*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnPlayerSpawnDeactivated, class ATPSPlayerStart*);
 
 /**
  * 플레이어 스폰 포인트 관리 월드 서브시스템
@@ -26,10 +25,10 @@ public:
 	//~ End UWorldSubsystem
 
 	/** 활성 상태인 플레이어 스폰 포인트 배열 반환 */
-	TArray<ATPSPlayerStart*> GetActiveSpawnPoints() const;
+	TArray<class ATPSPlayerStart*> GetActiveSpawnPoints() const;
 
 	/** 특정 포인트 비활성화 (기지 파괴 시 호출) */
-	void DeactivateSpawnPoint(ATPSPlayerStart* InPoint);
+	void DeactivateSpawnPoint(class ATPSPlayerStart* InPoint);
 
 	/** 비활성화 통보 델리게이트 */
 	FOnPlayerSpawnDeactivated OnPlayerSpawnDeactivatedDelegate;
@@ -37,7 +36,7 @@ public:
 protected:
 	/** 레벨의 모든 ATPSPlayerStart 캐시 */
 	UPROPERTY()
-	TArray<ATPSPlayerStart*> CachedSpawnPoints;
+	TArray<class ATPSPlayerStart*> CachedSpawnPoints;
 
 private:
 	/** 레벨에서 ATPSPlayerStart 수집 */

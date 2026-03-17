@@ -1,10 +1,15 @@
 #include "TPSProjectileBase.h"
+#include "Engine/World.h"
+#include "TimerManager.h"
+#include "GameFramework/Pawn.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
-#include "Core/Subsystem/TPSProjectilePoolSubsystem.h"
+#include "Weapon/Projectile/TPSProjectilePoolSubsystem.h"
+#include "ECS/Scheduler/EnemyManagerSubsystem.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(ProjectileLog, Log, All);
 DEFINE_LOG_CATEGORY(ProjectileLog);
@@ -15,11 +20,11 @@ ATPSProjectileBase::ATPSProjectileBase()
 	if (!CollisionComponentInst)
 	{
 		CollisionComponentInst = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
-		if (ensure(CollisionComponentInst))
+		if (ensure(CollisionComponentInst.Get()))
 		{
 			CollisionComponentInst->InitSphereRadius(5.f);
 			CollisionComponentInst->SetCollisionProfileName(TEXT("BlockAllDynamic"));
-			SetRootComponent(CollisionComponentInst);
+			SetRootComponent(CollisionComponentInst.Get());
 
 			CollisionComponentInst->OnComponentHit.AddDynamic(this, &ATPSProjectileBase::OnHit);
 		}
@@ -29,9 +34,9 @@ ATPSProjectileBase::ATPSProjectileBase()
 	if (!ProjectileMovementInst)
 	{
 		ProjectileMovementInst = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
-		if (ensure(ProjectileMovementInst))
+		if (ensure(ProjectileMovementInst.Get()))
 		{
-			ProjectileMovementInst->UpdatedComponent = CollisionComponentInst;
+			ProjectileMovementInst->UpdatedComponent = CollisionComponentInst.Get();
 			ProjectileMovementInst->bRotationFollowsVelocity = true;
 			ProjectileMovementInst->bShouldBounce = false;
 			ProjectileMovementInst->ProjectileGravityScale = 0.f;
@@ -52,12 +57,12 @@ void ATPSProjectileBase::ActivateProjectile(const FTransform& InMuzzleTransform,
 	// ① 데미지 설정 + 충돌 무시 목록 갱신
 	Damage = InDamage;
 
-	if (ensure(CollisionComponentInst))
+	if (ensure(CollisionComponentInst.Get()))
 	{
 		CollisionComponentInst->MoveIgnoreActors.Empty();
 		if (GetInstigator())
 		{
-			CollisionComponentInst->MoveIgnoreActors.Add(GetInstigator());
+			CollisionComponentInst->MoveIgnoreActors.Add(Cast<AActor>(GetInstigator()));
 		}
 	}
 
@@ -68,7 +73,7 @@ void ATPSProjectileBase::ActivateProjectile(const FTransform& InMuzzleTransform,
 	SetActorTickEnabled(true);
 
 	// ③ ProjectileMovement 속도 설정 + 활성화
-	if (ensure(ProjectileMovementInst))
+	if (ensure(ProjectileMovementInst.Get()))
 	{
 		ProjectileMovementInst->InitialSpeed = InSpeed;
 		ProjectileMovementInst->MaxSpeed = InSpeed;
@@ -91,7 +96,7 @@ void ATPSProjectileBase::DeactivateProjectile()
 	SetActorTickEnabled(false);
 
 	// ② 이동 즉시 정지 + 컴포넌트 비활성화
-	if (ensure(ProjectileMovementInst))
+	if (ensure(ProjectileMovementInst.Get()))
 	{
 		ProjectileMovementInst->StopMovementImmediately();
 		ProjectileMovementInst->Deactivate();
@@ -110,13 +115,29 @@ void ATPSProjectileBase::DeactivateProjectile()
 void ATPSProjectileBase::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (!OtherActor || OtherActor == GetInstigator() || OtherActor == GetOwner())
+	if (!OtherActor || OtherActor == Cast<AActor>(GetInstigator()) || OtherActor == GetOwner())
 	{
 		return;
 	}
 
 	// ① 대상에 데미지 적용
-	UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, nullptr);
+	if (Cast<UHierarchicalInstancedStaticMeshComponent>(OtherComp))
+	{
+		// HISM 충돌 → ECS 데미지 경로
+		if (Hit.Item != INDEX_NONE)
+		{
+			UEnemyManagerSubsystem* pEnemyMgr = GetWorld()->GetSubsystem<UEnemyManagerSubsystem>();
+			if (ensure(pEnemyMgr))
+			{
+				pEnemyMgr->ApplyDamage(Hit.Item, Damage);
+			}
+		}
+	}
+	else
+	{
+		// 기존 액터 기반 데미지
+		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, nullptr);
+	}
 
 	// ② 충돌 지점에 이펙트 스폰
 	if (ImpactEffectAsset)

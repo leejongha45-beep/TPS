@@ -3,9 +3,7 @@
 #include "Blueprint/UserWidget.h"
 #include "TPSSpawnSelectMarkerWidget.generated.h"
 
-class ATPSPlayerStart;
-
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnMarkerClicked, ATPSPlayerStart*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnMarkerClicked, class ATPSPlayerStart*);
 
 /**
  * 스폰 선택 미니맵 마커 위젯
@@ -20,12 +18,12 @@ class TPS_API UTPSSpawnSelectMarkerWidget : public UUserWidget
 
 public:
 	/** 스폰 포인트 바인딩 */
-	void SetSpawnPoint(ATPSPlayerStart* InSpawnPoint);
+	void SetSpawnPoint(class ATPSPlayerStart* InSpawnPoint);
 
 	/** 선택 상태 시각 피드백 */
 	void SetSelected(bool bInSelected);
 
-	FORCEINLINE ATPSPlayerStart* GetSpawnPoint() const { return SpawnPointRef.Get(); }
+	FORCEINLINE class ATPSPlayerStart* GetSpawnPoint() const { return SpawnPointRef.Get(); }
 	FORCEINLINE FText GetDisplayName() const { return DisplayName; }
 
 	/** 마커 클릭 델리게이트 */
@@ -51,5 +49,5 @@ private:
 	UFUNCTION()
 	void OnButtonClicked();
 
-	TWeakObjectPtr<ATPSPlayerStart> SpawnPointRef;
+	TWeakObjectPtr<class ATPSPlayerStart> SpawnPointRef;
 };

@@ -1,5 +1,6 @@
 #include "Animation/Notify/TPSAnimNotify_WeaponAttach.h"
-#include "Component/Action/TPSEquipComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Character/Component/Action/TPSEquipComponent.h"
 
 void UTPSAnimNotify_WeaponAttach::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {

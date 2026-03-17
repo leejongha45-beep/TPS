@@ -1,6 +1,6 @@
 ﻿#include "UI/ViewModel/CrosshairViewModel.h"
-#include "Component/Data/TPSPlayerStateComponent.h"
-#include "Pawn/Character/Player/TPSPlayer.h"
+#include "Character/Component/Data/TPSPlayerStateComponent.h"
+#include "Character/Player/TPSPlayer.h"
 
 void UCrosshairViewModel::Initialize(TObjectPtr<ATPSPlayer> InPlayer, const FCrosshairConfig& InConfig)
 {
