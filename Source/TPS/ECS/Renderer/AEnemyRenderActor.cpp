@@ -34,7 +34,7 @@ void AEnemyRenderActor::InitializeISMs(UStaticMesh* Meshes[], int32 Count)
 		pISM->SetCanEverAffectNavigation(false);
 		pISM->SetReceivesDecals(false);
 		pISM->SetCastShadow(false);
-		pISM->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
+		pISM->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		pISM->SetCollisionProfileName(TEXT("BlockAll"));
 		pISM->SetCullDistances(0, 1000000);
 		pISM->SetupAttachment(GetRootComponent());

@@ -140,7 +140,7 @@ void UEnemyManagerSubsystem::FlushSpawnQueue()
 	// 신규 스폰은 항상 Near(LOD0) HISM에 등록
 	constexpr int32 SpawnLOD = 0;
 	class UInstancedStaticMeshComponent* pHISM = GetHISM(SpawnLOD);
-	if (!ensure(pHISM)) { return; }
+	if (!pHISM) { return; }   // OnWorldBeginPlay 전이면 ISM 미생성 — 조용히 스킵
 
 	const int32 QueueCount = SpawnQueue.Num();
 	if (QueueCount > 0)
