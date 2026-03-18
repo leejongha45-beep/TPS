@@ -68,8 +68,8 @@ void SeparationSystem::Tick(entt::registry& Registry, const FVector& PlayerPosit
 	const int32 Count = Grid.Entities.Num();
 	if (Count <= 1) { return; }
 
-	// ── Step B: Force Compute (ParallelFor) ──
-	auto View = Registry.view<CMovement, CMovementPrev>();
+	// ── Step B: Hard Push (ParallelFor) — 위치 직접 보정 ──
+	auto View = Registry.view<CTransform, CTransformPrev>();
 
 	ParallelFor(Count, [&Grid, &View](int32 Index)
 	{
@@ -77,8 +77,7 @@ void SeparationSystem::Tick(entt::registry& Registry, const FVector& PlayerPosit
 		const int32 MyCellX = FMath::FloorToInt32(MyPos.X / Grid.CellSize);
 		const int32 MyCellY = FMath::FloorToInt32(MyPos.Y / Grid.CellSize);
 
-		FVector SeparationForce = FVector::ZeroVector;
-		int32 NeighborCount = 0;
+		FVector Push = FVector::ZeroVector;
 
 		// 9셀 탐색 (자기 셀 + 인접 8셀)
 		for (int32 dx = -1; dx <= 1; ++dx)
@@ -95,50 +94,32 @@ void SeparationSystem::Tick(entt::registry& Registry, const FVector& PlayerPosit
 
 					FVector Delta = MyPos - Grid.Positions[OtherIndex];
 					const float DistSq = Delta.SizeSquared();
-					float Strength;
 
-					// ★ 퇴화 케이스: 거의 동일 위치 → 랜덤 방향 지터
-					if (DistSq < KINDA_SMALL_NUMBER)
+					// ★ 퇴화 케이스: 동일 위치 → 인덱스 기반 결정론적 방향
+					if (DistSq < 1.f)
 					{
-						Delta = FVector(FMath::FRandRange(-1.f, 1.f),
-						                FMath::FRandRange(-1.f, 1.f), 0.f).GetSafeNormal();
-						Strength = 1.f;
+						const float Angle = static_cast<float>((Index * 2654435761u) ^ (OtherIndex * 340573321u)) * (UE_TWO_PI / 4294967296.f);
+						Delta = FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.f);
+						Push += Delta * ECSConstants::SeparationRadius;
 					}
-					else if (DistSq >= ECSConstants::SeparationRadiusSq)
-					{
-						continue;
-					}
-					else
+					else if (DistSq < ECSConstants::SeparationRadiusSq)
 					{
 						const float Dist = FMath::Sqrt(DistSq);
-						Strength = 1.f - (Dist / ECSConstants::SeparationRadius);
-						Delta /= Dist;
+						const float Penetration = ECSConstants::SeparationRadius - Dist;
+						Push += (Delta / Dist) * (Penetration * 0.5f);
 					}
-
-					SeparationForce += Delta * Strength;
-					++NeighborCount;
 				}
 			}
 		}
 
-		if (NeighborCount == 0) { return; }
+		Push.Z = 0.f;
+		if (Push.IsNearlyZero()) { return; }
 
-		// 평균 → 정규화 → 최대 분리력 클램프
-		SeparationForce /= static_cast<float>(NeighborCount);
-		SeparationForce = SeparationForce.GetClampedToMaxSize(1.f) * ECSConstants::MaxSeparationForce;
+		Push = Push.GetClampedToMaxSize(ECSConstants::MaxSeparationForce);
 
-		// 기존 추격 속도 + 분리력 블렌딩 → MaxSpeed 클램프
 		const entt::entity Entity = Grid.Entities[Index];
-		CMovement& Movement = View.get<CMovement>(Entity);
-		const float MaxSpeed = View.get<CMovementPrev>(Entity).MaxSpeed;
-
-		// 분리력 적용 시 MaxSpeed * 1.5 까지 허용 — 겹침 해소 우선
-		const float SeparationMaxSpeed = MaxSpeed * 1.5f;
-		const FVector BlendedVelocity = (Movement.Velocity + SeparationForce * ECSConstants::SeparationWeight)
-		                                .GetClampedToMaxSize(SeparationMaxSpeed);
-
-		// ② Write + ③ PushToPrev
-		Write(Movement, BlendedVelocity);
-		PushToPrev(View.get<CMovementPrev>(Entity), Movement);
+		CTransform& Transform = View.get<CTransform>(Entity);
+		Transform.Position += Push;
+		View.get<CTransformPrev>(Entity).Position = Transform.Position;
 	});
 }

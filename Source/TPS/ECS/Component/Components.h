@@ -37,10 +37,11 @@ namespace ECSConstants
 	constexpr float DeathAnimDuration = 2.f;
 
 	// ── Separation (겹침 방지) ──
-	constexpr float SeparationRadius          = 150.f;
+	constexpr float SeparationRadius          = 500.f;
 	constexpr float SeparationRadiusSq        = SeparationRadius * SeparationRadius;
-	constexpr float SeparationWeight          = 2.5f;
-	constexpr float MaxSeparationForce        = 800.f;
+	constexpr float SeparationWeight          = 1.f;
+	constexpr float MaxSeparationForce        = 3000.f;
+	constexpr float SeparationSpeedScale      = 2.f;       // 분리 시 MaxSpeed 배율
 	constexpr float SeparationCullingRadius   = 3000.f;
 	constexpr float SeparationCullingRadiusSq = SeparationCullingRadius * SeparationCullingRadius;
 

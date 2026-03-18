@@ -193,9 +193,6 @@ void UEnemyManagerSubsystem::ApplyDamage(int32 InstanceIndex, uint8 LODLevel, fl
 
 UInstancedStaticMeshComponent* UEnemyManagerSubsystem::GetHISM(int32 LODIndex) const
 {
-	if (ensure(RenderActorInst.Get()))
-	{
-		return RenderActorInst->GetISMComponent(LODIndex);
-	}
-	return nullptr;
+	if (!RenderActorInst.Get()) { return nullptr; }   // OnWorldBeginPlay 전이면 미생성
+	return RenderActorInst->GetISMComponent(LODIndex);
 }
