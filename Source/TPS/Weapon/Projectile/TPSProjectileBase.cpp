@@ -8,6 +8,8 @@
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Weapon/Projectile/TPSProjectilePoolSubsystem.h"
+#include "ECS/Scheduler/EnemyManagerSubsystem.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(ProjectileLog, Log, All);
 DEFINE_LOG_CATEGORY(ProjectileLog);
@@ -119,8 +121,26 @@ void ATPSProjectileBase::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 	}
 
 	// ① 대상에 데미지 적용
-	// TODO: Mass Entity 적 데미지 경로 구현 시 HISM 분기 추가
-	UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, nullptr);
+	if (auto* pHISMComp = Cast<UInstancedStaticMeshComponent>(OtherComp))
+	{
+		// HISM 충돌 → ECS 데미지 경로 (LOD 인덱스 역조회)
+		if (Hit.Item != INDEX_NONE)
+		{
+			UEnemyManagerSubsystem* pEnemyMgr = GetWorld()->GetSubsystem<UEnemyManagerSubsystem>();
+			if (ensure(pEnemyMgr))
+			{
+				FEnemyScheduler* pScheduler = pEnemyMgr->GetScheduler();
+				const int32 LODIndex = pScheduler ? pScheduler->FindLODIndexByHISM(pHISMComp) : 0;
+				const uint8 LODLevel = static_cast<uint8>(FMath::Max(LODIndex, 0));
+				pEnemyMgr->ApplyDamage(Hit.Item, LODLevel, Damage);
+			}
+		}
+	}
+	else
+	{
+		// 기존 액터 기반 데미지
+		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, nullptr);
+	}
 
 	// ② 충돌 지점에 이펙트 스폰
 	if (ImpactEffectAsset)

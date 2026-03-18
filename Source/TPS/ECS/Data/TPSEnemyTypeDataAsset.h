@@ -44,6 +44,8 @@ public:
 	int32 SpawnWeight = 10;
 
 	/* ── 렌더링 ── */
+
+	/** LOD별 메시 배열 — [0] Near(풀메시), [1] Mid(심플), [2] Far(큐브) */
 	UPROPERTY(EditDefaultsOnly, Category = "Rendering")
-	uint8 MeshTypeIndex = 0;
+	TArray<TSoftObjectPtr<class UStaticMesh>> LODMeshes;
 };

@@ -1,0 +1,201 @@
+#include "ECS/Scheduler/EnemyManagerSubsystem.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "ECS/Component/Components.h"
+#include "ECS/Data/TPSEnemyTypeDataAsset.h"
+#include "ECS/Renderer/AEnemyRenderActor.h"
+#include "ECS/Scheduler/EnemyScheduler.h"
+#include "ECS/System/SpawnSystem.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/World.h"
+#include "Wave/TPSWaveSettings.h"
+
+UEnemyManagerSubsystem::~UEnemyManagerSubsystem()
+{
+}
+
+void UEnemyManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+
+	// 스케줄러 생성
+	if (!EnemySchedulerInst)
+	{
+		EnemySchedulerInst = MakeUnique<FEnemyScheduler>();
+		if (ensure(EnemySchedulerInst))
+		{
+			EnemySchedulerInst->Initialize(GetWorld());
+			EnemySchedulerInst->PreTickCallback = [this]() { FlushSpawnQueue(); };
+		}
+	}
+}
+
+void UEnemyManagerSubsystem::OnWorldBeginPlay(UWorld& InWorld)
+{
+	Super::OnWorldBeginPlay(InWorld);
+
+	// 렌더 액터 스폰 (BP 클래스) + LOD별 ISM 초기화
+	// — Initialize 시점에는 렌더 씬이 미완성이라 ISM이 렌더 큐에 등록 안 됨
+	if (RenderActorInst) { return; }
+
+	const UTPSWaveSettings* pSettings = GetDefault<UTPSWaveSettings>();
+	UClass* pActorClass = nullptr;
+	if (ensure(pSettings) && !pSettings->RenderActorClass.IsNull())
+	{
+		pActorClass = pSettings->RenderActorClass.LoadSynchronous();
+	}
+	if (!pActorClass)
+	{
+		pActorClass = AEnemyRenderActor::StaticClass();
+		UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] RenderActorClass not set — falling back to C++ class"));
+	}
+
+	RenderActorInst = InWorld.SpawnActor<AEnemyRenderActor>(pActorClass);
+	if (ensure(RenderActorInst.Get()))
+	{
+		// DataAsset에서 LOD 메시 로드
+		UStaticMesh* LODMeshes[HISM_LOD_COUNT] = {};
+
+		if (ensure(pSettings) && pSettings->EnemyTypes.Num() > 0)
+		{
+			class UTPSEnemyTypeDataAsset* pFirstType = pSettings->EnemyTypes[0].LoadSynchronous();
+			if (ensure(pFirstType))
+			{
+				const int32 MeshCount = FMath::Min(pFirstType->LODMeshes.Num(), HISM_LOD_COUNT);
+				for (int32 i = 0; i < MeshCount; ++i)
+				{
+					if (!pFirstType->LODMeshes[i].IsNull())
+					{
+						LODMeshes[i] = pFirstType->LODMeshes[i].LoadSynchronous();
+					}
+				}
+			}
+		}
+
+		// NewObject → SetStaticMesh → 설정 → RegisterComponent (Mass Entity 순서)
+		RenderActorInst->InitializeISMs(LODMeshes, HISM_LOD_COUNT);
+
+		// 스케줄러에 LOD별 ISM 참조 전달
+		UInstancedStaticMeshComponent* ISMPtrs[HISM_LOD_COUNT] = {};
+		for (int32 i = 0; i < HISM_LOD_COUNT; ++i)
+		{
+			ISMPtrs[i] = RenderActorInst->GetISMComponent(i);
+		}
+		EnemySchedulerInst->SetHISMs(ISMPtrs, HISM_LOD_COUNT);
+	}
+}
+
+void UEnemyManagerSubsystem::Deinitialize()
+{
+	// ① 스케줄러 해제
+	if (ensure(EnemySchedulerInst))
+	{
+		EnemySchedulerInst->Release();
+	}
+	EnemySchedulerInst.Reset();
+
+	// ② 렌더 액터 파괴
+	if (ensure(RenderActorInst.Get()))
+	{
+		RenderActorInst->Destroy();
+		RenderActorInst = nullptr;
+	}
+
+	SpawnQueue.Empty();
+
+	Super::Deinitialize();
+}
+
+void UEnemyManagerSubsystem::StartWave(int32 WaveNumber)
+{
+	if (!ensure(EnemySchedulerInst)) { return; }
+
+	CurrentWave = WaveNumber;
+	const int32 EnemyCount = FMath::Min(20 + (WaveNumber * 10), 3000);
+
+	for (int32 i = 0; i < EnemyCount; ++i)
+	{
+		FEnemySpawnParams Params;
+		Params.Position = FVector(FMath::RandRange(-2000.f, 2000.f),
+		                          FMath::RandRange(-2000.f, 2000.f), 0.f);
+		Params.MaxHealth      = 50.f;
+		Params.MaxSpeed       = 300.f;
+		Params.AttackDamage   = ECSConstants::AttackDamage;
+		Params.AttackCooldown = ECSConstants::AttackCooldown;
+
+		QueueSpawn(Params);
+	}
+
+	FlushSpawnQueue();
+}
+
+void UEnemyManagerSubsystem::QueueSpawn(const FEnemySpawnParams& Params)
+{
+	SpawnQueue.Add(Params);
+}
+
+void UEnemyManagerSubsystem::FlushSpawnQueue()
+{
+	if (!ensure(EnemySchedulerInst)) { return; }
+
+	// 신규 스폰은 항상 Near(LOD0) HISM에 등록
+	constexpr int32 SpawnLOD = 0;
+	class UInstancedStaticMeshComponent* pHISM = GetHISM(SpawnLOD);
+	if (!ensure(pHISM)) { return; }
+
+	const int32 QueueCount = SpawnQueue.Num();
+	if (QueueCount > 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] FlushSpawnQueue — QueueCount=%d"), QueueCount);
+	}
+	for (int32 i = 0; i < QueueCount; ++i)
+	{
+		const FEnemySpawnParams& Params = SpawnQueue[i];
+		UE_LOG(LogTemp, Log, TEXT("[EnemyMgr] Spawning[%d] Pos=(%.0f, %.0f, %.0f)"),
+			i, Params.Position.X, Params.Position.Y, Params.Position.Z);
+
+		// ① ECS Entity 생성
+		entt::entity Entity = SpawnSystem::Spawn(EnemySchedulerInst->GetRegistry(), Params);
+
+		// ② HISM 인스턴스 등록 → CRenderProxy 세팅
+		const FTransform InstanceTransform(FQuat::Identity, Params.Position);
+		const int32 InstanceIndex = pHISM->AddInstance(InstanceTransform, true);
+
+		auto& Proxy = EnemySchedulerInst->GetRegistry().get<CRenderProxy>(Entity);
+		Proxy.InstanceIndex = InstanceIndex;
+		Proxy.LODLevel = SpawnLOD;
+
+		auto& ProxyPrev = EnemySchedulerInst->GetRegistry().get<CRenderProxyPrev>(Entity);
+		ProxyPrev.InstanceIndex = InstanceIndex;
+		ProxyPrev.LODLevel = SpawnLOD;
+
+		// ③ 역방향 룩업 테이블 등록
+		EnemySchedulerInst->GetInstanceToEntity(SpawnLOD).Add(Entity);
+	}
+
+	if (QueueCount > 0)
+	{
+		EnemySchedulerInst->bHasEntities = true;
+		pHISM->MarkRenderStateDirty();
+		UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] After flush — InstanceCount=%d"),
+			pHISM->GetInstanceCount());
+	}
+
+	SpawnQueue.Reset();
+}
+
+void UEnemyManagerSubsystem::ApplyDamage(int32 InstanceIndex, uint8 LODLevel, float Damage)
+{
+	if (ensure(EnemySchedulerInst))
+	{
+		EnemySchedulerInst->QueueDamage(InstanceIndex, LODLevel, Damage);
+	}
+}
+
+UInstancedStaticMeshComponent* UEnemyManagerSubsystem::GetHISM(int32 LODIndex) const
+{
+	if (ensure(RenderActorInst.Get()))
+	{
+		return RenderActorInst->GetISMComponent(LODIndex);
+	}
+	return nullptr;
+}

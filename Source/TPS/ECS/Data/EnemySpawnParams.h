@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 
 /**
- * 적 생성 파라미터 번들.
+ * SpawnSystem에 전달할 적 생성 파라미터 번들.
  * WaveSubsystem이 DataAsset + 스케일링을 적용하여 채운다.
  */
 struct FEnemySpawnParams

@@ -6,7 +6,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "Tickable.h"
 #include "Wave/WaveTypes.h"
-#include "Enemy/Data/EnemySpawnParams.h"
+#include "ECS/Data/EnemySpawnParams.h"
 #include "TPSWaveSubsystem.generated.h"
 
 /** 스폰 예약 엔트리 — 시간순 처리 */
@@ -22,7 +22,7 @@ struct FWaveSpawnRequest
  * - 트리클: TrickleSpawnInterval마다 소그룹 스폰 (항상 동작)
  * - 빅웨이브: BigWavePeriod마다 대규모 그룹 분할 스폰
  * - 수식 기반 스케일링: 웨이브 레벨 × 배율로 적 스탯 증가
- * - PendingSpawnQueue에 시간 예약 → FlushReadySpawns에서 스폰 서브시스템에 전달
+ * - PendingSpawnQueue에 시간 예약 → FlushReadySpawns에서 EnemyManagerSubsystem에 전달
  */
 UCLASS()
 class TPS_API UTPSWaveSubsystem : public UTickableWorldSubsystem
@@ -62,7 +62,9 @@ protected:
 	// ── 캐시 (Initialize에서 세팅) ──
 	TObjectPtr<const class UTPSWaveSettings> CachedSettingsInst = nullptr;
 	TArray<TObjectPtr<class UTPSEnemyTypeDataAsset>> LoadedEnemyTypes;
-	FVector AllyBaseLocation = FVector::ZeroVector;
+
+	// ── 스폰 포인트 ──
+	TArray<TWeakObjectPtr<class ATPSEnemySpawnPoint>> CachedSpawnPoints;
 
 	// ── 내부 함수 ──
 
@@ -80,7 +82,7 @@ protected:
 	 */
 	void ScheduleSpawnGroup(int32 Count, float AtTime, float StaggerDelay);
 
-	/** 예약 시각이 도래한 스폰 요청을 스폰 서브시스템에 전달 */
+	/** 예약 시각이 도래한 스폰 요청을 EnemyManagerSubsystem에 전달 */
 	void FlushReadySpawns();
 
 	/**
@@ -89,8 +91,11 @@ protected:
 	 */
 	FEnemySpawnParams BuildSpawnParams(const class UTPSEnemyTypeDataAsset* Type) const;
 
-	/** AllyBase 중심 스폰 링 내 랜덤 위치 산출 */
-	FVector CalculateSpawnPosition() const;
+	/** 월드에서 ATPSEnemySpawnPoint 수집 → CachedSpawnPoints 채우기 */
+	void CollectSpawnPoints();
+
+	/** CachedSpawnPoints 중 활성화된 포인트에서 랜덤 위치 반환 */
+	FVector PickRandomSpawnLocation() const;
 
 	/** 현재 웨이브 레벨에서 등장 가능한 타입 중 가중치 랜덤 선택 */
 	const class UTPSEnemyTypeDataAsset* SelectEnemyType() const;

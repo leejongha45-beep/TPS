@@ -3,8 +3,11 @@
 #include "Wave/TPSWaveSubsystem.h"
 #include "Wave/TPSWaveSettings.h"
 #include "Engine/World.h"
-#include "Enemy/Data/TPSEnemyTypeDataAsset.h"
-#include "Core/Subsystem/TPSTargetSubsystem.h"
+#include "ECS/Data/TPSEnemyTypeDataAsset.h"
+#include "ECS/Scheduler/EnemyManagerSubsystem.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Wave/TPSEnemySpawnPoint.h"
+#include "EngineUtils.h"
 
 void UTPSWaveSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -43,12 +46,11 @@ void UTPSWaveSubsystem::StartWaveSystem()
 {
 	if (bIsActive) { return; }
 
-	// ① AllyBase 위치 캐시 (스폰 링 중심점)
-	UTPSTargetSubsystem* pTargetSub = GetWorld()->GetSubsystem<UTPSTargetSubsystem>();
-	if (ensure(pTargetSub))
-	{
-		AllyBaseLocation = pTargetSub->GetAllyBaseLocation();
-	}
+	// ① 스폰 포인트 수집
+	CollectSpawnPoints();
+
+	UE_LOG(LogTemp, Warning, TEXT("[Wave] StartWaveSystem — SpawnPoints=%d, EnemyTypes=%d"),
+		CachedSpawnPoints.Num(), LoadedEnemyTypes.Num());
 
 	// ② 상태 초기화
 	bIsActive = true;
@@ -122,8 +124,32 @@ void UTPSWaveSubsystem::TickTrickleSpawn()
 {
 	if (ElapsedTime - LastTrickleSpawnTime < CachedSettingsInst->TrickleSpawnInterval) { return; }
 
-	// TODO: Mass Entity 연동 시 현재 적 수 체크 로직 구현
-	// 현재는 MaxEnemyCount 캡 없이 스폰 예약만 진행
+	// MaxEnemyCount 캡 체크
+	UEnemyManagerSubsystem* pEnemySub = GetWorld()->GetSubsystem<UEnemyManagerSubsystem>();
+	if (!ensure(pEnemySub))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Wave] TickTrickle — EnemyManagerSubsystem NULL"));
+		return;
+	}
+
+	UInstancedStaticMeshComponent* pHISM = pEnemySub->GetHISM();
+	if (!ensure(pHISM))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Wave] TickTrickle — HISM NULL"));
+		return;
+	}
+
+	const int32 CurrentCount = pHISM->GetInstanceCount() + PendingSpawnQueue.Num();
+	if (CurrentCount >= CachedSettingsInst->MaxEnemyCount)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Wave] TickTrickle — MaxEnemyCount cap hit (%d/%d)"),
+			CurrentCount, CachedSettingsInst->MaxEnemyCount);
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[Wave] TickTrickle — Scheduling group: Size=%d, Elapsed=%.2f"),
+		CachedSettingsInst->TrickleGroupSize, ElapsedTime);
+
 	ScheduleSpawnGroup(CachedSettingsInst->TrickleGroupSize,
 	                   ElapsedTime,
 	                   CachedSettingsInst->TrickleGroupSpawnDelay);
@@ -171,21 +197,30 @@ void UTPSWaveSubsystem::FlushReadySpawns()
 {
 	if (PendingSpawnQueue.Num() == 0) { return; }
 
-	// TODO: Mass Entity 스폰 서브시스템 연동
-	// 현재는 시간 도래한 요청을 큐에서 제거만 수행
+	UEnemyManagerSubsystem* pEnemySub = GetWorld()->GetSubsystem<UEnemyManagerSubsystem>();
+	if (!ensure(pEnemySub)) { return; }
+
+	int32 FlushedCount = 0;
 	for (int32 i = PendingSpawnQueue.Num() - 1; i >= 0; --i)
 	{
 		if (PendingSpawnQueue[i].ScheduledTime <= ElapsedTime)
 		{
+			pEnemySub->QueueSpawn(PendingSpawnQueue[i].Params);
 			PendingSpawnQueue.RemoveAtSwap(i);
+			++FlushedCount;
 		}
+	}
+	if (FlushedCount > 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Wave] FlushReadySpawns — Flushed %d, Remaining=%d"),
+			FlushedCount, PendingSpawnQueue.Num());
 	}
 }
 
 FEnemySpawnParams UTPSWaveSubsystem::BuildSpawnParams(const UTPSEnemyTypeDataAsset* Type) const
 {
 	FEnemySpawnParams Params;
-	Params.Position       = CalculateSpawnPosition();
+	Params.Position       = PickRandomSpawnLocation();
 	Params.MaxHealth      = Type->MaxHealth      * GetStatMultiplier(CachedSettingsInst->HealthMultiplierPerWave);
 	Params.MaxSpeed       = Type->MaxSpeed       * GetStatMultiplier(CachedSettingsInst->SpeedMultiplierPerWave);
 	Params.AttackDamage   = Type->AttackDamage   * GetStatMultiplier(CachedSettingsInst->DamageMultiplierPerWave);
@@ -193,15 +228,57 @@ FEnemySpawnParams UTPSWaveSubsystem::BuildSpawnParams(const UTPSEnemyTypeDataAss
 	return Params;
 }
 
-FVector UTPSWaveSubsystem::CalculateSpawnPosition() const
+void UTPSWaveSubsystem::CollectSpawnPoints()
 {
-	const float Angle  = FMath::FRandRange(0.f, 2.f * PI);
-	const float Radius = FMath::FRandRange(CachedSettingsInst->SpawnRingMinRadius,
-	                                       CachedSettingsInst->SpawnRingMaxRadius);
+	CachedSpawnPoints.Empty();
 
-	return AllyBaseLocation + FVector(FMath::Cos(Angle) * Radius,
-	                                  FMath::Sin(Angle) * Radius,
-	                                  0.f);
+	UWorld* pWorld = GetWorld();
+	if (!ensure(pWorld)) { return; }
+
+	for (TActorIterator<ATPSEnemySpawnPoint> It(pWorld); It; ++It)
+	{
+		ATPSEnemySpawnPoint* pPoint = *It;
+		if (pPoint && pPoint->bEnabled)
+		{
+			CachedSpawnPoints.Add(pPoint);
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("WaveSubsystem: Collected %d spawn points"), CachedSpawnPoints.Num());
+}
+
+FVector UTPSWaveSubsystem::PickRandomSpawnLocation() const
+{
+	// 유효한 포인트만 필터
+	TArray<ATPSEnemySpawnPoint*> ValidPoints;
+	for (const TWeakObjectPtr<ATPSEnemySpawnPoint>& Weak : CachedSpawnPoints)
+	{
+		ATPSEnemySpawnPoint* pPoint = Weak.Get();
+		if (pPoint && pPoint->bEnabled)
+		{
+			ValidPoints.Add(pPoint);
+		}
+	}
+
+	if (ValidPoints.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("WaveSubsystem: No valid spawn points — spawning at origin"));
+		return FVector::ZeroVector;
+	}
+
+	ATPSEnemySpawnPoint* pChosen = ValidPoints[FMath::RandRange(0, ValidPoints.Num() - 1)];
+
+	FVector Location = pChosen->GetSpawnLocation();
+
+	// SpawnRadius > 0 이면 반경 내 랜덤 오프셋
+	if (pChosen->SpawnRadius > 0.f)
+	{
+		const float Angle  = FMath::FRandRange(0.f, 2.f * PI);
+		const float Radius = FMath::FRandRange(0.f, pChosen->SpawnRadius);
+		Location += FVector(FMath::Cos(Angle) * Radius, FMath::Sin(Angle) * Radius, 0.f);
+	}
+
+	return Location;
 }
 
 const UTPSEnemyTypeDataAsset* UTPSWaveSubsystem::SelectEnemyType() const

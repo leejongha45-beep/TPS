@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
+#include "UObject/SoftObjectPtr.h"
 #include "TPSWaveSettings.generated.h"
 
 /**
@@ -77,15 +78,11 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Scaling", meta = (ClampMin = "1"))
 	int32 MaxEnemyCount = 3000;
 
-	/* ── 스폰 위치 ── */
+	/* ── 렌더링 ── */
 
-	/** 스폰 링 최소 반경 (AllyBase 중심) */
-	UPROPERTY(Config, EditAnywhere, Category = "SpawnArea", meta = (ClampMin = "0.0"))
-	float SpawnRingMinRadius = 5000.f;
-
-	/** 스폰 링 최대 반경 */
-	UPROPERTY(Config, EditAnywhere, Category = "SpawnArea", meta = (ClampMin = "0.0"))
-	float SpawnRingMaxRadius = 8000.f;
+	/** 렌더 액터 BP 클래스 — ISM에 메시를 에디터에서 할당 */
+	UPROPERTY(Config, EditAnywhere, Category = "Rendering")
+	TSoftClassPtr<class AEnemyRenderActor> RenderActorClass;
 
 	/* ── 적 타입 ── */
 
