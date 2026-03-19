@@ -34,12 +34,12 @@ void VisualizationSystem::Tick(entt::registry& Registry,
 		// LOD 필터 — 이 HISM에 속한 Entity만 처리
 		if (ProxyPrev.LODLevel != LODLevel) { continue; }
 
-		// ① Read: Prev → Cached 지역변수
+		// ① Read — Prev → 지역변수
 		const int32 CachedIndex = ProxyPrev.InstanceIndex;
 		if (CachedIndex == INDEX_NONE) { continue; }
 
-		// LOD 스킵 — Prev 값 불변이므로 HISM 데이터 유지
-		if (!View.get<CLODPrev>(Entity).bShouldTick) { continue; }
+		const bool bCachedShouldTick = View.get<CLODPrev>(Entity).bShouldTick;
+		if (!bCachedShouldTick) { continue; }
 
 		const FVector CachedPosition = View.get<CTransformPrev>(Entity).Position;
 		const FQuat CachedRotation   = View.get<CTransformPrev>(Entity).Rotation;
@@ -56,7 +56,7 @@ void VisualizationSystem::Tick(entt::registry& Registry,
 
 		if (!bTransformDirty && !bAnimDirty) { continue; }
 
-		// ② Write: 변경된 부분만 HISM 갱신
+		// ② Write — 변경된 부분만 HISM 갱신
 		if (bTransformDirty)
 		{
 			const FTransform InstanceTransform(CachedRotation, CachedPosition);
@@ -72,13 +72,14 @@ void VisualizationSystem::Tick(entt::registry& Registry,
 
 		bDirty = true;
 
-		// ③ CVisCache 갱신 + PushToPrev
+		// ③ Write — VisCache 갱신
 		CVisCache& OutCache = View.get<CVisCache>(Entity);
 		OutCache.Position   = CachedPosition;
 		OutCache.Rotation   = CachedRotation;
 		OutCache.AnimIndex  = CachedAnimIndex;
 		OutCache.AnimTime   = CachedAnimTime;
 
+		// ④ PushToPrev
 		PushToPrev(View.get<CVisCachePrev>(Entity), OutCache);
 	}
 

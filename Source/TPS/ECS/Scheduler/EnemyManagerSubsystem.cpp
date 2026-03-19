@@ -213,8 +213,16 @@ void UEnemyManagerSubsystem::FlushSpawnQueue()
 	{
 		EnemySchedulerInst->bHasEntities = true;
 		pHISM->MarkRenderStateDirty();
-		UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] After flush — InstanceCount=%d"),
-			pHISM->GetInstanceCount());
+		int32 TotalEntities = 0;
+		for (int32 i = 0; i < HISM_LOD_COUNT; ++i)
+		{
+			TotalEntities += EnemySchedulerInst->GetInstanceToEntity(i).Num();
+		}
+		UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] After flush — TotalEntities=%d, LOD0=%d, LOD1=%d, LOD2=%d"),
+			TotalEntities,
+			EnemySchedulerInst->GetInstanceToEntity(0).Num(),
+			EnemySchedulerInst->GetInstanceToEntity(1).Num(),
+			EnemySchedulerInst->GetInstanceToEntity(2).Num());
 	}
 
 	SpawnQueue.Reset();

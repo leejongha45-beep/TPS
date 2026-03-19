@@ -33,6 +33,19 @@ FVector GetPlayerPosition(const UWorld* World)
 	return Player ? Player->GetActorLocation() : FVector::ZeroVector;
 }
 
+DECLARE_STATS_GROUP(TEXT("ECSPhase"), STATGROUP_ECSPhase, STATCAT_Advanced);
+DECLARE_CYCLE_STAT(TEXT("Phase0_PushRenderProxy"), STAT_Phase0_PushRenderProxy, STATGROUP_ECSPhase);
+DECLARE_CYCLE_STAT(TEXT("Phase1_ChaseTargets"), STAT_Phase1_ChaseTargets, STATGROUP_ECSPhase);
+DECLARE_CYCLE_STAT(TEXT("Phase1_5_LOD"), STAT_Phase1_5_LOD, STATGROUP_ECSPhase);
+DECLARE_CYCLE_STAT(TEXT("Phase2_Damage"), STAT_Phase2_Damage, STATGROUP_ECSPhase);
+DECLARE_CYCLE_STAT(TEXT("Phase3_AI"), STAT_Phase3_AI, STATGROUP_ECSPhase);
+DECLARE_CYCLE_STAT(TEXT("Phase3_1_Attack"), STAT_Phase3_1_Attack, STATGROUP_ECSPhase);
+DECLARE_CYCLE_STAT(TEXT("Phase3_5_SepDeath"), STAT_Phase3_5_SepDeath, STATGROUP_ECSPhase);
+DECLARE_CYCLE_STAT(TEXT("Phase5_6_AnimMove"), STAT_Phase5_6_AnimMove, STATGROUP_ECSPhase);
+DECLARE_CYCLE_STAT(TEXT("Phase7_LODTransition"), STAT_Phase7_LODTransition, STATGROUP_ECSPhase);
+DECLARE_CYCLE_STAT(TEXT("Phase7_5_Visualization"), STAT_Phase7_5_Visualization, STATGROUP_ECSPhase);
+DECLARE_CYCLE_STAT(TEXT("Phase8_Cleanup"), STAT_Phase8_Cleanup, STATGROUP_ECSPhase);
+
 void FEnemyScheduler::Tick(float DeltaTime)
 {
 	UWorld* World = CachedWorld.Get();
@@ -50,6 +63,7 @@ void FEnemyScheduler::Tick(float DeltaTime)
 
 	// 0. PushToPrev_RenderProxy — Cleanup/LODTransition에서 갱신된 CRenderProxy 반영
 	{
+		SCOPE_CYCLE_COUNTER(STAT_Phase0_PushRenderProxy);
 		auto View = Registry.view<CRenderProxy, CRenderProxyPrev>();
 		for (auto Entity : View)
 		{
@@ -65,79 +79,107 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	IDamageable* pCharacterDamageable = Cast<IDamageable>(UGameplayStatics::GetPlayerPawn(World, 0));
 
 	// 1.1. Chase 엔티티 NavMesh 경로 쿼리 [GameThread]
-	MovementSystem::UpdateChaseTargets(Registry, World, PlayerPosition, FrameCounter);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_Phase1_ChaseTargets);
+		MovementSystem::UpdateChaseTargets(Registry, World, PlayerPosition, FrameCounter);
+	}
 
 	// 1.5. Phase_LOD (AccumDT 누적/리셋 + bShouldTick 결정)
-	LODSystem::Tick(Registry, PlayerPosition, DeltaTime, FrameCounter);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_Phase1_5_LOD);
+		LODSystem::Tick(Registry, PlayerPosition, DeltaTime, FrameCounter);
+	}
 
 	// 2. Phase_Damage (큐 소비 → CHealth 감산 → PushToPrev)
-	DamageSystem::Tick(Registry, DamageQueue, InstanceToEntityPerLOD);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_Phase2_Damage);
+		DamageSystem::Tick(Registry, DamageQueue, InstanceToEntityPerLOD);
+	}
 
 	// 3. Phase_AI (Rush: FlowField / Chase: NavTarget)
-	AISystem::Tick(Registry, PlayerPosition, AttackRange, BaseFlowField, BaseLocation);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_Phase3_AI);
+		AISystem::Tick(Registry, PlayerPosition, AttackRange, BaseFlowField, BaseLocation);
+	}
 
 	// 3.1. Phase_Attack (쿨다운 틱 + 데미지 집계 → IDamageable)
-	AttackSystem::Tick(Registry, DeltaTime, pCharacterDamageable);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_Phase3_1_Attack);
+		AttackSystem::Tick(Registry, DeltaTime, pCharacterDamageable);
+	}
 
 	// 3.5+4. Phase_Separation ∥ Phase_Death ── [WorkerThread] TaskGraph 병렬 실행
-	FGraphEventRef SepTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
-		[&Registry = Registry, &PlayerPosition]()
-		{
-			SeparationSystem::Tick(Registry, PlayerPosition);
-		},
-		TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
-	);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_Phase3_5_SepDeath);
+		FGraphEventRef SepTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+			[&Registry = Registry, &PlayerPosition]()
+			{
+				SeparationSystem::Tick(Registry, PlayerPosition);
+			},
+			TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
+		);
 
-	FGraphEventRef DeathTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
-		[&Registry = Registry]()
-		{
-			DeathSystem::Tick(Registry);
-		},
-		TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
-	);
+		FGraphEventRef DeathTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+			[&Registry = Registry]()
+			{
+				DeathSystem::Tick(Registry);
+			},
+			TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
+		);
 
-	// ── Barrier: Separation + Death 완료 대기 ──
-	FTaskGraphInterface::Get().WaitUntilTasksComplete({SepTask, DeathTask});
+		FTaskGraphInterface::Get().WaitUntilTasksComplete({SepTask, DeathTask});
+	}
 
 	// 5+6. Phase_Animation ∥ Phase_Movement ── [WorkerThread] TaskGraph 병렬 실행
-	FGraphEventRef AnimTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
-		[&Registry = Registry, DeltaTime]()
-		{
-			AnimationSystem::Tick(Registry, DeltaTime);
-		},
-		TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
-	);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_Phase5_6_AnimMove);
+		FGraphEventRef AnimTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+			[&Registry = Registry, DeltaTime]()
+			{
+				AnimationSystem::Tick(Registry, DeltaTime);
+			},
+			TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
+		);
 
-	FGraphEventRef MoveTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
-		[&Registry = Registry, DeltaTime, &FlowField = BaseFlowField]()
-		{
-			MovementSystem::Tick(Registry, DeltaTime, FlowField);
-		},
-		TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
-	);
+		FGraphEventRef MoveTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+			[&Registry = Registry, DeltaTime, &FlowField = BaseFlowField]()
+			{
+				MovementSystem::Tick(Registry, DeltaTime, FlowField);
+			},
+			TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
+		);
 
-	// ── Barrier: Phase 5+6 완료 대기 ── [GameThread]
-	FTaskGraphInterface::Get().WaitUntilTasksComplete({AnimTask, MoveTask});
+		FTaskGraphInterface::Get().WaitUntilTasksComplete({AnimTask, MoveTask});
+	}
 
 	// 7. LOD Transition — LOD 레벨 변경 시 ISM간 인스턴스 이동
-	LODSystem::TransitionInstances(Registry, HISMRefs, InstanceToEntityPerLOD);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_Phase7_LODTransition);
+		LODSystem::TransitionInstances(Registry, HISMRefs, InstanceToEntityPerLOD);
+	}
 
 	// 7.5. Phase_Visualization — LOD별 HISM 갱신
-	for (int32 LODIdx = 0; LODIdx < HISM_LOD_COUNT; ++LODIdx)
 	{
-		if (HISMRefs[LODIdx])
+		SCOPE_CYCLE_COUNTER(STAT_Phase7_5_Visualization);
+		for (int32 LODIdx = 0; LODIdx < HISM_LOD_COUNT; ++LODIdx)
 		{
-			VisualizationSystem::Tick(Registry, HISMRefs[LODIdx], static_cast<uint8>(LODIdx));
+			if (HISMRefs[LODIdx])
+			{
+				VisualizationSystem::Tick(Registry, HISMRefs[LODIdx], static_cast<uint8>(LODIdx));
+			}
 		}
 	}
 
 	// 8. Phase_Cleanup (HISM 제거 + Entity 파괴)
-	for (int32 LODIdx = 0; LODIdx < HISM_LOD_COUNT; ++LODIdx)
 	{
-		if (HISMRefs[LODIdx])
+		SCOPE_CYCLE_COUNTER(STAT_Phase8_Cleanup);
+		for (int32 LODIdx = 0; LODIdx < HISM_LOD_COUNT; ++LODIdx)
 		{
-			CleanupSystem::Tick(Registry, HISMRefs[LODIdx],
-			                    InstanceToEntityPerLOD[LODIdx], static_cast<uint8>(LODIdx));
+			if (HISMRefs[LODIdx])
+			{
+				CleanupSystem::Tick(Registry, HISMRefs[LODIdx],
+				                    InstanceToEntityPerLOD[LODIdx], static_cast<uint8>(LODIdx));
+			}
 		}
 	}
 

@@ -59,13 +59,13 @@ namespace ECSConstants
 	constexpr float AttackDuration        = 0.3f;
 
 	// ── LOD (거리 기반 틱 빈도 제어) ──
-	constexpr float LODNearRadius       = 30000.f;                         // 300m
+	constexpr float LODNearRadius       = 7500.f;                          // 75m
 	constexpr float LODNearRadiusSq     = LODNearRadius * LODNearRadius;
-	constexpr float LODMidRadius        = 50000.f;                         // 500m
+	constexpr float LODMidRadius        = 20000.f;                         // 200m
 	constexpr float LODMidRadiusSq      = LODMidRadius * LODMidRadius;
 	constexpr int32 LODNearTickInterval = 1;   // 매 프레임
-	constexpr int32 LODMidTickInterval  = 2;   // 2프레임 주기
-	constexpr int32 LODFarTickInterval  = 4;   // 4프레임 주기
+	constexpr int32 LODMidTickInterval  = 4;   // 4프레임 주기
+	constexpr int32 LODFarTickInterval  = 12;  // 12프레임 주기 (~0.2초 @60fps)
 
 	// ── AI Mode (Rush → Chase 전환) ──
 	constexpr float AggroRadius         = 3000.f;                            // 플레이어 탐지 범위
@@ -73,10 +73,10 @@ namespace ECSConstants
 	constexpr int32 NavPathRefreshInterval = 15;                             // Chase NavMesh 경로 갱신 주기 (프레임)
 
 	// ── LOD 히스테리시스 (경계 진동 방지) ──
-	constexpr float LODHysteresisMargin   = 2000.f;                                        // 20m
-	constexpr float LODMidToNearRadiusSq  = (LODNearRadius - LODHysteresisMargin)           // 28000²
+	constexpr float LODHysteresisMargin   = 1000.f;                                        // 10m
+	constexpr float LODMidToNearRadiusSq  = (LODNearRadius - LODHysteresisMargin)           // 6500²
 	                                      * (LODNearRadius - LODHysteresisMargin);
-	constexpr float LODFarToMidRadiusSq   = (LODMidRadius  - LODHysteresisMargin)           // 48000²
+	constexpr float LODFarToMidRadiusSq   = (LODMidRadius  - LODHysteresisMargin)           // 19000²
 	                                      * (LODMidRadius  - LODHysteresisMargin);
 }
 

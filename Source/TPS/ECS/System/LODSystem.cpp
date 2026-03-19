@@ -134,10 +134,12 @@ void LODSystem::TransitionInstances(entt::registry& Registry,
 
 	for (auto Entity : View)
 	{
-		// ① Read — Prev → 지역변수
+		// ① Read
+		// NOTE: InstanceIndex/LODLevel은 Current에서 읽음 — swap-back이 Current를 갱신하므로
+		//       Prev에서 읽으면 swap된 엔티티가 stale 인덱스로 접근하여 크래시
 		const uint8 CachedNewLOD = static_cast<uint8>(View.get<CLODPrev>(Entity).Level);
-		const uint8 CachedOldLOD = View.get<CRenderProxyPrev>(Entity).LODLevel;
-		const int32 CachedInstanceIndex = View.get<CRenderProxyPrev>(Entity).InstanceIndex;
+		const uint8 CachedOldLOD = View.get<CRenderProxy>(Entity).LODLevel;
+		const int32 CachedInstanceIndex = View.get<CRenderProxy>(Entity).InstanceIndex;
 
 		if (CachedNewLOD == CachedOldLOD || CachedInstanceIndex == INDEX_NONE) { continue; }
 
