@@ -23,6 +23,8 @@ entt::entity SpawnSystem::Spawn(entt::registry& Registry,
 	Registry.emplace<CLOD>(Entity, ELODLevel::Near, FrameOffset,
 	                        ECSConstants::LODNearTickInterval, 0.f, true);
 	Registry.emplace<CVisCache>(Entity);
+	Registry.emplace<CAIMode>(Entity);
+	Registry.emplace<CNavTarget>(Entity);
 
 	// ② Prev (초기값 = Current와 동일)
 	Registry.emplace<CEnemyStatePrev>(Entity);
@@ -36,6 +38,8 @@ entt::entity SpawnSystem::Spawn(entt::registry& Registry,
 	Registry.emplace<CLODPrev>(Entity, ELODLevel::Near, FrameOffset,
 	                            ECSConstants::LODNearTickInterval, 0.f, true);
 	Registry.emplace<CVisCachePrev>(Entity);
+	Registry.emplace<CAIModePrev>(Entity);
+	Registry.emplace<CNavTargetPrev>(Entity);
 
 	return Entity;
 }

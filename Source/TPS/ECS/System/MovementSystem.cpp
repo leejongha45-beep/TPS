@@ -1,6 +1,9 @@
 #include "ECS/System/MovementSystem.h"
 #include "ECS/Component/Components.h"
+#include "ECS/System/FlowFieldSystem.h"
 #include "Async/ParallelFor.h"
+#include "NavigationSystem.h"
+#include "NavigationPath.h"
 
 namespace
 {
@@ -20,11 +23,51 @@ void PushToPrev(CTransformPrev& OutPrev, const CTransform& InCurrent)
 
 } // anonymous namespace
 
-/**
- * Read는 Cached 지역변수로 값을 복사해야 하므로 함수 래핑 불가 — ParallelFor 본문에 직접 노출
- * Write/PushToPrev만 함수로 분리하여 가독성 확보
- */
-void MovementSystem::Tick(entt::registry& Registry, float DeltaTime)
+void MovementSystem::UpdateChaseTargets(entt::registry& Registry, UWorld* World,
+                                        const FVector& PlayerPosition, int32 FrameCounter)
+{
+	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(World);
+	auto ChaseView = Registry.view<CAIModePrev, CTransformPrev, CNavTarget>();
+
+	for (auto Entity : ChaseView)
+	{
+		if (ChaseView.get<CAIModePrev>(Entity).Mode != EAIMode::Chase) { continue; }
+
+		// N프레임마다 경로 갱신
+		if (FrameCounter % ECSConstants::NavPathRefreshInterval != 0) { continue; }
+
+		const FVector& EnemyPos = ChaseView.get<CTransformPrev>(Entity).Position;
+
+		if (NavSys)
+		{
+			UNavigationPath* Path = NavSys->FindPathToLocationSynchronously(
+				World, EnemyPos, PlayerPosition);
+
+			if (Path && Path->PathPoints.Num() > 1)
+			{
+				ChaseView.get<CNavTarget>(Entity).NextWaypoint = Path->PathPoints[1];
+			}
+			else
+			{
+				ChaseView.get<CNavTarget>(Entity).NextWaypoint = PlayerPosition;
+			}
+		}
+		else
+		{
+			ChaseView.get<CNavTarget>(Entity).NextWaypoint = PlayerPosition;
+		}
+	}
+
+	// PushToPrev: CNavTarget → CNavTargetPrev
+	auto NavPrevView = Registry.view<CNavTarget, CNavTargetPrev>();
+	for (auto Entity : NavPrevView)
+	{
+		NavPrevView.get<CNavTargetPrev>(Entity).NextWaypoint =
+			NavPrevView.get<CNavTarget>(Entity).NextWaypoint;
+	}
+}
+
+void MovementSystem::Tick(entt::registry& Registry, float DeltaTime, const FFlowField& FlowField)
 {
 	auto View = Registry.view<CTransform, CTransformPrev, CMovementPrev, CEnemyStatePrev, CLODPrev>();
 
@@ -52,6 +95,11 @@ void MovementSystem::Tick(entt::registry& Registry, float DeltaTime)
 
 		// ② Write (AccumDT로 스킵 프레임 시간 보상)
 		Write(View.get<CTransform>(Entity), CachedAccumDT, CachedVelocity);
+
+		// ② -1. Z값 지형 보정 — FlowField Heights 캐시 참조
+		CTransform& Transform = View.get<CTransform>(Entity);
+		const float GroundZ = FlowField.LookupHeight(Transform.Position.X, Transform.Position.Y);
+		if (GroundZ > FFlowField::InvalidHeight) { Transform.Position.Z = GroundZ; }
 
 		// ③ PushToPrev
 		PushToPrev(View.get<CTransformPrev>(Entity), View.get<CTransform>(Entity));

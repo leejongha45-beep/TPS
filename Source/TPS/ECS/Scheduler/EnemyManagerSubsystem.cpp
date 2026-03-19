@@ -7,6 +7,7 @@
 #include "ECS/System/SpawnSystem.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "Core/Subsystem/TPSTargetSubsystem.h"
 #include "Wave/TPSWaveSettings.h"
 
 UEnemyManagerSubsystem::~UEnemyManagerSubsystem()
@@ -81,6 +82,26 @@ void UEnemyManagerSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 			ISMPtrs[i] = RenderActorInst->GetISMComponent(i);
 		}
 		EnemySchedulerInst->SetHISMs(ISMPtrs, HISM_LOD_COUNT);
+
+		// Flow Field 빌드 — 기지 위치 기준 BFS (GT Pass1 + Worker Pass2+3)
+		// TPSTargetSubsystem에서 기지 위치 자동 가져오기 (ATPSAllyBase::BeginPlay에서 등록됨)
+		FVector BaseLocation = FVector::ZeroVector;
+		if (UTPSTargetSubsystem* TargetSub = InWorld.GetSubsystem<UTPSTargetSubsystem>())
+		{
+			BaseLocation = TargetSub->GetAllyBaseLocation();
+		}
+		EnemySchedulerInst->SetBaseLocation(BaseLocation);
+
+		// 기지 위치가 유효하면 즉시 빌드, 아니면 Lazy 초기화에 위임
+		if (!BaseLocation.IsNearlyZero())
+		{
+			EnemySchedulerInst->BuildFlowField(&InWorld, BaseLocation);
+			UE_LOG(LogTemp, Log, TEXT("[EnemyMgr] FlowField built at BaseLocation: %s"), *BaseLocation.ToString());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] BaseLocation is ZeroVector — FlowField deferred to lazy init"));
+		}
 	}
 }
 
@@ -136,6 +157,22 @@ void UEnemyManagerSubsystem::QueueSpawn(const FEnemySpawnParams& Params)
 void UEnemyManagerSubsystem::FlushSpawnQueue()
 {
 	if (!ensure(EnemySchedulerInst)) { return; }
+
+	// Lazy FlowField 빌드 — 기지 BeginPlay가 OnWorldBeginPlay보다 늦을 때 대비
+	if (!EnemySchedulerInst->bFlowFieldBuilt)
+	{
+		UWorld* World = GetWorld();
+		if (UTPSTargetSubsystem* TargetSub = World ? World->GetSubsystem<UTPSTargetSubsystem>() : nullptr)
+		{
+			const FVector BaseLocation = TargetSub->GetAllyBaseLocation();
+			if (!BaseLocation.IsNearlyZero())
+			{
+				EnemySchedulerInst->SetBaseLocation(BaseLocation);
+				EnemySchedulerInst->BuildFlowField(World, BaseLocation);
+				UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] FlowField lazy-built at BaseLocation: %s"), *BaseLocation.ToString());
+			}
+		}
+	}
 
 	// 신규 스폰은 항상 Near(LOD0) HISM에 등록
 	constexpr int32 SpawnLOD = 0;

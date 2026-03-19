@@ -129,3 +129,54 @@ void LODSystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 		PushToPrev(View.get<CLODPrev>(Entity), LOD);
 	});
 }
+
+void LODSystem::TransitionInstances(entt::registry& Registry,
+                                    UInstancedStaticMeshComponent* const* HISMRefs,
+                                    TArray<entt::entity>* InstanceToEntityPerLOD)
+{
+	auto View = Registry.view<CRenderProxy, CLOD, CLODPrev,
+	                          CTransformPrev, CAnimationPrev>();
+
+	for (auto Entity : View)
+	{
+		auto& Proxy = View.get<CRenderProxy>(Entity);
+		const uint8 NewLOD = static_cast<uint8>(View.get<CLOD>(Entity).Level);
+		const uint8 OldLOD = Proxy.LODLevel;
+
+		if (NewLOD == OldLOD || Proxy.InstanceIndex == INDEX_NONE) { continue; }
+
+		auto* pOldISM = HISMRefs[OldLOD];
+		auto* pNewISM = HISMRefs[NewLOD];
+		if (!pOldISM || !pNewISM) { continue; }
+
+		// ① 이전 ISM에서 제거 (swap-back 보정)
+		const int32 OldIndex = Proxy.InstanceIndex;
+		const int32 OldLast = pOldISM->GetInstanceCount() - 1;
+
+		pOldISM->RemoveInstance(OldIndex);
+
+		if (OldIndex != OldLast)
+		{
+			entt::entity SwappedEntity = InstanceToEntityPerLOD[OldLOD][OldLast];
+			Registry.get<CRenderProxy>(SwappedEntity).InstanceIndex = OldIndex;
+			InstanceToEntityPerLOD[OldLOD][OldIndex] = SwappedEntity;
+		}
+		InstanceToEntityPerLOD[OldLOD].Pop();
+
+		// ② 새 ISM에 추가
+		const FVector& Pos = View.get<CTransformPrev>(Entity).Position;
+		const FTransform InstanceTransform(FQuat::Identity, Pos);
+		const int32 NewIndex = pNewISM->AddInstance(InstanceTransform, true);
+
+		// 커스텀 데이터 (VAT) 복사
+		const float AnimIdx = View.get<CAnimationPrev>(Entity).AnimIndex;
+		const float AnimTime = View.get<CAnimationPrev>(Entity).AnimTime;
+		pNewISM->SetCustomDataValue(NewIndex, 0, AnimIdx);
+		pNewISM->SetCustomDataValue(NewIndex, 1, AnimTime);
+
+		// ③ 프록시 갱신
+		Proxy.InstanceIndex = NewIndex;
+		Proxy.LODLevel = NewLOD;
+		InstanceToEntityPerLOD[NewLOD].Add(Entity);
+	}
+}

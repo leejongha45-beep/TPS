@@ -18,6 +18,6 @@ public class TPS : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "GameplayTags" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimationLocomotionLibraryRuntime", "AnimationWarpingRuntime", "Slate", "SlateCore", "Niagara", "PhysicsCore", "DeveloperSettings", "MediaAssets" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimationLocomotionLibraryRuntime", "AnimationWarpingRuntime", "Slate", "SlateCore", "Niagara", "PhysicsCore", "DeveloperSettings", "MediaAssets", "NavigationSystem" });
 	}
 }

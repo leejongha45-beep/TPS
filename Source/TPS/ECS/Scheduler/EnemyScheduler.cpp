@@ -10,6 +10,7 @@
 #include "ECS/System/DeathSystem.h"
 #include "ECS/System/LODSystem.h"
 #include "ECS/System/MovementSystem.h"
+#include "ECS/System/FlowFieldSystem.h"
 #include "ECS/System/SeparationSystem.h"
 #include "ECS/System/VisualizationSystem.h"
 #include "Engine/Engine.h"
@@ -63,14 +64,17 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	const FVector PlayerPosition = GetFrom<FVector>(World, GetPlayerPosition);
 	IDamageable* pCharacterDamageable = Cast<IDamageable>(UGameplayStatics::GetPlayerPawn(World, 0));
 
+	// 1.1. Chase 엔티티 NavMesh 경로 쿼리 [GameThread]
+	MovementSystem::UpdateChaseTargets(Registry, World, PlayerPosition, FrameCounter);
+
 	// 1.5. Phase_LOD (AccumDT 누적/리셋 + bShouldTick 결정)
 	LODSystem::Tick(Registry, PlayerPosition, DeltaTime, FrameCounter);
 
 	// 2. Phase_Damage (큐 소비 → CHealth 감산 → PushToPrev)
 	DamageSystem::Tick(Registry, DamageQueue, InstanceToEntityPerLOD);
 
-	// 3. Phase_AI
-	AISystem::Tick(Registry, PlayerPosition, AttackRange);
+	// 3. Phase_AI (Rush: FlowField / Chase: NavTarget)
+	AISystem::Tick(Registry, PlayerPosition, AttackRange, BaseFlowField, BaseLocation);
 
 	// 3.1. Phase_Attack (쿨다운 틱 + 데미지 집계 → IDamageable)
 	AttackSystem::Tick(Registry, DeltaTime, pCharacterDamageable);
@@ -105,9 +109,9 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	);
 
 	FGraphEventRef MoveTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
-		[&Registry = Registry, DeltaTime]()
+		[&Registry = Registry, DeltaTime, &FlowField = BaseFlowField]()
 		{
-			MovementSystem::Tick(Registry, DeltaTime);
+			MovementSystem::Tick(Registry, DeltaTime, FlowField);
 		},
 		TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
 	);
@@ -115,53 +119,8 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	// ── Barrier: Phase 5+6 완료 대기 ── [GameThread]
 	FTaskGraphInterface::Get().WaitUntilTasksComplete({AnimTask, MoveTask});
 
-	// 7. LOD Transition — LOD 레벨 변경 시 HISM간 인스턴스 이동
-	{
-		auto View = Registry.view<CRenderProxy, CLOD, CLODPrev,
-		                          CTransformPrev, CAnimationPrev>();
-		for (auto Entity : View)
-		{
-			auto& Proxy = View.get<CRenderProxy>(Entity);
-			const uint8 NewLOD = static_cast<uint8>(View.get<CLOD>(Entity).Level);
-			const uint8 OldLOD = Proxy.LODLevel;
-
-			if (NewLOD == OldLOD || Proxy.InstanceIndex == INDEX_NONE) { continue; }
-
-			auto* pOldHISM = HISMRefs[OldLOD];
-			auto* pNewHISM = HISMRefs[NewLOD];
-			if (!pOldHISM || !pNewHISM) { continue; }
-
-			// ① 이전 HISM에서 제거 (swap-back 보정)
-			const int32 OldIndex = Proxy.InstanceIndex;
-			const int32 OldLast = pOldHISM->GetInstanceCount() - 1;
-
-			pOldHISM->RemoveInstance(OldIndex);
-
-			if (OldIndex != OldLast)
-			{
-				entt::entity SwappedEntity = InstanceToEntityPerLOD[OldLOD][OldLast];
-				Registry.get<CRenderProxy>(SwappedEntity).InstanceIndex = OldIndex;
-				InstanceToEntityPerLOD[OldLOD][OldIndex] = SwappedEntity;
-			}
-			InstanceToEntityPerLOD[OldLOD].Pop();
-
-			// ② 새 HISM에 추가
-			const FVector& Pos = View.get<CTransformPrev>(Entity).Position;
-			const FTransform InstanceTransform(FQuat::Identity, Pos);
-			const int32 NewIndex = pNewHISM->AddInstance(InstanceTransform, true);
-
-			// 커스텀 데이터 (VAT) 복사
-			const float AnimIdx = View.get<CAnimationPrev>(Entity).AnimIndex;
-			const float AnimTime = View.get<CAnimationPrev>(Entity).AnimTime;
-			pNewHISM->SetCustomDataValue(NewIndex, 0, AnimIdx);
-			pNewHISM->SetCustomDataValue(NewIndex, 1, AnimTime);
-
-			// ③ 프록시 갱신
-			Proxy.InstanceIndex = NewIndex;
-			Proxy.LODLevel = NewLOD;
-			InstanceToEntityPerLOD[NewLOD].Add(Entity);
-		}
-	}
+	// 7. LOD Transition — LOD 레벨 변경 시 ISM간 인스턴스 이동
+	LODSystem::TransitionInstances(Registry, HISMRefs, InstanceToEntityPerLOD);
 
 	// 7.5. Phase_Visualization — LOD별 HISM 갱신
 	for (int32 LODIdx = 0; LODIdx < HISM_LOD_COUNT; ++LODIdx)
@@ -194,6 +153,30 @@ void FEnemyScheduler::Initialize(UWorld* InWorld)
 {
 	CachedWorld = InWorld;
 	bIsActive = true;
+	BaseFlowField.Initialize();
+}
+
+void FEnemyScheduler::BuildFlowField(class UWorld* World, const FVector& MapCenter)
+{
+	// Pass 1 [GameThread]: 라인트레이스 → Heights + Blocked
+	FlowFieldSystem::BuildTerrainCache(BaseFlowField, World, MapCenter);
+
+	// 기지 셀 인덱스
+	const int32 GoalIndex = BaseFlowField.WorldToIndex(BaseLocation.X, BaseLocation.Y);
+
+	// Pass 2+3 [Worker]: 절벽 엣지 + BFS → TaskGraph 디스패치
+	FGraphEventRef BuildTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+		[this, GoalIndex]()
+		{
+			FlowFieldSystem::BuildCliffEdgesAndBFS(BaseFlowField, GoalIndex);
+		},
+		TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
+	);
+
+	bFlowFieldBuilt = true;
+
+	// Worker 완료 대기 — BeginPlay 시점이라 블로킹 허용
+	FTaskGraphInterface::Get().WaitUntilTasksComplete({BuildTask});
 }
 
 void FEnemyScheduler::Release()

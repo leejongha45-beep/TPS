@@ -23,6 +23,13 @@ enum class EEnemyState : uint8
 	Dead       // 애니메이션 완료 → Cleanup 대상
 };
 
+/** AI 모드 — 이동 목표 레이어 (EEnemyState와 독립) */
+enum class EAIMode : uint8
+{
+	Rush,    // 기지 방향 Flow Field 참조
+	Chase    // 플레이어 추적 (NavMesh 개별 경로)
+};
+
 /** LOD 레벨 — 거리 기반 틱 빈도 제어 */
 enum class ELODLevel : uint8
 {
@@ -59,6 +66,11 @@ namespace ECSConstants
 	constexpr int32 LODNearTickInterval = 1;   // 매 프레임
 	constexpr int32 LODMidTickInterval  = 2;   // 2프레임 주기
 	constexpr int32 LODFarTickInterval  = 4;   // 4프레임 주기
+
+	// ── AI Mode (Rush → Chase 전환) ──
+	constexpr float AggroRadius         = 3000.f;                            // 플레이어 탐지 범위
+	constexpr float AggroRadiusSq       = AggroRadius * AggroRadius;
+	constexpr int32 NavPathRefreshInterval = 15;                             // Chase NavMesh 경로 갱신 주기 (프레임)
 
 	// ── LOD 히스테리시스 (경계 진동 방지) ──
 	constexpr float LODHysteresisMargin   = 2000.f;                                        // 20m
@@ -130,6 +142,18 @@ struct CLOD
 	uint8 bShouldTick : 1 = true;           // 이번 프레임 틱 여부
 };
 
+/** AI 모드 — Rush(기지) / Chase(플레이어) */
+struct CAIMode
+{
+	EAIMode Mode = EAIMode::Rush;
+};
+
+/** NavMesh 웨이포인트 — Chase 모드 전용 */
+struct CNavTarget
+{
+	FVector NextWaypoint = FVector::ZeroVector;
+};
+
 // ── Prev (읽기용) ──
 
 /** 적 상태 — 이전 프레임 */
@@ -198,6 +222,18 @@ struct CAttackPrev
 	float Damage        = 10.f;
 	float Cooldown      = 1.5f;
 	float CooldownTimer = 0.f;
+};
+
+/** AI 모드 — 이전 프레임 */
+struct CAIModePrev
+{
+	EAIMode Mode = EAIMode::Rush;
+};
+
+/** NavMesh 웨이포인트 — 이전 프레임 */
+struct CNavTargetPrev
+{
+	FVector NextWaypoint = FVector::ZeroVector;
 };
 
 /** LOD — 이전 프레임 */

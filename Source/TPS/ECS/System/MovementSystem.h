@@ -1,23 +1,28 @@
 #pragma once
 
+#include "Math/Vector.h"
 #include "ThirdParty/EnTT/include/entt/entity/registry.hpp"
 
+struct FFlowField;
+
 /**
- * 이동 시스템 — CTransform 갱신
+ * 이동 시스템 — CTransform 갱신 + Z값 지형 보정
  *
- * [WorkerThread] Phase 6 — AnimationSystem과 TaskGraph 병렬 실행
+ * UpdateChaseTargets: [GameThread] Phase 1.1
+ * - Chase 엔티티 NavMesh 경로 쿼리 + CNavTarget PushToPrev
+ * - Read:  CAIModePrev, CTransformPrev
+ * - Write: CNavTarget
+ * - PushToPrev: CNavTarget → CNavTargetPrev
+ *
+ * Tick: [WorkerThread] Phase 6
  * - 내부 ParallelFor로 Entity별 병렬 처리
- * - Read:  CMovementPrev.Velocity, CEnemyStatePrev (Moving 필터), CLODPrev (bShouldTick, AccumulatedDeltaTime)
+ * - Read:  CMovementPrev.Velocity, CEnemyStatePrev, CLODPrev, FFlowField.Heights
  * - Write: CTransform.Position
  * - PushToPrev: CTransform → CTransformPrev
- *
- * 스레드 안전성:
- * - AnimationSystem과 Write 대상 완전 분리 (CTransform vs CAnimation)
- * - CEnemyStatePrev, CLODPrev는 양쪽 모두 Read-Only → 공유 읽기 안전
- * - LOD 스킵: bShouldTick=false → Write/PushToPrev 건너뜀 → Position 유지
- *   틱 시 AccumulatedDeltaTime으로 스킵 프레임 시간 보상
  */
 namespace MovementSystem
 {
-	void Tick(entt::registry& Registry, float DeltaTime);
+	void UpdateChaseTargets(entt::registry& Registry, class UWorld* InWorld,
+	                        const FVector& PlayerPosition, int32 FrameCounter);
+	void Tick(entt::registry& Registry, float DeltaTime, const FFlowField& FlowField);
 };

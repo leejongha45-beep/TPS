@@ -4,6 +4,7 @@
 #include "Tickable.h"
 #include "ECS/Data/DamageEvent.h"
 #include "ECS/Renderer/AEnemyRenderActor.h"
+#include "ECS/System/FlowFieldSystem.h"
 #include "ThirdParty/EnTT/include/entt/entity/registry.hpp"
 
 /**
@@ -16,6 +17,7 @@
  *   Phase 0:     PushToPrev_RenderProxy
  *   Phase 1:     UObject 캐싱
  *   Phase 1.5:   LODSystem (AccumDT + bShouldTick 결정)
+ *   Phase 2.5:   FlowField BFS (조건부, 최초 1회 GT+Worker)
  *   Phase 2~4:   Damage → AI → Attack → Separation ∥ Death
  *   Phase 5+6:   Animation ∥ Movement (TaskGraph)
  *   ── Barrier ──
@@ -46,6 +48,9 @@ public:
 	FORCEINLINE entt::registry& GetRegistry() { return Registry; }
 
 	void SetAttackRange(float InRange) { AttackRange = InRange; }
+	void SetBaseLocation(const FVector& InLocation) { BaseLocation = InLocation; }
+	void BuildFlowField(class UWorld* World, const FVector& MapCenter);
+	FORCEINLINE const FFlowField& GetBaseFlowField() const { return BaseFlowField; }
 
 	/** LOD별 HISM 참조 세팅 — 초기화 시 RenderActor로부터 */
 	void SetHISMs(class UInstancedStaticMeshComponent* const* InHISMs, int32 Count);
@@ -89,11 +94,23 @@ protected:
 	/** AI 공격 판정 거리 — AISystem에서 AttackCooldown 진입 기준 */
 	float AttackRange = 150.f;
 
+	/** 기지 방향 Flow Field — BeginPlay 1회 빌드, 영구 캐시 */
+	FFlowField BaseFlowField;
+
+	/** 기지 위치 — Flow Field BFS 목표점 */
+	FVector BaseLocation = FVector::ZeroVector;
+
 	/** Tick에서 사용할 World — Subsystem이 Initialize 시 전달 */
 	TWeakObjectPtr<class UWorld> CachedWorld;
 
 	/** 스케줄러 활성 상태 — false면 IsTickable()이 false를 반환하여 Tick 중단 */
 	uint8 bIsActive : 1 = false;
+
+public:
+	/** FlowField 빌드 완료 여부 — Lazy 초기화: 기지 위치 등록 후 첫 Tick에서 빌드 */
+	uint8 bFlowFieldBuilt : 1 = false;
+
+protected:
 
 	/** LOD 틱 주기 계산용 프레임 카운터 — FrameOffset과 조합하여 엔티티별 틱 시점 분산 */
 	uint32 FrameCounter = 0;

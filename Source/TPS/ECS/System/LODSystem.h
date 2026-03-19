@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Math/Vector.h"
 #include "ThirdParty/EnTT/include/entt/entity/registry.hpp"
 
@@ -23,4 +24,12 @@ namespace LODSystem
 {
 	void Tick(entt::registry& Registry, const FVector& PlayerPosition,
 	          float DeltaTime, uint32 FrameCounter);
+
+	/** LOD 전환 — LOD 레벨 변경 시 ISM 간 인스턴스 이동
+	 *  [GameThread] Phase 7 — Movement/Animation 이후
+	 *  - ISM RemoveInstance/AddInstance + swap-back 보정
+	 *  - InstanceToEntity 역방향 테이블 갱신 */
+	void TransitionInstances(entt::registry& Registry,
+	                         class UInstancedStaticMeshComponent* const* HISMRefs,
+	                         TArray<entt::entity>* InstanceToEntityPerLOD);
 };
