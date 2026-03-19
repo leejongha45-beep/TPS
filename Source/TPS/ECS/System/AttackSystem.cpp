@@ -32,60 +32,44 @@ void AttackSystem::Tick(entt::registry& Registry, float DeltaTime, IDamageable* 
 
 	for (auto Entity : View)
 	{
-		// ① Read: Prev → Cached 지역변수
-		const EEnemyState CachedState   = View.get<CEnemyStatePrev>(Entity).State;
-		const float CachedTimer         = View.get<CAttackPrev>(Entity).CooldownTimer;
-		const float CachedDamage        = View.get<CAttackPrev>(Entity).Damage;
-		const float CachedCooldown      = View.get<CAttackPrev>(Entity).Cooldown;
-		const float CachedAnimTime      = View.get<CAnimationPrev>(Entity).AnimTime;
+		// ① Read — Prev → 지역변수
+		const EEnemyState CachedState = View.get<CEnemyStatePrev>(Entity).State;
+		const float CachedTimer       = View.get<CAttackPrev>(Entity).CooldownTimer;
+		const float CachedDamage      = View.get<CAttackPrev>(Entity).Damage;
+		const float CachedCooldown    = View.get<CAttackPrev>(Entity).Cooldown;
+		const float CachedAnimTime    = View.get<CAnimationPrev>(Entity).AnimTime;
 
-		// AttackCooldown: 쿨다운 틱 → 만료 시 AttackReady 전환
+		// ② 계산 — 지역변수만 사용
+		float NewTimer = CachedTimer;
+		EEnemyState NewState = CachedState;
+
 		if (CachedState == EEnemyState::AttackCooldown)
 		{
-			float NewTimer = CachedTimer - DeltaTime;
-			if (NewTimer <= 0.f)
-			{
-				Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
-				      0.f, EEnemyState::AttackReady);
-			}
-			else
-			{
-				Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
-				      NewTimer, EEnemyState::AttackCooldown);
-			}
+			NewTimer = CachedTimer - DeltaTime;
+			NewState = (NewTimer <= 0.f) ? EEnemyState::AttackReady : EEnemyState::AttackCooldown;
+			if (NewTimer <= 0.f) { NewTimer = 0.f; }
 		}
-		// AttackReady: 준비 모션 종료 → Attacking 전환
 		else if (CachedState == EEnemyState::AttackReady)
 		{
-			if (CachedAnimTime >= ECSConstants::AttackReadyDuration)
-			{
-				Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
-				      CachedTimer, EEnemyState::Attacking);
-			}
-			else
-			{
-				Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
-				      CachedTimer, EEnemyState::AttackReady);
-			}
+			NewState = (CachedAnimTime >= ECSConstants::AttackReadyDuration)
+				? EEnemyState::Attacking : EEnemyState::AttackReady;
 		}
-		// Attacking: 공격 모션 종료 → 데미지 집계 + AttackCooldown 전환
 		else if (CachedState == EEnemyState::Attacking)
 		{
 			if (CachedAnimTime >= ECSConstants::AttackDuration)
 			{
 				TotalDamage += CachedDamage;
-				Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
-				      CachedCooldown, EEnemyState::AttackCooldown);
-			}
-			else
-			{
-				Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
-				      CachedTimer, EEnemyState::Attacking);
+				NewTimer = CachedCooldown;
+				NewState = EEnemyState::AttackCooldown;
 			}
 		}
 		else { continue; }
 
-		// ③ PushToPrev
+		// ③ Write — Current에 쓰기
+		Write(View.get<CAttack>(Entity), View.get<CEnemyState>(Entity),
+		      NewTimer, NewState);
+
+		// ④ PushToPrev
 		PushToPrev(View.get<CAttackPrev>(Entity), View.get<CEnemyStatePrev>(Entity),
 		           View.get<CAttack>(Entity), View.get<CEnemyState>(Entity));
 	}

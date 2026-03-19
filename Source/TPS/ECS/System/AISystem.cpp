@@ -51,25 +51,25 @@ void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 	const int32 Count = Entities.Num();
 
 	// ── ParallelFor: Entity별 독립 처리 ── [WorkerThread]
-	ParallelFor(Count, [&](int32 Index)
+	ParallelFor(Count, [&View, &Entities, &PlayerPosition, &BaseFlowField, &BaseLocation, AttackRangeSq](int32 Index)
 	{
 		const entt::entity Entity = Entities[Index];
 
-		// ① Read: Prev → Cached 지역변수
+		// ① Read — Prev → 지역변수 (전부 상단에서 캐싱)
 		const EEnemyState CachedState = View.get<CEnemyStatePrev>(Entity).State;
-
-		// Dying/Dead Entity는 AI 갱신 불필요
 		if (CachedState == EEnemyState::Dying || CachedState == EEnemyState::Dead) { return; }
 
-		// LOD 스킵 — 스킵 시 Write/PushToPrev 건너뜀 → Velocity/State 유지 (관성 이동)
-		if (!View.get<CLODPrev>(Entity).bShouldTick) { return; }
+		const bool bCachedShouldTick = View.get<CLODPrev>(Entity).bShouldTick;
+		if (!bCachedShouldTick) { return; }
 
 		const FVector CachedPosition = View.get<CTransformPrev>(Entity).Position;
-		const float CachedHealth = View.get<CHealthPrev>(Entity).Current;
-		const float CachedMaxSpeed = View.get<CMovementPrev>(Entity).MaxSpeed;
-		const EAIMode CachedAIMode = View.get<CAIModePrev>(Entity).Mode;
+		const float CachedHealth     = View.get<CHealthPrev>(Entity).Current;
+		const float CachedMaxHealth  = View.get<CHealthPrev>(Entity).Max;
+		const float CachedMaxSpeed   = View.get<CMovementPrev>(Entity).MaxSpeed;
+		const EAIMode CachedAIMode   = View.get<CAIModePrev>(Entity).Mode;
+		const FVector CachedWaypoint = View.get<CNavTargetPrev>(Entity).NextWaypoint;
 
-		// 상태 결정 — 지역변수만 사용
+		// ② 계산 — 지역변수만 사용
 		EEnemyState NewState;
 		FVector NewVelocity;
 		EAIMode NewMode = CachedAIMode;
@@ -84,23 +84,20 @@ void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 			const FVector ToPlayer = PlayerPosition - CachedPosition;
 			const float DistSqToPlayer = ToPlayer.SizeSquared();
 
-			// ── Rush → Chase 전환 판정 ──
+			// Rush → Chase 전환 판정
 			if (CachedAIMode == EAIMode::Rush)
 			{
-				// 피격 감지: 현재 HP < MaxHP (이미 데미지를 받은 적)
-				const float CachedMaxHealth = View.get<CHealthPrev>(Entity).Max;
 				if (CachedHealth < CachedMaxHealth)
 				{
 					NewMode = EAIMode::Chase;
 				}
-				// 플레이어 탐지 범위 진입
 				else if (DistSqToPlayer <= ECSConstants::AggroRadiusSq)
 				{
 					NewMode = EAIMode::Chase;
 				}
 			}
 
-			// ── 공격 범위 판정 (Chase 모드에서만 플레이어 공격) ──
+			// 공격 범위 판정 (Chase 모드에서만 플레이어 공격)
 			if (NewMode == EAIMode::Chase && DistSqToPlayer <= AttackRangeSq)
 			{
 				NewState = (CachedState == EEnemyState::AttackCooldown ||
@@ -116,7 +113,6 @@ void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 
 				if (NewMode == EAIMode::Rush)
 				{
-					// Flow Field 방향 조회
 					const FVector2f FlowDir = BaseFlowField.LookupDirection(
 						CachedPosition.X, CachedPosition.Y);
 
@@ -126,23 +122,19 @@ void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 					}
 					else
 					{
-						// 그리드 밖 폴백 — 기지 방향 직선
 						const FVector ToBase = BaseLocation - CachedPosition;
 						NewVelocity = ToBase.GetSafeNormal() * CachedMaxSpeed;
 					}
 				}
 				else // Chase
 				{
-					// NavMesh 웨이포인트 방향
-					const FVector& Waypoint = View.get<CNavTargetPrev>(Entity).NextWaypoint;
-					if (!Waypoint.IsNearlyZero())
+					if (!CachedWaypoint.IsNearlyZero())
 					{
-						const FVector ToWaypoint = Waypoint - CachedPosition;
+						const FVector ToWaypoint = CachedWaypoint - CachedPosition;
 						NewVelocity = ToWaypoint.GetSafeNormal() * CachedMaxSpeed;
 					}
 					else
 					{
-						// NavTarget 없으면 직선 폴백
 						NewVelocity = ToPlayer.GetSafeNormal() * CachedMaxSpeed;
 					}
 				}

@@ -5,65 +5,37 @@
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
 
-namespace
-{
-
-/** ② Write: 캐싱된 읽기값을 파라미터로 받아 Current에만 쓰기 */
-void Write(CTransform& OutTransform, float DeltaTime, const FVector& CachedVelocity)
-{
-	OutTransform.Position += CachedVelocity * DeltaTime;
-}
-
-/** ③ PushToPrev: 갱신된 Current → Prev 복사 (다음 프레임용) */
-void PushToPrev(CTransformPrev& OutPrev, const CTransform& InCurrent)
-{
-	OutPrev.Position = InCurrent.Position;
-	OutPrev.Rotation = InCurrent.Rotation;
-}
-
-} // anonymous namespace
 
 void MovementSystem::UpdateChaseTargets(entt::registry& Registry, UWorld* World,
                                         const FVector& PlayerPosition, int32 FrameCounter)
 {
+	if (FrameCounter % ECSConstants::NavPathRefreshInterval != 0) { return; }
+
 	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(World);
-	auto ChaseView = Registry.view<CAIModePrev, CTransformPrev, CNavTarget>();
+	auto View = Registry.view<CAIModePrev, CTransformPrev, CNavTarget, CNavTargetPrev>();
 
-	for (auto Entity : ChaseView)
+	for (auto Entity : View)
 	{
-		if (ChaseView.get<CAIModePrev>(Entity).Mode != EAIMode::Chase) { continue; }
+		// ① Read — Prev → 지역변수
+		const EAIMode CachedMode = View.get<CAIModePrev>(Entity).Mode;
+		if (CachedMode != EAIMode::Chase) { continue; }
+		const FVector CachedPosition = View.get<CTransformPrev>(Entity).Position;
 
-		// N프레임마다 경로 갱신
-		if (FrameCounter % ECSConstants::NavPathRefreshInterval != 0) { continue; }
-
-		const FVector& EnemyPos = ChaseView.get<CTransformPrev>(Entity).Position;
-
+		// ② Write — 지역변수로 계산 → Current에 쓰기
+		FVector NewWaypoint = PlayerPosition;
 		if (NavSys)
 		{
 			UNavigationPath* Path = NavSys->FindPathToLocationSynchronously(
-				World, EnemyPos, PlayerPosition);
-
+				World, CachedPosition, PlayerPosition);
 			if (Path && Path->PathPoints.Num() > 1)
 			{
-				ChaseView.get<CNavTarget>(Entity).NextWaypoint = Path->PathPoints[1];
-			}
-			else
-			{
-				ChaseView.get<CNavTarget>(Entity).NextWaypoint = PlayerPosition;
+				NewWaypoint = Path->PathPoints[1];
 			}
 		}
-		else
-		{
-			ChaseView.get<CNavTarget>(Entity).NextWaypoint = PlayerPosition;
-		}
-	}
+		View.get<CNavTarget>(Entity).NextWaypoint = NewWaypoint;
 
-	// PushToPrev: CNavTarget → CNavTargetPrev
-	auto NavPrevView = Registry.view<CNavTarget, CNavTargetPrev>();
-	for (auto Entity : NavPrevView)
-	{
-		NavPrevView.get<CNavTargetPrev>(Entity).NextWaypoint =
-			NavPrevView.get<CNavTarget>(Entity).NextWaypoint;
+		// ③ PushToPrev — Current → Prev
+		View.get<CNavTargetPrev>(Entity).NextWaypoint = NewWaypoint;
 	}
 }
 
@@ -79,29 +51,30 @@ void MovementSystem::Tick(entt::registry& Registry, float DeltaTime, const FFlow
 	const int32 Count = Entities.Num();
 
 	// ── ParallelFor: Entity별 독립 처리 ── [WorkerThread]
-	ParallelFor(Count, [&](int32 Index)
+	ParallelFor(Count, [&View, &Entities, &FlowField](int32 Index)
 	{
 		const entt::entity Entity = Entities[Index];
 
-		// ① Read
-		const CLODPrev& CachedLOD = View.get<CLODPrev>(Entity);
-		if (!CachedLOD.bShouldTick) { return; }
+		// ① Read — Prev → 지역변수
+		const bool bCachedShouldTick = View.get<CLODPrev>(Entity).bShouldTick;
+		if (!bCachedShouldTick) { return; }
 
 		const EEnemyState CachedState = View.get<CEnemyStatePrev>(Entity).State;
 		if (CachedState != EEnemyState::Moving) { return; }
 
 		const FVector CachedVelocity = View.get<CMovementPrev>(Entity).Velocity;
-		const float CachedAccumDT = CachedLOD.AccumulatedDeltaTime;
+		const float CachedAccumDT = View.get<CLODPrev>(Entity).AccumulatedDeltaTime;
+		const FVector CachedPosition = View.get<CTransformPrev>(Entity).Position;
 
-		// ② Write (AccumDT로 스킵 프레임 시간 보상)
-		Write(View.get<CTransform>(Entity), CachedAccumDT, CachedVelocity);
+		// ② 계산 — 지역변수만 사용
+		FVector NewPosition = CachedPosition + CachedVelocity * CachedAccumDT;
+		const float GroundZ = FlowField.LookupHeight(NewPosition.X, NewPosition.Y);
+		if (GroundZ > FFlowField::InvalidHeight) { NewPosition.Z = GroundZ; }
 
-		// ② -1. Z값 지형 보정 — FlowField Heights 캐시 참조
-		CTransform& Transform = View.get<CTransform>(Entity);
-		const float GroundZ = FlowField.LookupHeight(Transform.Position.X, Transform.Position.Y);
-		if (GroundZ > FFlowField::InvalidHeight) { Transform.Position.Z = GroundZ; }
+		// ③ Write — Current에 쓰기
+		View.get<CTransform>(Entity).Position = NewPosition;
 
-		// ③ PushToPrev
-		PushToPrev(View.get<CTransformPrev>(Entity), View.get<CTransform>(Entity));
+		// ④ PushToPrev
+		View.get<CTransformPrev>(Entity).Position = NewPosition;
 	});
 }

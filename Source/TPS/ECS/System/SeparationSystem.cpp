@@ -40,23 +40,6 @@ void FSpatialGrid::Build(entt::registry& Registry, float InCellSize,
 
 // ── SeparationSystem ──
 
-namespace
-{
-
-/** ② Write: 분리력 블렌딩된 속도를 CMovement에 쓰기 */
-void Write(CMovement& OutMovement, const FVector& BlendedVelocity)
-{
-	OutMovement.Velocity = BlendedVelocity;
-}
-
-/** ③ PushToPrev: 갱신된 CMovement → CMovementPrev 복사 */
-void PushToPrev(CMovementPrev& OutPrev, const CMovement& InCurrent)
-{
-	OutPrev.Velocity = InCurrent.Velocity;
-	OutPrev.MaxSpeed = InCurrent.MaxSpeed;
-}
-
-} // anonymous namespace
 
 void SeparationSystem::Tick(entt::registry& Registry, const FVector& PlayerPosition)
 {
@@ -117,9 +100,11 @@ void SeparationSystem::Tick(entt::registry& Registry, const FVector& PlayerPosit
 
 		Push = Push.GetClampedToMaxSize(ECSConstants::MaxSeparationForce);
 
+		// ② Write — Current에 쓰기
 		const entt::entity Entity = Grid.Entities[Index];
-		CTransform& Transform = View.get<CTransform>(Entity);
-		Transform.Position += Push;
-		View.get<CTransformPrev>(Entity).Position = Transform.Position;
+		View.get<CTransform>(Entity).Position += Push;
+
+		// ③ PushToPrev — Current → Prev
+		View.get<CTransformPrev>(Entity).Position = View.get<CTransform>(Entity).Position;
 	});
 }

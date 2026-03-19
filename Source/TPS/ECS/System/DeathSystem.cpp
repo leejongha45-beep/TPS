@@ -31,7 +31,7 @@ void DeathSystem::Tick(entt::registry& Registry)
 	const int32 Count = Entities.Num();
 
 	// ── ParallelFor: Entity별 독립 처리 ── [WorkerThread]
-	ParallelFor(Count, [&](int32 Index)
+	ParallelFor(Count, [&View, &Entities](int32 Index)
 	{
 		const entt::entity Entity = Entities[Index];
 

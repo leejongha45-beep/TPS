@@ -48,26 +48,19 @@ void LODSystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 	{
 		const entt::entity Entity = Entities[Index];
 
-		auto& LOD           = View.get<CLOD>(Entity);
-		const auto& LODPrev = View.get<CLODPrev>(Entity);
-
-		// ① 이전 프레임에 틱했으면 AccumDT 리셋
-		// NOTE: AccumDT는 Current에 직접 읽기/쓰기 — 누적 특성상 Read→Prev 패턴 적용 불가
-		if (LODPrev.bShouldTick)
-		{
-			LOD.AccumulatedDeltaTime = 0.f;
-		}
-
-		// ② 이번 프레임 DeltaTime 누적
-		LOD.AccumulatedDeltaTime += DeltaTime;
-
-		// ③ Read: 거리² 계산
+		// ① Read — Prev → 지역변수
 		const FVector CachedPosition = View.get<CTransformPrev>(Entity).Position;
+		const ELODLevel CachedLevel = View.get<CLODPrev>(Entity).Level;
+		const bool bPrevTicked = View.get<CLODPrev>(Entity).bShouldTick;
+		const float CachedAccumDT = View.get<CLODPrev>(Entity).AccumulatedDeltaTime;
+		const uint32 CachedFrameOffset = View.get<CLODPrev>(Entity).FrameOffset;
+
+		// ② 계산 — 지역변수만 사용
+		const float NewAccumDT = bPrevTicked ? DeltaTime : (CachedAccumDT + DeltaTime);
 		const float DistSq = (CachedPosition - PlayerPosition).SizeSquared();
 
-		// ④ 히스테리시스 기반 LOD Level 결정
-		//    올라갈 때(Near→Mid→Far)와 내려올 때(Far→Mid→Near) 임계값 분리
-		const ELODLevel CachedLevel = LODPrev.Level;
+		// 히스테리시스 기반 LOD Level 결정
+		//   올라갈 때(Near→Mid→Far)와 내려올 때(Far→Mid→Near) 임계값 분리
 		ELODLevel NewLevel = {};
 		int32 NewTickInterval = 0;
 
@@ -118,14 +111,16 @@ void LODSystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 			break;
 		}
 
-		// ⑤ 이번 프레임 틱 여부 결정
+		// 이번 프레임 틱 여부 결정
 		const uint8 bNewShouldTick =
-			((FrameCounter + LOD.FrameOffset) % NewTickInterval == 0) ? 1 : 0;
+			((FrameCounter + CachedFrameOffset) % NewTickInterval == 0) ? 1 : 0;
 
-		// ⑥ Write
+		// ③ Write — 계산 결과 → Current에 쓰기
+		auto& LOD = View.get<CLOD>(Entity);
+		LOD.AccumulatedDeltaTime = NewAccumDT;
 		Write(LOD, NewLevel, NewTickInterval, bNewShouldTick);
 
-		// ⑦ PushToPrev
+		// ④ PushToPrev — Current → Prev
 		PushToPrev(View.get<CLODPrev>(Entity), LOD);
 	});
 }
@@ -134,49 +129,51 @@ void LODSystem::TransitionInstances(entt::registry& Registry,
                                     UInstancedStaticMeshComponent* const* HISMRefs,
                                     TArray<entt::entity>* InstanceToEntityPerLOD)
 {
-	auto View = Registry.view<CRenderProxy, CLOD, CLODPrev,
+	auto View = Registry.view<CRenderProxy, CRenderProxyPrev, CLODPrev,
 	                          CTransformPrev, CAnimationPrev>();
 
 	for (auto Entity : View)
 	{
-		auto& Proxy = View.get<CRenderProxy>(Entity);
-		const uint8 NewLOD = static_cast<uint8>(View.get<CLOD>(Entity).Level);
-		const uint8 OldLOD = Proxy.LODLevel;
+		// ① Read — Prev → 지역변수
+		const uint8 CachedNewLOD = static_cast<uint8>(View.get<CLODPrev>(Entity).Level);
+		const uint8 CachedOldLOD = View.get<CRenderProxyPrev>(Entity).LODLevel;
+		const int32 CachedInstanceIndex = View.get<CRenderProxyPrev>(Entity).InstanceIndex;
 
-		if (NewLOD == OldLOD || Proxy.InstanceIndex == INDEX_NONE) { continue; }
+		if (CachedNewLOD == CachedOldLOD || CachedInstanceIndex == INDEX_NONE) { continue; }
 
-		auto* pOldISM = HISMRefs[OldLOD];
-		auto* pNewISM = HISMRefs[NewLOD];
+		auto* pOldISM = HISMRefs[CachedOldLOD];
+		auto* pNewISM = HISMRefs[CachedNewLOD];
 		if (!pOldISM || !pNewISM) { continue; }
 
-		// ① 이전 ISM에서 제거 (swap-back 보정)
-		const int32 OldIndex = Proxy.InstanceIndex;
+		const FVector CachedPosition = View.get<CTransformPrev>(Entity).Position;
+		const float CachedAnimIdx = View.get<CAnimationPrev>(Entity).AnimIndex;
+		const float CachedAnimTime = View.get<CAnimationPrev>(Entity).AnimTime;
+
+		// ② Write — ISM 인스턴스 이동 + 프록시 갱신
 		const int32 OldLast = pOldISM->GetInstanceCount() - 1;
+		pOldISM->RemoveInstance(CachedInstanceIndex);
 
-		pOldISM->RemoveInstance(OldIndex);
-
-		if (OldIndex != OldLast)
+		if (CachedInstanceIndex != OldLast)
 		{
-			entt::entity SwappedEntity = InstanceToEntityPerLOD[OldLOD][OldLast];
-			Registry.get<CRenderProxy>(SwappedEntity).InstanceIndex = OldIndex;
-			InstanceToEntityPerLOD[OldLOD][OldIndex] = SwappedEntity;
+			entt::entity SwappedEntity = InstanceToEntityPerLOD[CachedOldLOD][OldLast];
+			Registry.get<CRenderProxy>(SwappedEntity).InstanceIndex = CachedInstanceIndex;
+			InstanceToEntityPerLOD[CachedOldLOD][CachedInstanceIndex] = SwappedEntity;
 		}
-		InstanceToEntityPerLOD[OldLOD].Pop();
+		InstanceToEntityPerLOD[CachedOldLOD].Pop();
 
-		// ② 새 ISM에 추가
-		const FVector& Pos = View.get<CTransformPrev>(Entity).Position;
-		const FTransform InstanceTransform(FQuat::Identity, Pos);
+		const FTransform InstanceTransform(FQuat::Identity, CachedPosition);
 		const int32 NewIndex = pNewISM->AddInstance(InstanceTransform, true);
+		pNewISM->SetCustomDataValue(NewIndex, 0, CachedAnimIdx);
+		pNewISM->SetCustomDataValue(NewIndex, 1, CachedAnimTime);
 
-		// 커스텀 데이터 (VAT) 복사
-		const float AnimIdx = View.get<CAnimationPrev>(Entity).AnimIndex;
-		const float AnimTime = View.get<CAnimationPrev>(Entity).AnimTime;
-		pNewISM->SetCustomDataValue(NewIndex, 0, AnimIdx);
-		pNewISM->SetCustomDataValue(NewIndex, 1, AnimTime);
-
-		// ③ 프록시 갱신
+		auto& Proxy = View.get<CRenderProxy>(Entity);
 		Proxy.InstanceIndex = NewIndex;
-		Proxy.LODLevel = NewLOD;
-		InstanceToEntityPerLOD[NewLOD].Add(Entity);
+		Proxy.LODLevel = CachedNewLOD;
+		InstanceToEntityPerLOD[CachedNewLOD].Add(Entity);
+
+		// ③ PushToPrev
+		auto& ProxyPrev = View.get<CRenderProxyPrev>(Entity);
+		ProxyPrev.InstanceIndex = NewIndex;
+		ProxyPrev.LODLevel = CachedNewLOD;
 	}
 }
