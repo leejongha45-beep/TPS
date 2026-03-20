@@ -25,6 +25,7 @@ entt::entity SpawnSystem::Spawn(entt::registry& Registry,
 	Registry.emplace<CVisCache>(Entity);
 	Registry.emplace<CAIMode>(Entity);
 	Registry.emplace<CNavTarget>(Entity);
+	Registry.emplace<CWaypoint>(Entity);
 
 	// ② Prev (초기값 = Current와 동일)
 	Registry.emplace<CEnemyStatePrev>(Entity);
@@ -40,6 +41,7 @@ entt::entity SpawnSystem::Spawn(entt::registry& Registry,
 	Registry.emplace<CVisCachePrev>(Entity);
 	Registry.emplace<CAIModePrev>(Entity);
 	Registry.emplace<CNavTargetPrev>(Entity);
+	Registry.emplace<CWaypointPrev>(Entity);
 
 	return Entity;
 }

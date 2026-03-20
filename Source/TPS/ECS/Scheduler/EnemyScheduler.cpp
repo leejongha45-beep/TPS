@@ -14,10 +14,12 @@
 #include "ECS/System/SeparationSystem.h"
 #include "ECS/System/VisualizationSystem.h"
 #include "Engine/Engine.h"
+#include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
 #include "Kismet/GameplayStatics.h"
 #include "Utils/Interface/Data/Damageable.h"
 #include "Utils/Template/Getter.h"
+#include "Wave/TPSWaypointActor.h"
 
 FEnemyScheduler::FEnemyScheduler()
 {
@@ -78,10 +80,11 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	const FVector PlayerPosition = GetFrom<FVector>(World, GetPlayerPosition);
 	IDamageable* pCharacterDamageable = Cast<IDamageable>(UGameplayStatics::GetPlayerPawn(World, 0));
 
-	// 1.1. Chase 엔티티 NavMesh 경로 쿼리 [GameThread]
+	// 1.1. Rush/Chase 엔티티 NavMesh 경로 쿼리 [GameThread]
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Phase1_ChaseTargets);
-		MovementSystem::UpdateChaseTargets(Registry, World, PlayerPosition, FrameCounter);
+		MovementSystem::UpdateNavTargets(Registry, World, PlayerPosition, FrameCounter,
+		                                 CachedWaypoints, BaseLocation);
 	}
 
 	// 1.5. Phase_LOD (AccumDT 누적/리셋 + bShouldTick 결정)
@@ -96,10 +99,11 @@ void FEnemyScheduler::Tick(float DeltaTime)
 		DamageSystem::Tick(Registry, DamageQueue, InstanceToEntityPerLOD);
 	}
 
-	// 3. Phase_AI (Rush: FlowField / Chase: NavTarget)
+	// 3. Phase_AI (Rush: Waypoint / Chase: NavTarget)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Phase3_AI);
-		AISystem::Tick(Registry, PlayerPosition, AttackRange, BaseFlowField, BaseLocation);
+		AISystem::Tick(Registry, PlayerPosition, AttackRange,
+		               CachedWaypoints, WaypointAcceptRadius, BaseLocation);
 	}
 
 	// 3.1. Phase_Attack (쿨다운 틱 + 데미지 집계 → IDamageable)
@@ -142,9 +146,9 @@ void FEnemyScheduler::Tick(float DeltaTime)
 		);
 
 		FGraphEventRef MoveTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
-			[&Registry = Registry, DeltaTime, &FlowField = BaseFlowField]()
+			[&Registry = Registry, DeltaTime, &TerrainCache = TerrainCache]()
 			{
-				MovementSystem::Tick(Registry, DeltaTime, FlowField);
+				MovementSystem::Tick(Registry, DeltaTime, TerrainCache);
 			},
 			TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
 		);
@@ -195,30 +199,67 @@ void FEnemyScheduler::Initialize(UWorld* InWorld)
 {
 	CachedWorld = InWorld;
 	bIsActive = true;
-	BaseFlowField.Initialize();
+	TerrainCache.Initialize();
 }
 
-void FEnemyScheduler::BuildFlowField(class UWorld* World, const FVector& MapCenter)
+void FEnemyScheduler::BuildTerrainCache(UWorld* World, const FVector& MapCenter)
 {
-	// Pass 1 [GameThread]: 라인트레이스 → Heights + Blocked
-	FlowFieldSystem::BuildTerrainCache(BaseFlowField, World, MapCenter);
+	TerrainCacheSystem::Build(TerrainCache, World, MapCenter);
+	bTerrainCacheBuilt = true;
+}
 
-	// 기지 셀 인덱스
-	const int32 GoalIndex = BaseFlowField.WorldToIndex(BaseLocation.X, BaseLocation.Y);
+void FEnemyScheduler::CollectWaypoints(UWorld* World)
+{
+	if (!World) { return; }
 
-	// Pass 2+3 [Worker]: 절벽 엣지 + BFS → TaskGraph 디스패치
-	FGraphEventRef BuildTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
-		[this, GoalIndex]()
+	CachedWaypoints.Reset();
+
+	// 모든 웨이포인트 수집 — Head 찾기 (다른 웨이포인트가 가리키지 않는 것)
+	TSet<class ATPSWaypointActor*> AllWaypoints;
+	TSet<class ATPSWaypointActor*> ReferencedWaypoints;
+
+	for (TActorIterator<ATPSWaypointActor> It(World); It; ++It)
+	{
+		class ATPSWaypointActor* WP = *It;
+		AllWaypoints.Add(WP);
+		if (WP->NextWaypoint)
 		{
-			FlowFieldSystem::BuildCliffEdgesAndBFS(BaseFlowField, GoalIndex);
-		},
-		TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
-	);
+			ReferencedWaypoints.Add(WP->NextWaypoint);
+		}
+	}
 
-	bFlowFieldBuilt = true;
+	// Head = 다른 웨이포인트에 의해 참조되지 않는 것
+	class ATPSWaypointActor* Head = nullptr;
+	for (class ATPSWaypointActor* WP : AllWaypoints)
+	{
+		if (!ReferencedWaypoints.Contains(WP))
+		{
+			Head = WP;
+			break;
+		}
+	}
 
-	// Worker 완료 대기 — BeginPlay 시점이라 블로킹 허용
-	FTaskGraphInterface::Get().WaitUntilTasksComplete({BuildTask});
+	if (!Head)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Waypoint] No head waypoint found in level"));
+		return;
+	}
+
+	// 링크 순회 → 위치 배열 적재
+	WaypointAcceptRadius = Head->AcceptRadius;
+	class ATPSWaypointActor* Current = Head;
+	int32 SafetyCount = 0;
+	constexpr int32 MaxWaypoints = 100;
+
+	while (Current && SafetyCount < MaxWaypoints)
+	{
+		CachedWaypoints.Add(Current->GetActorLocation());
+		Current = Current->NextWaypoint;
+		++SafetyCount;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[Waypoint] Collected %d waypoints, AcceptRadius=%.0f"),
+		CachedWaypoints.Num(), WaypointAcceptRadius);
 }
 
 void FEnemyScheduler::Release()

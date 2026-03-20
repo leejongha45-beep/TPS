@@ -154,6 +154,12 @@ struct CNavTarget
 	FVector NextWaypoint = FVector::ZeroVector;
 };
 
+/** Rush 웨이포인트 인덱스 */
+struct CWaypoint
+{
+	int32 CurrentIndex = 0;
+};
+
 // ── Prev (읽기용) ──
 
 /** 적 상태 — 이전 프레임 */
@@ -234,6 +240,12 @@ struct CAIModePrev
 struct CNavTargetPrev
 {
 	FVector NextWaypoint = FVector::ZeroVector;
+};
+
+/** Rush 웨이포인트 인덱스 — 이전 프레임 */
+struct CWaypointPrev
+{
+	int32 CurrentIndex = 0;
 };
 
 /** LOD — 이전 프레임 */

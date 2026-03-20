@@ -6,27 +6,50 @@
 #include "NavigationPath.h"
 
 
-void MovementSystem::UpdateChaseTargets(entt::registry& Registry, UWorld* World,
-                                        const FVector& PlayerPosition, int32 FrameCounter)
+void MovementSystem::UpdateNavTargets(entt::registry& Registry, UWorld* World,
+                                      const FVector& PlayerPosition, int32 FrameCounter,
+                                      const TArray<FVector>& Waypoints, const FVector& BaseLocation)
 {
 	if (FrameCounter % ECSConstants::NavPathRefreshInterval != 0) { return; }
 
 	UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(World);
-	auto View = Registry.view<CAIModePrev, CTransformPrev, CNavTarget, CNavTargetPrev>();
+	auto View = Registry.view<CAIModePrev, CTransformPrev, CWaypointPrev,
+	                          CNavTarget, CNavTargetPrev>();
+
+	const int32 WaypointCount = Waypoints.Num();
 
 	for (auto Entity : View)
 	{
 		// ① Read — Prev → 지역변수
 		const EAIMode CachedMode = View.get<CAIModePrev>(Entity).Mode;
-		if (CachedMode != EAIMode::Chase) { continue; }
 		const FVector CachedPosition = View.get<CTransformPrev>(Entity).Position;
 
-		// ② Write — 지역변수로 계산 → Current에 쓰기
-		FVector NewWaypoint = PlayerPosition;
+		// 목표 위치 결정
+		FVector GoalPosition;
+		if (CachedMode == EAIMode::Rush)
+		{
+			const int32 WPIndex = View.get<CWaypointPrev>(Entity).CurrentIndex;
+			if (WPIndex < WaypointCount)
+			{
+				GoalPosition = Waypoints[WPIndex];
+			}
+			else
+			{
+				// 모든 웨이포인트 통과 → 기지 방향
+				GoalPosition = BaseLocation;
+			}
+		}
+		else // Chase
+		{
+			GoalPosition = PlayerPosition;
+		}
+
+		// ② Write — NavMesh 경로 쿼리 → Current에 쓰기
+		FVector NewWaypoint = GoalPosition;
 		if (NavSys)
 		{
 			UNavigationPath* Path = NavSys->FindPathToLocationSynchronously(
-				World, CachedPosition, PlayerPosition);
+				World, CachedPosition, GoalPosition);
 			if (Path && Path->PathPoints.Num() > 1)
 			{
 				NewWaypoint = Path->PathPoints[1];
@@ -39,7 +62,7 @@ void MovementSystem::UpdateChaseTargets(entt::registry& Registry, UWorld* World,
 	}
 }
 
-void MovementSystem::Tick(entt::registry& Registry, float DeltaTime, const FFlowField& FlowField)
+void MovementSystem::Tick(entt::registry& Registry, float DeltaTime, const FTerrainHeightCache& TerrainCache)
 {
 	auto View = Registry.view<CTransform, CTransformPrev, CMovementPrev, CEnemyStatePrev, CLODPrev>();
 
@@ -51,7 +74,7 @@ void MovementSystem::Tick(entt::registry& Registry, float DeltaTime, const FFlow
 	const int32 Count = Entities.Num();
 
 	// ── ParallelFor: Entity별 독립 처리 ── [WorkerThread]
-	ParallelFor(Count, [&View, &Entities, &FlowField](int32 Index)
+	ParallelFor(Count, [&View, &Entities, &TerrainCache](int32 Index)
 	{
 		const entt::entity Entity = Entities[Index];
 
@@ -68,8 +91,12 @@ void MovementSystem::Tick(entt::registry& Registry, float DeltaTime, const FFlow
 
 		// ② 계산 — 지역변수만 사용
 		FVector NewPosition = CachedPosition + CachedVelocity * CachedAccumDT;
-		const float GroundZ = FlowField.LookupHeight(NewPosition.X, NewPosition.Y);
-		if (GroundZ > FFlowField::InvalidHeight) { NewPosition.Z = GroundZ; }
+		const float GroundZ = TerrainCache.LookupHeight(NewPosition.X, NewPosition.Y);
+		if (GroundZ > FTerrainHeightCache::InvalidHeight)
+		{
+			constexpr float InterpSpeed = 10.f;
+			NewPosition.Z = FMath::FInterpTo(CachedPosition.Z, GroundZ, CachedAccumDT, InterpSpeed);
+		}
 
 		// ③ Write — Current에 쓰기
 		View.get<CTransform>(Entity).Position = NewPosition;

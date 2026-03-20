@@ -23,7 +23,7 @@ public:
 
 	/** 스폰 시 랜덤 반경 — 0이면 정확히 액터 위치, >0이면 반경 내 랜덤 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn", meta = (ClampMin = "0.0"))
-	float SpawnRadius = 200.f;
+	float SpawnRadius = 1000.f;
 
 	/** 비활성화 시 스폰 대상에서 제외 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")

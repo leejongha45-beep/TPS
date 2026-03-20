@@ -11,7 +11,7 @@
  * 웨이브 시스템의 수식 기반 설정.
  * Project Settings → Game → TPS Wave 에서 조정 가능.
  *
- * 트리클/빅웨이브/스케일링/스폰위치/적타입 카테고리로 분리.
+ * 트리클/빅웨이브/제한/렌더링/적타입 카테고리로 분리.
  * GetDefault<UTPSWaveSettings>() 로 어디서든 CDO 접근.
  */
 UCLASS(config = Game, defaultconfig, meta = (DisplayName = "TPS Wave"))
@@ -30,10 +30,6 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Trickle", meta = (ClampMin = "1"))
 	int32 TrickleGroupSize = 3;
 
-	/** 그룹 내 적 간 스폰 딜레이 (초) */
-	UPROPERTY(Config, EditAnywhere, Category = "Trickle", meta = (ClampMin = "0.0"))
-	float TrickleGroupSpawnDelay = 0.5f;
-
 	/* ── 빅웨이브 ── */
 
 	/** 빅웨이브 발생 주기 (초) */
@@ -48,34 +44,14 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "BigWave", meta = (ClampMin = "0"))
 	int32 BigWaveCountPerLevel = 10;
 
-	/** 빅웨이브 그룹 분할 수 */
-	UPROPERTY(Config, EditAnywhere, Category = "BigWave", meta = (ClampMin = "1"))
-	int32 BigWaveGroupCount = 3;
-
-	/** 빅웨이브 그룹 간 스폰 간격 (초) */
-	UPROPERTY(Config, EditAnywhere, Category = "BigWave", meta = (ClampMin = "0.5"))
-	float BigWaveGroupInterval = 5.f;
-
 	/** 빅웨이브 경고 시간 (초) — Alert → Active 전환까지 */
 	UPROPERTY(Config, EditAnywhere, Category = "BigWave", meta = (ClampMin = "0.0"))
 	float BigWaveAlertDuration = 3.f;
 
-	/* ── 스케일링 ── */
-
-	/** 웨이브 레벨당 HP 배율 증가분 (1.0 + Level * 이 값) */
-	UPROPERTY(Config, EditAnywhere, Category = "Scaling", meta = (ClampMin = "0.0"))
-	float HealthMultiplierPerWave = 0.1f;
-
-	/** 웨이브 레벨당 속도 배율 증가분 */
-	UPROPERTY(Config, EditAnywhere, Category = "Scaling", meta = (ClampMin = "0.0"))
-	float SpeedMultiplierPerWave = 0.02f;
-
-	/** 웨이브 레벨당 공격력 배율 증가분 */
-	UPROPERTY(Config, EditAnywhere, Category = "Scaling", meta = (ClampMin = "0.0"))
-	float DamageMultiplierPerWave = 0.05f;
+	/* ── 제한 ── */
 
 	/** 필드 동시 존재 최대 적 수 */
-	UPROPERTY(Config, EditAnywhere, Category = "Scaling", meta = (ClampMin = "1"))
+	UPROPERTY(Config, EditAnywhere, Category = "Limit", meta = (ClampMin = "1"))
 	int32 MaxEnemyCount = 3000;
 
 	/* ── 렌더링 ── */
@@ -86,7 +62,7 @@ public:
 
 	/* ── 적 타입 ── */
 
-	/** 사용 가능한 적 타입 목록 (DataAsset) */
-	UPROPERTY(Config, EditAnywhere, Category = "EnemyTypes")
-	TArray<TSoftObjectPtr<class UTPSEnemyTypeDataAsset>> EnemyTypes;
+	/** 적 타입 DataAsset */
+	UPROPERTY(Config, EditAnywhere, Category = "EnemyType")
+	TSoftObjectPtr<class UTPSEnemyTypeDataAsset> EnemyType;
 };

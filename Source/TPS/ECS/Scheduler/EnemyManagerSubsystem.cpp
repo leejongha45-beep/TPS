@@ -56,9 +56,9 @@ void UEnemyManagerSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		// DataAsset에서 LOD 메시 로드
 		UStaticMesh* LODMeshes[HISM_LOD_COUNT] = {};
 
-		if (ensure(pSettings) && pSettings->EnemyTypes.Num() > 0)
+		if (ensure(pSettings) && !pSettings->EnemyType.IsNull())
 		{
-			class UTPSEnemyTypeDataAsset* pFirstType = pSettings->EnemyTypes[0].LoadSynchronous();
+			class UTPSEnemyTypeDataAsset* pFirstType = pSettings->EnemyType.LoadSynchronous();
 			if (ensure(pFirstType))
 			{
 				const int32 MeshCount = FMath::Min(pFirstType->LODMeshes.Num(), HISM_LOD_COUNT);
@@ -83,7 +83,7 @@ void UEnemyManagerSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		}
 		EnemySchedulerInst->SetHISMs(ISMPtrs, HISM_LOD_COUNT);
 
-		// Flow Field 빌드 — 기지 위치 기준 BFS (GT Pass1 + Worker Pass2+3)
+		// 지형 캐시 + 웨이포인트 빌드
 		// TPSTargetSubsystem에서 기지 위치 자동 가져오기 (ATPSAllyBase::BeginPlay에서 등록됨)
 		FVector BaseLocation = FVector::ZeroVector;
 		if (UTPSTargetSubsystem* TargetSub = InWorld.GetSubsystem<UTPSTargetSubsystem>())
@@ -95,12 +95,13 @@ void UEnemyManagerSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		// 기지 위치가 유효하면 즉시 빌드, 아니면 Lazy 초기화에 위임
 		if (!BaseLocation.IsNearlyZero())
 		{
-			EnemySchedulerInst->BuildFlowField(&InWorld, BaseLocation);
-			UE_LOG(LogTemp, Log, TEXT("[EnemyMgr] FlowField built at BaseLocation: %s"), *BaseLocation.ToString());
+			EnemySchedulerInst->BuildTerrainCache(&InWorld, BaseLocation);
+			EnemySchedulerInst->CollectWaypoints(&InWorld);
+			UE_LOG(LogTemp, Log, TEXT("[EnemyMgr] TerrainCache + Waypoints built at BaseLocation: %s"), *BaseLocation.ToString());
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] BaseLocation is ZeroVector — FlowField deferred to lazy init"));
+			UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] BaseLocation is ZeroVector — TerrainCache deferred to lazy init"));
 		}
 	}
 }
@@ -158,8 +159,8 @@ void UEnemyManagerSubsystem::FlushSpawnQueue()
 {
 	if (!ensure(EnemySchedulerInst)) { return; }
 
-	// Lazy FlowField 빌드 — 기지 BeginPlay가 OnWorldBeginPlay보다 늦을 때 대비
-	if (!EnemySchedulerInst->bFlowFieldBuilt)
+	// Lazy 지형 캐시 빌드 — 기지 BeginPlay가 OnWorldBeginPlay보다 늦을 때 대비
+	if (!EnemySchedulerInst->bTerrainCacheBuilt)
 	{
 		UWorld* World = GetWorld();
 		if (UTPSTargetSubsystem* TargetSub = World ? World->GetSubsystem<UTPSTargetSubsystem>() : nullptr)
@@ -168,8 +169,9 @@ void UEnemyManagerSubsystem::FlushSpawnQueue()
 			if (!BaseLocation.IsNearlyZero())
 			{
 				EnemySchedulerInst->SetBaseLocation(BaseLocation);
-				EnemySchedulerInst->BuildFlowField(World, BaseLocation);
-				UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] FlowField lazy-built at BaseLocation: %s"), *BaseLocation.ToString());
+				EnemySchedulerInst->BuildTerrainCache(World, BaseLocation);
+				EnemySchedulerInst->CollectWaypoints(World);
+				UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] TerrainCache + Waypoints lazy-built at BaseLocation: %s"), *BaseLocation.ToString());
 			}
 		}
 	}
