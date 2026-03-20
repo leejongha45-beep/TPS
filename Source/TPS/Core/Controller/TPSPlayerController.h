@@ -58,6 +58,9 @@ protected:
 	/** 재장전 입력 */
 	void ReloadInput(const struct FInputActionValue& InputValue);
 
+	/** 미니맵 토글 입력 */
+	void MinimapInput(const struct FInputActionValue& InputValue);
+
 	/** Enhanced Input — 기본 매핑 컨텍스트 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputMappingContext> DefaultMappingContextAsset;
@@ -97,6 +100,10 @@ protected:
 	/** IA — R 재장전 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<class UInputAction> ReloadActionAsset;
+
+	/** IA — M 미니맵 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<class UInputAction> MinimapActionAsset;
 
 	/** 이동 인터페이스 — OnPossess에서 캐싱 */
 	UPROPERTY()

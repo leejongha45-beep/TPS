@@ -2,19 +2,19 @@
 
 #include "Core/GameMode/TPSCombatGameMode.h"
 #include "Engine/World.h"
-#include "Wave/TPSWaveSubsystem.h"
+#include "Core/Subsystem/TPSSwarmSubsystem.h"
 
 void ATPSCombatGameMode::OnSpawnPointSelected(ATPSPlayerStart* InSpawnPoint)
 {
 	Super::OnSpawnPointSelected(InSpawnPoint);
 
-	// 첫 스폰 완료 시 웨이브 시스템 가동
+	// 첫 스폰 완료 시 군집 시스템 가동
 	if (bFirstSpawnCompleted)
 	{
-		UTPSWaveSubsystem* pWaveSub = GetWorld()->GetSubsystem<UTPSWaveSubsystem>();
-		if (ensure(pWaveSub))
+		UTPSSwarmSubsystem* pSwarmSub = GetWorld()->GetSubsystem<UTPSSwarmSubsystem>();
+		if (ensure(pSwarmSub))
 		{
-			pWaveSub->StartWaveSystem();
+			pSwarmSub->StartWaveSystem();
 		}
 	}
 }

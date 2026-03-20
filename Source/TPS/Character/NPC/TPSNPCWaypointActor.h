@@ -1,27 +1,24 @@
-// TPSWaypointActor.h
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "TPSWaypointActor.generated.h"
+#include "TPSNPCWaypointActor.generated.h"
 
 /**
- * 적 Rush 경로용 웨이포인트.
- * 에디터에서 NextWaypoint를 드래그하여 링크드 리스트로 연결.
- * NextWaypoint가 nullptr이면 마지막 (기지).
+ * NPC 돌격 경로용 웨이포인트.
+ * NextWaypoint 링크드리스트로 연결, nullptr이면 마지막.
  */
 UCLASS(Blueprintable)
-class TPS_API ATPSWaypointActor : public AActor
+class TPS_API ATPSNPCWaypointActor : public AActor
 {
 	GENERATED_BODY()
 
 public:
-	ATPSWaypointActor();
+	ATPSNPCWaypointActor();
 
 	/** 다음 웨이포인트 — nullptr이면 마지막 */
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = "Waypoint")
-	TObjectPtr<class ATPSWaypointActor> NextWaypoint = nullptr;
+	TObjectPtr<class ATPSNPCWaypointActor> NextWaypoint = nullptr;
 
 	/** 경로 세트 인덱스 — 같은 RouteIndex끼리 하나의 경로 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Waypoint")

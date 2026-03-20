@@ -22,8 +22,8 @@ protected:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 	virtual void NativeThreadSafeUpdateAnimation(float DeltaSeconds) override;
 
-	/** 소유 플레이어 캐릭터 (WeakPtr) */
-	TWeakObjectPtr<class ATPSPlayer> OwnerRef;
+	/** 소유 캐릭터 (Player/NPC 공용, WeakPtr) */
+	TWeakObjectPtr<class ATPSSoldierBase> OwnerRef;
 
 	/** 상태 컴포넌트 참조 (WeakPtr) */
 	TWeakObjectPtr<class UTPSPlayerStateComponent> StateComponentRef;

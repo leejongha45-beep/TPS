@@ -9,7 +9,7 @@ public class TPS : ModuleRules
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		CppStandard = CppStandardVersion.Latest;
 		bUseUnity = false;
-		bEnforceIWYU = false;
+		IWYUSupport = IWYUSupport.None;
 
 		PublicIncludePaths.AddRange(new string[] { ModuleDirectory });
 
@@ -18,6 +18,6 @@ public class TPS : ModuleRules
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "GameplayTags" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimationLocomotionLibraryRuntime", "AnimationWarpingRuntime", "Slate", "SlateCore", "Niagara", "PhysicsCore", "DeveloperSettings", "MediaAssets", "NavigationSystem" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimationLocomotionLibraryRuntime", "AnimationWarpingRuntime", "Slate", "SlateCore", "Niagara", "PhysicsCore", "DeveloperSettings", "MediaAssets", "NavigationSystem", "AIModule", "AIModule" });
 	}
 }

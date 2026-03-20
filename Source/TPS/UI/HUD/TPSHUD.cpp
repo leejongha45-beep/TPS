@@ -2,6 +2,7 @@
 #include "UI/ViewModel/AmmoViewModel.h"
 #include "UI/Widget/Ammo/TPSAmmoWidget.h"
 #include "UI/Widget/SpawnSelect/TPSSpawnSelectWidget.h"
+#include "UI/Widget/Minimap/TPSMinimapWidget.h"
 #include "Character/Player/TPSPlayer.h"
 #include "Spawn/TPSPlayerSpawnSubsystem.h"
 #include "Core/GameMode/TPSGameModeBase.h"
@@ -36,7 +37,18 @@ void ATPSHUD::BeginPlay()
 		}
 	}
 
-	// ③ Player 델리게이트 바인딩
+	// ③ 미니맵 위젯 생성 (Collapsed — M키로 토글)
+	if (MinimapWidgetClass)
+	{
+		MinimapWidgetInst = CreateWidget<UTPSMinimapWidget>(pPC, MinimapWidgetClass);
+		if (ensure(MinimapWidgetInst.Get()))
+		{
+			MinimapWidgetInst->AddToViewport(5);
+			MinimapWidgetInst->SetVisibility(ESlateVisibility::Collapsed);
+		}
+	}
+
+	// ④ Player 델리게이트 바인딩
 	if (!pPlayer->OnAmmoViewModelChangedDelegate.IsBoundToObject(this))
 	{
 		pPlayer->OnAmmoViewModelChangedDelegate.AddUObject(this, &ATPSHUD::OnAmmoViewModelChanged);
@@ -215,4 +227,20 @@ void ATPSHUD::HideSpawnSelect()
 	{
 		SpawnSelectWidgetInst->SetVisibility(ESlateVisibility::Collapsed);
 	}
+}
+
+// ──────────────────────────────────────────────
+//  미니맵 토글
+// ──────────────────────────────────────────────
+
+void ATPSHUD::ToggleMinimap()
+{
+	if (!MinimapWidgetInst.Get()) return;
+
+	const bool bIsVisible = MinimapWidgetInst->GetVisibility() == ESlateVisibility::Visible
+		|| MinimapWidgetInst->GetVisibility() == ESlateVisibility::HitTestInvisible;
+
+	MinimapWidgetInst->SetVisibility(bIsVisible
+		? ESlateVisibility::Collapsed
+		: ESlateVisibility::HitTestInvisible);
 }

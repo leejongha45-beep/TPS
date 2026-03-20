@@ -82,21 +82,22 @@ void ATPSCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ATPSCharacterBase::PostInitializeComponents()
 {
-	Super::PostInitializeComponents();
-
-	// ① CMC 초기화 (회전 모드 + 이동 속도)
+	// ① CMC 초기화 — Super 전에 캐싱 (Possess → OnMovementModeChanged에서 필요)
 	if (!CMCInst)
 	{
 		CMCInst = Cast<UTPSCMC>(GetCharacterMovement());
-		if (ensure(CMCInst.Get()))
-		{
-			CMCInst->SetOrientRotationToMovement(true);
-			CMCInst->SetRotationRate(FRotator(0.f, 700.f, 0.f));
+	}
 
-			if (ensure(StatusComponentInst.Get()))
-			{
-				CMCInst->SetMaxWalkSpeed(StatusComponentInst->GetDefaultWalkSpeed());
-			}
+	Super::PostInitializeComponents();
+
+	if (ensure(CMCInst.Get()))
+	{
+		CMCInst->SetOrientRotationToMovement(true);
+		CMCInst->SetRotationRate(FRotator(0.f, 700.f, 0.f));
+
+		if (ensure(StatusComponentInst.Get()))
+		{
+			CMCInst->SetMaxWalkSpeed(StatusComponentInst->GetDefaultWalkSpeed());
 		}
 	}
 }

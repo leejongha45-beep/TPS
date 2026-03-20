@@ -18,6 +18,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Utils/Interface/Data/Damageable.h"
 #include "Utils/Template/Getter.h"
+#include "Core/Subsystem/TPSTargetSubsystem.h"
 #include "Wave/TPSWaypointActor.h"
 
 FEnemyScheduler::FEnemyScheduler()
@@ -79,11 +80,23 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	const FVector PlayerPosition = GetFrom<FVector>(World, GetPlayerPosition);
 	IDamageable* pCharacterDamageable = Cast<IDamageable>(UGameplayStatics::GetPlayerPawn(World, 0));
 
+	// NPC 위치 수집 (Phase 1.1 + Phase 3에서 사용)
+	TArray<FVector> NPCPositions;
+	if (UTPSTargetSubsystem* TargetSS = World->GetSubsystem<UTPSTargetSubsystem>())
+	{
+		const auto& NPCs = TargetSS->GetNPCs();
+		NPCPositions.Reserve(NPCs.Num());
+		for (const auto& NPC : NPCs)
+		{
+			if (NPC.Get()) { NPCPositions.Add(NPC->GetActorLocation()); }
+		}
+	}
+
 	// 1.1. Rush/Chase 엔티티 NavMesh 경로 쿼리 [GameThread]
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Phase1_ChaseTargets);
 		MovementSystem::UpdateNavTargets(Registry, World, PlayerPosition, FrameCounter,
-		                                 CachedWaypoints);
+		                                 CachedWaypoints, NPCPositions);
 	}
 
 	// 1.5. Phase_LOD (AccumDT 누적/리셋 + bShouldTick 결정)
@@ -102,7 +115,7 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Phase3_AI);
 		AISystem::Tick(Registry, PlayerPosition, AttackRange,
-		               CachedWaypoints, WaypointAcceptRadius);
+		               CachedWaypoints, WaypointAcceptRadius, NPCPositions);
 	}
 
 	// 3.1. Phase_Attack (쿨다운 틱 + 데미지 집계 → IDamageable)

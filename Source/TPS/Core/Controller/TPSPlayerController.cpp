@@ -12,6 +12,7 @@
 #include "Utils/Interface/Action/Equippable.h"
 #include "Utils/Interface/Action/Interactable.h"
 #include "Utils/Interface/Action/Fireable.h"
+#include "UI/HUD/TPSHUD.h"
 
 ATPSPlayerController::ATPSPlayerController()
 {
@@ -83,6 +84,11 @@ void ATPSPlayerController::SetupInputComponent()
 	if (ensure(ReloadActionAsset.Get()))
 	{
 		pEnhancedInput->BindAction(ReloadActionAsset.Get(), ETriggerEvent::Started, this, &ATPSPlayerController::ReloadInput);
+	}
+
+	if (MinimapActionAsset.Get())
+	{
+		pEnhancedInput->BindAction(MinimapActionAsset.Get(), ETriggerEvent::Started, this, &ATPSPlayerController::MinimapInput);
 	}
 }
 
@@ -270,5 +276,14 @@ void ATPSPlayerController::ReloadInput(const FInputActionValue& InputValue)
 	if (ensure(FireableInterface))
 	{
 		FireableInterface->Reload();
+	}
+}
+
+void ATPSPlayerController::MinimapInput(const FInputActionValue& InputValue)
+{
+	ATPSHUD* pHUD = Cast<ATPSHUD>(GetHUD());
+	if (pHUD)
+	{
+		pHUD->ToggleMinimap();
 	}
 }

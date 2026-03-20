@@ -6,7 +6,7 @@
 #include "Character/Component/Action/TPSEquipComponent.h"
 #include "Character/Component/Action/TPSFireComponent.h"
 #include "Character/Component/Data/TPSPlayerStateComponent.h"
-#include "Character/Player/TPSPlayer.h"
+#include "Character/Base/TPSSoldierBase.h"
 
 void UTPSPlayerCoreAnimInstance::NativeInitializeAnimation()
 {
@@ -15,15 +15,15 @@ void UTPSPlayerCoreAnimInstance::NativeInitializeAnimation()
 	if (!OwnerRef.Get())
 	{
 		// ① 오너 캐싱 + 컴포넌트 참조 획득
-		OwnerRef = Cast<ATPSPlayer>(TryGetPawnOwner());
+		OwnerRef = Cast<ATPSSoldierBase>(TryGetPawnOwner());
 		if (ensure(OwnerRef.Get()))
 		{
 			StateComponentRef = OwnerRef->GetStateComponent();
 			ensure(StateComponentRef.Get());
 
-			// ② EquipComponent 몽타주 델리게이트 바인딩
+			// ② EquipComponent 몽타주 델리게이트 바인딩 (NPC는 없을 수 있음)
 			UTPSEquipComponent* pEquipComp = OwnerRef->GetEquipComponent();
-			if (ensure(pEquipComp))
+			if (pEquipComp)
 			{
 				EquipComponentRef = pEquipComp;
 				if (!pEquipComp->OnEquipMontagePlayDelegate.IsBoundToObject(this))
@@ -34,7 +34,7 @@ void UTPSPlayerCoreAnimInstance::NativeInitializeAnimation()
 
 			// ③ FireComponent 몽타주 델리게이트 바인딩
 			UTPSFireComponent* pFireComp = OwnerRef->GetFireComponent();
-			if (ensure(pFireComp))
+			if (pFireComp)
 			{
 				FireComponentRef = pFireComp;
 				if (!pFireComp->OnFireStateChangedDelegate.IsBoundToObject(this))
@@ -57,7 +57,7 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
 
-	ATPSPlayer* pOwner = OwnerRef.Get();
+	ATPSSoldierBase* pOwner = OwnerRef.Get();
 	if (!pOwner)
 	{
 		return;
@@ -70,13 +70,18 @@ void UTPSPlayerCoreAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 	// ② 비원자적 읽기 → 게임 스레드 전용 (StateComponent)
 	UTPSPlayerStateComponent* pStateComp = StateComponentRef.Get();
-	if (ensure(pStateComp))
+	if (pStateComp)
 	{
 		bIsAiming = pStateComp->HasState(EActionState::Aiming);
 		bIsEquipping = pStateComp->HasState(EActionState::Equipping);
 		bIsFalling = pStateComp->HasState(EActionState::Falling);
 		bIsFiring = pStateComp->HasState(EActionState::Firing);
 		bIsReloading = pStateComp->HasState(EActionState::Reloading);
+	}
+	else
+	{
+		// NPC — StateComponent 없음: 항상 장착 상태
+		bIsEquipping = true;
 	}
 
 	// ③ 가속 감지 (CMC 접근)

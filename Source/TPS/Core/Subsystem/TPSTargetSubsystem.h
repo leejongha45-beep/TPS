@@ -30,16 +30,46 @@ public:
 		return TargetableActors;
 	}
 
-	/** 아군 기지 위치 설정 */
+	/** 아군 기지 등록/해제 */
+	void RegisterAllyBase(class ATPSAllyBase* InBase);
+	void UnregisterAllyBase(class ATPSAllyBase* InBase);
+
+	/** 적 기지 등록/해제 */
+	void RegisterEnemyBase(class ATPSEnemyBase* InBase);
+	void UnregisterEnemyBase(class ATPSEnemyBase* InBase);
+
+	/** NPC 등록/해제 */
+	void RegisterNPC(class AActor* InNPC);
+	void UnregisterNPC(class AActor* InNPC);
+
+	/** 아군 기지 목록 반환 */
+	FORCEINLINE const TArray<TObjectPtr<class ATPSAllyBase>>& GetAllyBases() const { return AllyBases; }
+
+	/** 적 기지 목록 반환 */
+	FORCEINLINE const TArray<TObjectPtr<class ATPSEnemyBase>>& GetEnemyBases() const { return EnemyBases; }
+
+	/** NPC 목록 반환 */
+	FORCEINLINE const TArray<TObjectPtr<class AActor>>& GetNPCs() const { return NPCs; }
+
+	/** 아군 기지 위치 설정 (하위 호환) */
 	void SetAllyBaseLocation(const FVector& InLocation);
 
-	/** 아군 기지 위치 반환 */
+	/** 아군 기지 위치 반환 (하위 호환) */
 	FORCEINLINE const FVector& GetAllyBaseLocation() const { return AllyBaseLocation; }
 
 private:
 	/** 등록된 ITargetable 목록 */
 	TArray<TScriptInterface<ITargetable>> TargetableActors;
 
-	/** 아군 기지 위치 (기본 진격 목표) */
+	/** 아군 기지 배열 */
+	TArray<TObjectPtr<class ATPSAllyBase>> AllyBases;
+
+	/** 적 기지 배열 */
+	TArray<TObjectPtr<class ATPSEnemyBase>> EnemyBases;
+
+	/** NPC 배열 (전투/비전투 모두) */
+	TArray<TObjectPtr<class AActor>> NPCs;
+
+	/** 아군 기지 위치 (하위 호환) */
 	FVector AllyBaseLocation = FVector::ZeroVector;
 };

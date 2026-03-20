@@ -1,16 +1,13 @@
-// TPSEnemySpawnPoint.cpp
-
-#include "Wave/TPSEnemySpawnPoint.h"
+#include "Character/NPC/TPSNPCWaypointActor.h"
 
 #if WITH_EDITORONLY_DATA
 #include "Components/BillboardComponent.h"
 #endif
 
-ATPSEnemySpawnPoint::ATPSEnemySpawnPoint()
+ATPSNPCWaypointActor::ATPSNPCWaypointActor()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	// 루트 — SceneComponent
 	USceneComponent* pRoot = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	if (ensure(pRoot))
 	{

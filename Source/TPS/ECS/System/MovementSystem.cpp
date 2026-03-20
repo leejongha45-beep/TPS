@@ -7,7 +7,8 @@
 
 void MovementSystem::UpdateNavTargets(entt::registry& Registry, UWorld* World,
                                       const FVector& PlayerPosition, int32 FrameCounter,
-                                      const TArray<FVector>& Waypoints)
+                                      const TArray<FVector>& Waypoints,
+                                      const TArray<FVector>& NPCPositions)
 {
 	if (FrameCounter % ECSConstants::NavPathRefreshInterval != 0) { return; }
 
@@ -38,9 +39,20 @@ void MovementSystem::UpdateNavTargets(entt::registry& Registry, UWorld* World,
 				GoalPosition = (WaypointCount > 0) ? Waypoints.Last() : CachedPosition;
 			}
 		}
-		else // Chase
+		else // Chase — 플레이어 + NPC 중 가장 가까운 타겟
 		{
 			GoalPosition = PlayerPosition;
+			float BestDistSq = FVector::DistSquared(CachedPosition, PlayerPosition);
+
+			for (const FVector& NPCPos : NPCPositions)
+			{
+				const float DistSq = FVector::DistSquared(CachedPosition, NPCPos);
+				if (DistSq < BestDistSq)
+				{
+					BestDistSq = DistSq;
+					GoalPosition = NPCPos;
+				}
+			}
 		}
 
 		// ② Write — NavMesh 경로 쿼리 → Current에 쓰기

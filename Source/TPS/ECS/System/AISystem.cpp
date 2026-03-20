@@ -30,15 +30,30 @@ void PushToPrev(CEnemyStatePrev& OutStatePrev, CMovementPrev& OutMovementPrev,
 	OutWaypointPrev.CurrentIndex = InWaypoint.CurrentIndex;
 }
 
+/** 플레이어 + NPC 중 가장 가까운 타겟까지 거리 제곱 반환 */
+FORCEINLINE float FindNearestTargetDistSq(const FVector& Position, const FVector& PlayerPosition,
+                                           const TArray<FVector>& NPCPositions)
+{
+	float BestDistSq = FVector::DistSquared(Position, PlayerPosition);
+
+	for (const FVector& NPCPos : NPCPositions)
+	{
+		const float DistSq = FVector::DistSquared(Position, NPCPos);
+		if (DistSq < BestDistSq)
+		{
+			BestDistSq = DistSq;
+		}
+	}
+
+	return BestDistSq;
+}
+
 } // anonymous namespace
 
-/**
- * Read는 Cached 지역변수로 값을 복사해야 하므로 함수 래핑 불가 — ParallelFor 본문에 직접 노출
- * Write/PushToPrev만 함수로 분리하여 가독성 확보
- */
 void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
                     float AttackRange, const TArray<FVector>& Waypoints,
-                    float WaypointAcceptRadius)
+                    float WaypointAcceptRadius,
+                    const TArray<FVector>& NPCPositions)
 {
 	const float AttackRangeSq = AttackRange * AttackRange;
 	const float AcceptRadiusSq = WaypointAcceptRadius * WaypointAcceptRadius;
@@ -57,7 +72,7 @@ void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 	const int32 Count = Entities.Num();
 
 	// ── ParallelFor: Entity별 독립 처리 ── [WorkerThread]
-	ParallelFor(Count, [&View, &Entities, &PlayerPosition, &Waypoints,
+	ParallelFor(Count, [&View, &Entities, &PlayerPosition, &Waypoints, &NPCPositions,
 	                     AttackRangeSq, AcceptRadiusSq, WaypointCount](int32 Index)
 	{
 		const entt::entity Entity = Entities[Index];
@@ -90,8 +105,9 @@ void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 		}
 		else
 		{
-			const FVector ToPlayer = PlayerPosition - CachedPosition;
-			const float DistSqToPlayer = ToPlayer.SizeSquared();
+			// 가장 가까운 타겟 (플레이어 + NPC) 거리
+			const float NearestTargetDistSq = FindNearestTargetDistSq(
+				CachedPosition, PlayerPosition, NPCPositions);
 
 			// Rush → Chase 전환 판정
 			if (CachedAIMode == EAIMode::Rush)
@@ -100,14 +116,14 @@ void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 				{
 					NewMode = EAIMode::Chase;
 				}
-				else if (DistSqToPlayer <= ECSConstants::AggroRadiusSq)
+				else if (NearestTargetDistSq <= ECSConstants::AggroRadiusSq)
 				{
 					NewMode = EAIMode::Chase;
 				}
 			}
 
-			// 공격 범위 판정 (Chase 모드에서만 플레이어 공격)
-			if (NewMode == EAIMode::Chase && DistSqToPlayer <= AttackRangeSq)
+			// 공격 범위 판정 (Chase 모드에서 가장 가까운 타겟 공격)
+			if (NewMode == EAIMode::Chase && NearestTargetDistSq <= AttackRangeSq)
 			{
 				NewState = (CachedState == EEnemyState::AttackCooldown ||
 				            CachedState == EEnemyState::AttackReady ||
@@ -154,6 +170,7 @@ void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 					}
 					else
 					{
+						const FVector ToPlayer = PlayerPosition - CachedPosition;
 						NewVelocity = ToPlayer.GetSafeNormal() * CachedMaxSpeed;
 					}
 				}

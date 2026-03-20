@@ -26,6 +26,7 @@ namespace MovementSystem
 {
 	void UpdateNavTargets(entt::registry& Registry, class UWorld* InWorld,
 	                      const FVector& PlayerPosition, int32 FrameCounter,
-	                      const TArray<FVector>& Waypoints);
+	                      const TArray<FVector>& Waypoints,
+	                      const TArray<FVector>& NPCPositions);
 	void Tick(entt::registry& Registry, float DeltaTime);
 };

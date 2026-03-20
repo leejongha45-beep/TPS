@@ -24,21 +24,21 @@ public:
 
 	/** 소그룹 스폰 주기 (초) */
 	UPROPERTY(Config, EditAnywhere, Category = "Trickle", meta = (ClampMin = "0.5"))
-	float TrickleSpawnInterval = 3.f;
+	float TrickleSpawnInterval = 5.f;
 
 	/** 소그룹당 적 수 */
 	UPROPERTY(Config, EditAnywhere, Category = "Trickle", meta = (ClampMin = "1"))
-	int32 TrickleGroupSize = 3;
+	int32 TrickleGroupSize = 50;
 
 	/* ── 빅웨이브 ── */
 
 	/** 빅웨이브 발생 주기 (초) */
 	UPROPERTY(Config, EditAnywhere, Category = "BigWave", meta = (ClampMin = "10.0"))
-	float BigWavePeriod = 60.f;
+	float BigWavePeriod = 180.f;
 
 	/** 빅웨이브 기본 적 수 */
 	UPROPERTY(Config, EditAnywhere, Category = "BigWave", meta = (ClampMin = "1"))
-	int32 BigWaveBaseCount = 30;
+	int32 BigWaveBaseCount = 500;
 
 	/** 웨이브 레벨당 추가 적 수 */
 	UPROPERTY(Config, EditAnywhere, Category = "BigWave", meta = (ClampMin = "0"))

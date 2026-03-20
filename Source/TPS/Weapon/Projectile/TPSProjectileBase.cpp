@@ -10,6 +10,7 @@
 #include "Weapon/Projectile/TPSProjectilePoolSubsystem.h"
 #include "ECS/Scheduler/EnemyManagerSubsystem.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Core/Subsystem/TPSTargetSubsystem.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(ProjectileLog, Log, All);
 DEFINE_LOG_CATEGORY(ProjectileLog);
@@ -63,6 +64,18 @@ void ATPSProjectileBase::ActivateProjectile(const FTransform& InMuzzleTransform,
 		if (GetInstigator())
 		{
 			CollisionComponentInst->MoveIgnoreActors.Add(Cast<AActor>(GetInstigator()));
+		}
+
+		// NPC 무시 — 프로젝타일이 NPC를 뚫고 지나감
+		if (UTPSTargetSubsystem* TargetSS = GetWorld()->GetSubsystem<UTPSTargetSubsystem>())
+		{
+			for (const auto& NPC : TargetSS->GetNPCs())
+			{
+				if (NPC.Get())
+				{
+					CollisionComponentInst->MoveIgnoreActors.Add(NPC.Get());
+				}
+			}
 		}
 	}
 

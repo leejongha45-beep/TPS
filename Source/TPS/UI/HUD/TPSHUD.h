@@ -24,6 +24,9 @@ public:
 	/** 스폰 선택 UI 숨김 */
 	void HideSpawnSelect();
 
+	/** 미니맵 토글 (M키) */
+	void ToggleMinimap();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void DrawHUD() override;
@@ -81,5 +84,15 @@ protected:
 
 	/** 스폰 선택 중 여부 — true면 크로스헤어/탄약 숨김 */
 	uint8 bIsSpawnSelecting : 1 = false;
+#pragma endregion
+
+#pragma region Minimap
+	/** 미니맵 위젯 클래스 (BP에서 지정) */
+	UPROPERTY(EditDefaultsOnly, Category = "Minimap")
+	TSubclassOf<class UTPSMinimapWidget> MinimapWidgetClass;
+
+	/** 미니맵 위젯 인스턴스 */
+	UPROPERTY()
+	TObjectPtr<class UTPSMinimapWidget> MinimapWidgetInst;
 #pragma endregion
 };

@@ -26,18 +26,21 @@ void Write(entt::registry& Registry, UInstancedStaticMeshComponent* HISM,
 	for (auto& Entry : DeadEntries)
 	{
 		// ②-1. HISM RemoveInstance
-		if (Entry.InstanceIndex != INDEX_NONE)
+		if (Entry.InstanceIndex != INDEX_NONE && Entry.InstanceIndex < HISM->GetInstanceCount())
 		{
 			const int32 LastIndex = HISM->GetInstanceCount() - 1;
 
 			HISM->RemoveInstance(Entry.InstanceIndex);
 
 			// ②-2. O(1) swap 보정 — 룩업 테이블로 즉시 Entity 특정
-			if (Entry.InstanceIndex != LastIndex)
+			if (Entry.InstanceIndex != LastIndex && LastIndex < InstanceToEntity.Num())
 			{
 				entt::entity SwappedEntity = InstanceToEntity[LastIndex];
 
-				Registry.get<CRenderProxy>(SwappedEntity).InstanceIndex = Entry.InstanceIndex;
+				if (Registry.valid(SwappedEntity) && Registry.all_of<CRenderProxy>(SwappedEntity))
+				{
+					Registry.get<CRenderProxy>(SwappedEntity).InstanceIndex = Entry.InstanceIndex;
+				}
 				InstanceToEntity[Entry.InstanceIndex] = SwappedEntity;
 			}
 
