@@ -137,6 +137,7 @@ FEnemySpawnParams UTPSWaveSubsystem::BuildSpawnParams(const UTPSEnemyTypeDataAss
 	Params.MaxSpeed       = Type->MaxSpeed;
 	Params.AttackDamage   = Type->AttackDamage;
 	Params.AttackCooldown = Type->AttackCooldown;
+	Params.MeshYawOffset = Type->MeshYawOffset;
 	return Params;
 }
 

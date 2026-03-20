@@ -25,7 +25,7 @@ public:
 
 	/** 도착 판정 반경 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Waypoint", meta = (ClampMin = "100.0"))
-	float AcceptRadius = 500.f;
+	float AcceptRadius = 5000.f;
 
 protected:
 #if WITH_EDITORONLY_DATA

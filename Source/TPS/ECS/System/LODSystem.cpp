@@ -152,26 +152,37 @@ void LODSystem::TransitionInstances(entt::registry& Registry,
 		const float CachedAnimTime = View.get<CAnimationPrev>(Entity).AnimTime;
 
 		// ② Write — ISM 인스턴스 이동 + 프록시 갱신
-		const int32 OldLast = pOldISM->GetInstanceCount() - 1;
-		pOldISM->RemoveInstance(CachedInstanceIndex);
 
-		if (CachedInstanceIndex != OldLast)
+		// 기존 인스턴스 제거 (Far에서 오는 경우 INDEX_NONE이므로 스킵)
+		if (CachedInstanceIndex != INDEX_NONE)
 		{
-			entt::entity SwappedEntity = InstanceToEntityPerLOD[CachedOldLOD][OldLast];
-			Registry.get<CRenderProxy>(SwappedEntity).InstanceIndex = CachedInstanceIndex;
-			InstanceToEntityPerLOD[CachedOldLOD][CachedInstanceIndex] = SwappedEntity;
-		}
-		InstanceToEntityPerLOD[CachedOldLOD].Pop();
+			const int32 OldLast = pOldISM->GetInstanceCount() - 1;
+			pOldISM->RemoveInstance(CachedInstanceIndex);
 
-		const FTransform InstanceTransform(FQuat::Identity, CachedPosition);
-		const int32 NewIndex = pNewISM->AddInstance(InstanceTransform, true);
-		pNewISM->SetCustomDataValue(NewIndex, 0, CachedAnimIdx);
-		pNewISM->SetCustomDataValue(NewIndex, 1, CachedAnimTime);
+			if (CachedInstanceIndex != OldLast)
+			{
+				entt::entity SwappedEntity = InstanceToEntityPerLOD[CachedOldLOD][OldLast];
+				Registry.get<CRenderProxy>(SwappedEntity).InstanceIndex = CachedInstanceIndex;
+				InstanceToEntityPerLOD[CachedOldLOD][CachedInstanceIndex] = SwappedEntity;
+			}
+			InstanceToEntityPerLOD[CachedOldLOD].Pop();
+		}
+
+		int32 NewIndex = INDEX_NONE;
+
+		// Far LOD → 렌더링 안 함 (인스턴스 생성 X)
+		if (CachedNewLOD != static_cast<uint8>(ELODLevel::Far))
+		{
+			const FTransform InstanceTransform(FQuat::Identity, CachedPosition);
+			NewIndex = pNewISM->AddInstance(InstanceTransform, true);
+			pNewISM->SetCustomDataValue(NewIndex, 0, CachedAnimIdx);
+			pNewISM->SetCustomDataValue(NewIndex, 1, CachedAnimTime);
+			InstanceToEntityPerLOD[CachedNewLOD].Add(Entity);
+		}
 
 		auto& Proxy = View.get<CRenderProxy>(Entity);
 		Proxy.InstanceIndex = NewIndex;
 		Proxy.LODLevel = CachedNewLOD;
-		InstanceToEntityPerLOD[CachedNewLOD].Add(Entity);
 
 		// ③ PushToPrev
 		auto& ProxyPrev = View.get<CRenderProxyPrev>(Entity);

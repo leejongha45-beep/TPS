@@ -1,6 +1,5 @@
 #include "ECS/System/MovementSystem.h"
 #include "ECS/Component/Components.h"
-#include "ECS/System/FlowFieldSystem.h"
 #include "Async/ParallelFor.h"
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
@@ -8,7 +7,7 @@
 
 void MovementSystem::UpdateNavTargets(entt::registry& Registry, UWorld* World,
                                       const FVector& PlayerPosition, int32 FrameCounter,
-                                      const TArray<FVector>& Waypoints, const FVector& BaseLocation)
+                                      const TArray<FVector>& Waypoints)
 {
 	if (FrameCounter % ECSConstants::NavPathRefreshInterval != 0) { return; }
 
@@ -35,8 +34,8 @@ void MovementSystem::UpdateNavTargets(entt::registry& Registry, UWorld* World,
 			}
 			else
 			{
-				// 모든 웨이포인트 통과 → 기지 방향
-				GoalPosition = BaseLocation;
+				// 모든 웨이포인트 통과 → 마지막 웨이포인트에서 정지
+				GoalPosition = (WaypointCount > 0) ? Waypoints.Last() : CachedPosition;
 			}
 		}
 		else // Chase
@@ -55,16 +54,32 @@ void MovementSystem::UpdateNavTargets(entt::registry& Registry, UWorld* World,
 				NewWaypoint = Path->PathPoints[1];
 			}
 		}
-		View.get<CNavTarget>(Entity).NextWaypoint = NewWaypoint;
+		// 현재 위치에서 NavMesh 수직 투영 → 지면 Z 캐싱
+		float GroundZ = CachedPosition.Z;
+		if (NavSys)
+		{
+			FNavLocation ProjectedLocation;
+			const FVector ProjectionExtent(100.f, 100.f, 5000.f);
+			if (NavSys->ProjectPointToNavigation(CachedPosition, ProjectedLocation, ProjectionExtent))
+			{
+				GroundZ = ProjectedLocation.Location.Z;
+			}
+		}
+
+		auto& NavTarget = View.get<CNavTarget>(Entity);
+		NavTarget.NextWaypoint = NewWaypoint;
+		NavTarget.GroundZ = GroundZ;
 
 		// ③ PushToPrev — Current → Prev
-		View.get<CNavTargetPrev>(Entity).NextWaypoint = NewWaypoint;
+		auto& NavTargetPrev = View.get<CNavTargetPrev>(Entity);
+		NavTargetPrev.NextWaypoint = NewWaypoint;
+		NavTargetPrev.GroundZ = GroundZ;
 	}
 }
 
-void MovementSystem::Tick(entt::registry& Registry, float DeltaTime, const FTerrainHeightCache& TerrainCache)
+void MovementSystem::Tick(entt::registry& Registry, float DeltaTime)
 {
-	auto View = Registry.view<CTransform, CTransformPrev, CMovementPrev, CEnemyStatePrev, CLODPrev>();
+	auto View = Registry.view<CTransform, CTransformPrev, CMovementPrev, CEnemyStatePrev, CLODPrev, CNavTargetPrev>();
 
 	// ── Entity 수집 ──
 	TArray<entt::entity, TInlineAllocator<3000>> Entities;
@@ -74,7 +89,7 @@ void MovementSystem::Tick(entt::registry& Registry, float DeltaTime, const FTerr
 	const int32 Count = Entities.Num();
 
 	// ── ParallelFor: Entity별 독립 처리 ── [WorkerThread]
-	ParallelFor(Count, [&View, &Entities, &TerrainCache](int32 Index)
+	ParallelFor(Count, [&View, &Entities](int32 Index)
 	{
 		const entt::entity Entity = Entities[Index];
 
@@ -88,20 +103,33 @@ void MovementSystem::Tick(entt::registry& Registry, float DeltaTime, const FTerr
 		const FVector CachedVelocity = View.get<CMovementPrev>(Entity).Velocity;
 		const float CachedAccumDT = View.get<CLODPrev>(Entity).AccumulatedDeltaTime;
 		const FVector CachedPosition = View.get<CTransformPrev>(Entity).Position;
+		const FQuat CachedRotation = View.get<CTransformPrev>(Entity).Rotation;
+		const float CachedGroundZ = View.get<CNavTargetPrev>(Entity).GroundZ;
 
 		// ② 계산 — 지역변수만 사용
 		FVector NewPosition = CachedPosition + CachedVelocity * CachedAccumDT;
-		const float GroundZ = TerrainCache.LookupHeight(NewPosition.X, NewPosition.Y);
-		if (GroundZ > FTerrainHeightCache::InvalidHeight)
+
+		// Z 보정 — NavMesh 투영 지면 높이로 보간
+		constexpr float ZInterpSpeed = 5.f;
+		NewPosition.Z = FMath::FInterpTo(CachedPosition.Z, CachedGroundZ, CachedAccumDT, ZInterpSpeed);
+
+		// 회전 — 실제 이동 방향(Z 포함)으로 보간
+		FQuat NewRotation = CachedRotation;
+		const FVector MoveDir = NewPosition - CachedPosition;
+		if (!MoveDir.IsNearlyZero(1.f))
 		{
-			constexpr float InterpSpeed = 10.f;
-			NewPosition.Z = FMath::FInterpTo(CachedPosition.Z, GroundZ, CachedAccumDT, InterpSpeed);
+			constexpr float RotInterpSpeed = 8.f;
+			const FQuat TargetQuat = MoveDir.ToOrientationQuat();
+			const float Alpha = FMath::Clamp(RotInterpSpeed * CachedAccumDT, 0.f, 1.f);
+			NewRotation = FQuat::Slerp(CachedRotation, TargetQuat, Alpha);
 		}
 
 		// ③ Write — Current에 쓰기
 		View.get<CTransform>(Entity).Position = NewPosition;
+		View.get<CTransform>(Entity).Rotation = NewRotation;
 
 		// ④ PushToPrev
 		View.get<CTransformPrev>(Entity).Position = NewPosition;
+		View.get<CTransformPrev>(Entity).Rotation = NewRotation;
 	});
 }

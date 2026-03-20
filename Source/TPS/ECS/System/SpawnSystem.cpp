@@ -22,6 +22,7 @@ entt::entity SpawnSystem::Spawn(entt::registry& Registry,
 	                           Params.AttackCooldown, InitAttackTimer);
 	Registry.emplace<CLOD>(Entity, ELODLevel::Near, FrameOffset,
 	                        ECSConstants::LODNearTickInterval, 0.f, true);
+	Registry.emplace<CMeshOffset>(Entity, FQuat(FVector::UpVector, FMath::DegreesToRadians(Params.MeshYawOffset)));
 	Registry.emplace<CVisCache>(Entity);
 	Registry.emplace<CAIMode>(Entity);
 	Registry.emplace<CNavTarget>(Entity);

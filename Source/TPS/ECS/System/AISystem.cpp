@@ -38,7 +38,7 @@ void PushToPrev(CEnemyStatePrev& OutStatePrev, CMovementPrev& OutMovementPrev,
  */
 void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
                     float AttackRange, const TArray<FVector>& Waypoints,
-                    float WaypointAcceptRadius, const FVector& BaseLocation)
+                    float WaypointAcceptRadius)
 {
 	const float AttackRangeSq = AttackRange * AttackRange;
 	const float AcceptRadiusSq = WaypointAcceptRadius * WaypointAcceptRadius;
@@ -57,7 +57,7 @@ void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 	const int32 Count = Entities.Num();
 
 	// ── ParallelFor: Entity별 독립 처리 ── [WorkerThread]
-	ParallelFor(Count, [&View, &Entities, &PlayerPosition, &Waypoints, &BaseLocation,
+	ParallelFor(Count, [&View, &Entities, &PlayerPosition, &Waypoints,
 	                     AttackRangeSq, AcceptRadiusSq, WaypointCount](int32 Index)
 	{
 		const entt::entity Entity = Entities[Index];
@@ -142,9 +142,7 @@ void AISystem::Tick(entt::registry& Registry, const FVector& PlayerPosition,
 					}
 					else
 					{
-						// NavMesh 경로 없으면 기지 방향 직접 이동 (폴백)
-						const FVector Dir = (BaseLocation - CachedPosition).GetSafeNormal2D();
-						NewVelocity = Dir * CachedMaxSpeed;
+						NewVelocity = FVector::ZeroVector;
 					}
 				}
 				else // Chase

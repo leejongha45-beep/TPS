@@ -20,5 +20,5 @@ namespace AISystem
 {
 	void Tick(entt::registry& Registry, const FVector& PlayerPosition,
 	          float AttackRange, const TArray<FVector>& Waypoints,
-	          float WaypointAcceptRadius, const FVector& BaseLocation);
+	          float WaypointAcceptRadius);
 };

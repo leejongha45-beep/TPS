@@ -15,4 +15,5 @@ struct FEnemySpawnParams
 	float MaxSpeed       = 300.f;
 	float AttackDamage   = 10.f;
 	float AttackCooldown = 1.5f;
+	float MeshYawOffset = 0.f;
 };

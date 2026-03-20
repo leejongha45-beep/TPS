@@ -23,7 +23,7 @@ void VisualizationSystem::Tick(entt::registry& Registry,
 	if (!ensure(HISM)) { return; }
 
 	auto View = Registry.view<CRenderProxyPrev, CTransformPrev, CAnimationPrev,
-	                          CLODPrev, CVisCache, CVisCachePrev>();
+	                          CLODPrev, CVisCache, CVisCachePrev, CMeshOffset>();
 
 	bool bDirty = false;
 
@@ -59,7 +59,8 @@ void VisualizationSystem::Tick(entt::registry& Registry,
 		// ② Write — 변경된 부분만 HISM 갱신
 		if (bTransformDirty)
 		{
-			const FTransform InstanceTransform(CachedRotation, CachedPosition);
+			const FQuat MeshRot = CachedRotation * View.get<CMeshOffset>(Entity).RotationOffset;
+			const FTransform InstanceTransform(MeshRot, CachedPosition);
 			HISM->UpdateInstanceTransform(CachedIndex, InstanceTransform,
 			                              false, false);
 		}

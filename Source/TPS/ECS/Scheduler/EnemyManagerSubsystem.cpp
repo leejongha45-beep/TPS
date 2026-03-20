@@ -7,7 +7,6 @@
 #include "ECS/System/SpawnSystem.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
-#include "Core/Subsystem/TPSTargetSubsystem.h"
 #include "Wave/TPSWaveSettings.h"
 
 UEnemyManagerSubsystem::~UEnemyManagerSubsystem()
@@ -83,26 +82,9 @@ void UEnemyManagerSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		}
 		EnemySchedulerInst->SetHISMs(ISMPtrs, HISM_LOD_COUNT);
 
-		// 지형 캐시 + 웨이포인트 빌드
-		// TPSTargetSubsystem에서 기지 위치 자동 가져오기 (ATPSAllyBase::BeginPlay에서 등록됨)
-		FVector BaseLocation = FVector::ZeroVector;
-		if (UTPSTargetSubsystem* TargetSub = InWorld.GetSubsystem<UTPSTargetSubsystem>())
-		{
-			BaseLocation = TargetSub->GetAllyBaseLocation();
-		}
-		EnemySchedulerInst->SetBaseLocation(BaseLocation);
-
-		// 기지 위치가 유효하면 즉시 빌드, 아니면 Lazy 초기화에 위임
-		if (!BaseLocation.IsNearlyZero())
-		{
-			EnemySchedulerInst->BuildTerrainCache(&InWorld, BaseLocation);
-			EnemySchedulerInst->CollectWaypoints(&InWorld);
-			UE_LOG(LogTemp, Log, TEXT("[EnemyMgr] TerrainCache + Waypoints built at BaseLocation: %s"), *BaseLocation.ToString());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] BaseLocation is ZeroVector — TerrainCache deferred to lazy init"));
-		}
+		// 웨이포인트 수집
+		EnemySchedulerInst->CollectWaypoints(&InWorld);
+		UE_LOG(LogTemp, Log, TEXT("[EnemyMgr] Waypoints collected"));
 	}
 }
 
@@ -159,20 +141,14 @@ void UEnemyManagerSubsystem::FlushSpawnQueue()
 {
 	if (!ensure(EnemySchedulerInst)) { return; }
 
-	// Lazy 지형 캐시 빌드 — 기지 BeginPlay가 OnWorldBeginPlay보다 늦을 때 대비
-	if (!EnemySchedulerInst->bTerrainCacheBuilt)
+	// Lazy 웨이포인트 수집
+	if (!EnemySchedulerInst->bWaypointsCollected)
 	{
 		UWorld* World = GetWorld();
-		if (UTPSTargetSubsystem* TargetSub = World ? World->GetSubsystem<UTPSTargetSubsystem>() : nullptr)
+		if (World)
 		{
-			const FVector BaseLocation = TargetSub->GetAllyBaseLocation();
-			if (!BaseLocation.IsNearlyZero())
-			{
-				EnemySchedulerInst->SetBaseLocation(BaseLocation);
-				EnemySchedulerInst->BuildTerrainCache(World, BaseLocation);
-				EnemySchedulerInst->CollectWaypoints(World);
-				UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] TerrainCache + Waypoints lazy-built at BaseLocation: %s"), *BaseLocation.ToString());
-			}
+			EnemySchedulerInst->CollectWaypoints(World);
+			UE_LOG(LogTemp, Warning, TEXT("[EnemyMgr] Waypoints lazy-collected"));
 		}
 	}
 

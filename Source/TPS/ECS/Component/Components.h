@@ -26,7 +26,7 @@ enum class EEnemyState : uint8
 /** AI 모드 — 이동 목표 레이어 (EEnemyState와 독립) */
 enum class EAIMode : uint8
 {
-	Rush,    // 기지 방향 Flow Field 참조
+	Rush,    // 웨이포인트 순차 이동 (NavMesh 경로)
 	Chase    // 플레이어 추적 (NavMesh 개별 경로)
 };
 
@@ -49,7 +49,7 @@ namespace ECSConstants
 	constexpr float SeparationWeight          = 1.f;
 	constexpr float MaxSeparationForce        = 3000.f;
 	constexpr float SeparationSpeedScale      = 2.f;       // 분리 시 MaxSpeed 배율
-	constexpr float SeparationCullingRadius   = 3000.f;
+	constexpr float SeparationCullingRadius   = 20000.f;                   // Mid LOD 범위와 동일 (200m)
 	constexpr float SeparationCullingRadiusSq = SeparationCullingRadius * SeparationCullingRadius;
 
 	// ── Attack (공격 수행) ──
@@ -109,6 +109,12 @@ struct CMovement
 	float MaxSpeed = 0.f;
 };
 
+/** 메시 Yaw 오프셋 — 메시 정면 보정용 (쿼터니언) */
+struct CMeshOffset
+{
+	FQuat RotationOffset = FQuat::Identity;
+};
+
 /** 렌더 프록시 — HISM 인스턴스 인덱스 + LOD 소속 */
 struct CRenderProxy
 {
@@ -148,10 +154,11 @@ struct CAIMode
 	EAIMode Mode = EAIMode::Rush;
 };
 
-/** NavMesh 웨이포인트 — Chase 모드 전용 */
+/** NavMesh 경로 — 다음 이동 포인트 + 현재 위치 지면 높이 */
 struct CNavTarget
 {
 	FVector NextWaypoint = FVector::ZeroVector;
+	float GroundZ = 0.f;   // NavMesh 투영 지면 높이
 };
 
 /** Rush 웨이포인트 인덱스 */
@@ -236,10 +243,11 @@ struct CAIModePrev
 	EAIMode Mode = EAIMode::Rush;
 };
 
-/** NavMesh 웨이포인트 — 이전 프레임 */
+/** NavMesh 경로 — 이전 프레임 */
 struct CNavTargetPrev
 {
 	FVector NextWaypoint = FVector::ZeroVector;
+	float GroundZ = 0.f;
 };
 
 /** Rush 웨이포인트 인덱스 — 이전 프레임 */

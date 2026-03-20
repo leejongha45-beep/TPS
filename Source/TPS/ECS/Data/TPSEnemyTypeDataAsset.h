@@ -48,4 +48,8 @@ public:
 	/** LOD별 메시 배열 — [0] Near(풀메시), [1] Mid(심플), [2] Far(큐브) */
 	UPROPERTY(EditDefaultsOnly, Category = "Rendering")
 	TArray<TSoftObjectPtr<class UStaticMesh>> LODMeshes;
+
+	/** 메시 정면 보정용 Yaw 오프셋 (도) — 메시 기본 정면이 +X가 아닐 때 사용 */
+	UPROPERTY(EditDefaultsOnly, Category = "Rendering")
+	float MeshYawOffset = 0.f;
 };

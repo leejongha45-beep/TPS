@@ -12,14 +12,17 @@ void FSpatialGrid::Build(entt::registry& Registry, float InCellSize,
 	Positions.Reset();
 	Entities.Reset();
 
-	auto View = Registry.view<CTransformPrev, CEnemyStatePrev>();
+	auto View = Registry.view<CTransformPrev, CEnemyStatePrev, CLODPrev>();
 
 	for (auto Entity : View)
 	{
 		const EEnemyState CachedState = View.get<CEnemyStatePrev>(Entity).State;
 
-		// Dying/Dead만 제외 — Idle, Moving, AttackCooldown, AttackReady, Attacking 전부 포함
+		// Dying/Dead만 제외
 		if (CachedState == EEnemyState::Dying || CachedState == EEnemyState::Dead) { continue; }
+
+		// Near + Mid LOD(보이는 엔티티)만 분리력 적용 — Far는 제외
+		if (View.get<CLODPrev>(Entity).Level == ELODLevel::Far) { continue; }
 
 		const FVector& Pos = View.get<CTransformPrev>(Entity).Position;
 

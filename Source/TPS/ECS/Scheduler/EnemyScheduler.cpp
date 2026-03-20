@@ -10,7 +10,6 @@
 #include "ECS/System/DeathSystem.h"
 #include "ECS/System/LODSystem.h"
 #include "ECS/System/MovementSystem.h"
-#include "ECS/System/FlowFieldSystem.h"
 #include "ECS/System/SeparationSystem.h"
 #include "ECS/System/VisualizationSystem.h"
 #include "Engine/Engine.h"
@@ -84,7 +83,7 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Phase1_ChaseTargets);
 		MovementSystem::UpdateNavTargets(Registry, World, PlayerPosition, FrameCounter,
-		                                 CachedWaypoints, BaseLocation);
+		                                 CachedWaypoints);
 	}
 
 	// 1.5. Phase_LOD (AccumDT 누적/리셋 + bShouldTick 결정)
@@ -103,7 +102,7 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Phase3_AI);
 		AISystem::Tick(Registry, PlayerPosition, AttackRange,
-		               CachedWaypoints, WaypointAcceptRadius, BaseLocation);
+		               CachedWaypoints, WaypointAcceptRadius);
 	}
 
 	// 3.1. Phase_Attack (쿨다운 틱 + 데미지 집계 → IDamageable)
@@ -146,9 +145,9 @@ void FEnemyScheduler::Tick(float DeltaTime)
 		);
 
 		FGraphEventRef MoveTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
-			[&Registry = Registry, DeltaTime, &TerrainCache = TerrainCache]()
+			[&Registry = Registry, DeltaTime]()
 			{
-				MovementSystem::Tick(Registry, DeltaTime, TerrainCache);
+				MovementSystem::Tick(Registry, DeltaTime);
 			},
 			TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask
 		);
@@ -199,13 +198,6 @@ void FEnemyScheduler::Initialize(UWorld* InWorld)
 {
 	CachedWorld = InWorld;
 	bIsActive = true;
-	TerrainCache.Initialize();
-}
-
-void FEnemyScheduler::BuildTerrainCache(UWorld* World, const FVector& MapCenter)
-{
-	TerrainCacheSystem::Build(TerrainCache, World, MapCenter);
-	bTerrainCacheBuilt = true;
 }
 
 void FEnemyScheduler::CollectWaypoints(UWorld* World)
@@ -258,6 +250,7 @@ void FEnemyScheduler::CollectWaypoints(UWorld* World)
 		++SafetyCount;
 	}
 
+	bWaypointsCollected = true;
 	UE_LOG(LogTemp, Warning, TEXT("[Waypoint] Collected %d waypoints, AcceptRadius=%.0f"),
 		CachedWaypoints.Num(), WaypointAcceptRadius);
 }

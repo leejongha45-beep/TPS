@@ -4,7 +4,6 @@
 #include "Tickable.h"
 #include "ECS/Data/DamageEvent.h"
 #include "ECS/Renderer/AEnemyRenderActor.h"
-#include "ECS/System/FlowFieldSystem.h"
 #include "ThirdParty/EnTT/include/entt/entity/registry.hpp"
 
 /**
@@ -31,15 +30,10 @@ public:
 	FORCEINLINE entt::registry& GetRegistry() { return Registry; }
 
 	void SetAttackRange(float InRange) { AttackRange = InRange; }
-	void SetBaseLocation(const FVector& InLocation) { BaseLocation = InLocation; }
-
-	/** 지형 높이 캐시 빌드 (NavMesh ProjectPoint) */
-	void BuildTerrainCache(class UWorld* World, const FVector& MapCenter);
 
 	/** 웨이포인트 체인 수집 — Head부터 링크 순회하여 CachedWaypoints에 적재 */
 	void CollectWaypoints(class UWorld* World);
 
-	FORCEINLINE const FTerrainHeightCache& GetTerrainCache() const { return TerrainCache; }
 	FORCEINLINE const TArray<FVector>& GetWaypoints() const { return CachedWaypoints; }
 	FORCEINLINE float GetWaypointAcceptRadius() const { return WaypointAcceptRadius; }
 
@@ -67,21 +61,17 @@ protected:
 
 	float AttackRange = 150.f;
 
-	/** 지형 높이 캐시 — BeginPlay 1회 빌드 */
-	FTerrainHeightCache TerrainCache;
-
 	/** Rush 웨이포인트 위치 배열 — 링크 순서대로 캐싱 */
 	TArray<FVector> CachedWaypoints;
 
 	/** 웨이포인트 도착 판정 반경 */
 	float WaypointAcceptRadius = 500.f;
 
-	FVector BaseLocation = FVector::ZeroVector;
 	TWeakObjectPtr<class UWorld> CachedWorld;
 	uint8 bIsActive : 1 = false;
 
 public:
-	uint8 bTerrainCacheBuilt : 1 = false;
+	uint8 bWaypointsCollected : 1 = false;
 
 protected:
 	uint32 FrameCounter = 0;
