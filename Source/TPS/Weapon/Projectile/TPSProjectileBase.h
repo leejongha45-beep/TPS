@@ -53,6 +53,14 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, Category = "Component|Movement")
 	TObjectPtr<class UProjectileMovementComponent> ProjectileMovementInst;
 
+	/** 투사체 궤적 트레일 Niagara 컴포넌트 */
+	UPROPERTY(VisibleDefaultsOnly, Category = "Component|Effect")
+	TObjectPtr<class UNiagaraComponent> TrailComponentInst;
+
+	/** 투사체 궤적 트레일 에셋 (에디터에서 지정) */
+	UPROPERTY(EditDefaultsOnly, Category = "Effect")
+	TObjectPtr<class UNiagaraSystem> TrailEffectAsset;
+
 	/** 충돌 임팩트 Niagara 이펙트 */
 	UPROPERTY(EditDefaultsOnly, Category = "Effect")
 	TObjectPtr<class UNiagaraSystem> ImpactEffectAsset;

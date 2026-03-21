@@ -4,6 +4,7 @@
 #include "GameFramework/Pawn.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
@@ -50,7 +51,18 @@ ATPSProjectileBase::ATPSProjectileBase()
 		}
 	}
 
-	// ③ 초기 상태: 숨김 + 충돌 비활성 + Tick 비활성 (풀 대기)
+	// ③ 트레일 이펙트 컴포넌트 (비활성 상태로 생성)
+	if (!TrailComponentInst)
+	{
+		TrailComponentInst = CreateDefaultSubobject<UNiagaraComponent>(TEXT("TrailEffect"));
+		if (ensure(TrailComponentInst.Get()))
+		{
+			TrailComponentInst->SetupAttachment(CollisionComponentInst.Get());
+			TrailComponentInst->bAutoActivate = false;
+		}
+	}
+
+	// ④ 초기 상태: 숨김 + 충돌 비활성 + Tick 비활성 (풀 대기)
 	AActor::SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
 	AActor::SetActorTickEnabled(false);
@@ -97,7 +109,17 @@ void ATPSProjectileBase::ActivateProjectile(const FTransform& InMuzzleTransform,
 		ProjectileMovementInst->Activate(true);
 	}
 
-	// ④ 수명 타이머 등록
+	// ④ 트레일 이펙트 활성화
+	if (TrailComponentInst.Get())
+	{
+		if (TrailEffectAsset)
+		{
+			TrailComponentInst->SetAsset(TrailEffectAsset.Get());
+		}
+		TrailComponentInst->Activate(true);
+	}
+
+	// ⑤ 수명 타이머 등록
 	GetWorldTimerManager().SetTimer(
 		LifeSpanTimerHandle, this, &ATPSProjectileBase::OnLifeSpanExpired, LifeSpan, false);
 }
@@ -111,7 +133,14 @@ void ATPSProjectileBase::DeactivateProjectile()
 	SetActorEnableCollision(false);
 	SetActorTickEnabled(false);
 
-	// ② 이동 즉시 정지 + 컴포넌트 비활성화
+	// ② 트레일 이펙트 비활성화
+	if (TrailComponentInst.Get())
+	{
+		TrailComponentInst->Deactivate();
+		TrailComponentInst->SetAsset(nullptr);
+	}
+
+	// ③ 이동 즉시 정지 + 컴포넌트 비활성화
 	if (ensure(ProjectileMovementInst.Get()))
 	{
 		ProjectileMovementInst->StopMovementImmediately();

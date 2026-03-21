@@ -20,6 +20,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Pool")
 	TSoftClassPtr<class ATPSProjectileBase> ProjectileClassPath;
 
+	/** 관통탄 발사체 클래스 (SoftPtr — 비동기 로드) */
+	UPROPERTY(EditDefaultsOnly, Category = "Pool")
+	TSoftClassPtr<class ATPSProjectileBase> PenetratingClassPath;
+
 	/** 풀 최대 크기 */
 	UPROPERTY(EditDefaultsOnly, Category = "Pool", meta = (ClampMin = "1"))
 	int32 PoolSize = 1000;

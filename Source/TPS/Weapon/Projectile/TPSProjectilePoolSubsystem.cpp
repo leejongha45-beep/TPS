@@ -61,13 +61,24 @@ void UTPSProjectilePoolSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 
 	// ④ 관통탄 풀 초기화
 	{
+		// 관통탄 클래스 로드 (Config에서 BP 클래스 참조)
+		if (ConfigAsset.Get() && !ConfigAsset->PenetratingClassPath.IsNull())
+		{
+			LoadedPenetratingClass = ConfigAsset->PenetratingClassPath.LoadSynchronous();
+		}
+		if (!LoadedPenetratingClass)
+		{
+			LoadedPenetratingClass = ATPSPenetratingProjectile::StaticClass();
+			UE_LOG(PoolLog, Warning, TEXT("[OnWorldBeginPlay] PenetratingClassPath not set — falling back to C++ class"));
+		}
+
 		PenetratingPool.Reserve(PenetratingPoolSize);
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		for (int32 i = 0; i < PenetratingPoolSize; ++i)
 		{
-			ATPSPenetratingProjectile* pProj = InWorld.SpawnActor<ATPSPenetratingProjectile>(
-				ATPSPenetratingProjectile::StaticClass(),
+			ATPSProjectileBase* pProj = InWorld.SpawnActor<ATPSProjectileBase>(
+				LoadedPenetratingClass,
 				FTransform(FVector(0.f, 0.f, -10000.f)), SpawnParams);
 			if (pProj)
 			{
@@ -131,11 +142,12 @@ ATPSProjectileBase* UTPSProjectilePoolSubsystem::GetPenetratingProjectile()
 	UE_LOG(PoolLog, Warning, TEXT("[GetPenetratingProjectile] Pool exhausted! Emergency spawning."));
 	UWorld* pWorld = GetWorld();
 	if (!ensure(pWorld)) return nullptr;
+	if (!ensure(LoadedPenetratingClass)) return nullptr;
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	return pWorld->SpawnActor<ATPSPenetratingProjectile>(
-		ATPSPenetratingProjectile::StaticClass(), FTransform::Identity, SpawnParams);
+	return pWorld->SpawnActor<ATPSProjectileBase>(
+		LoadedPenetratingClass, FTransform::Identity, SpawnParams);
 }
 
 void UTPSProjectilePoolSubsystem::ReturnProjectile(ATPSProjectileBase* InProjectile)

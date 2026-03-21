@@ -6,9 +6,8 @@
 
 /**
  * 관통 발사체 — PsychoSync Phase 2에서 사용
- * - 적 타격 시 데미지 적용 후 관통 (비활성화 안 함)
- * - 벽/지형 타격 시에는 비활성화
- * - bShouldBounce=true → StopSimulating 방지 → 바운스 콜백에서 직진 복원
+ * - Enemy 채널 Overlap → 적을 물리적으로 뚫고 지나감 (OnBeginOverlap으로 데미지)
+ * - 벽/지형 Block → OnComponentHit → 비활성화
  */
 UCLASS()
 class TPS_API ATPSPenetratingProjectile : public ATPSProjectileBase
@@ -21,12 +20,14 @@ public:
 	virtual void ActivateProjectile(const FTransform& InMuzzleTransform, const FVector& InDirection, float InDamage, float InSpeed) override;
 
 protected:
-	/** 충돌 처리 오버라이드 — 적 관통, 벽/지형만 비활성화 */
+	/** 벽/지형 Block 충돌 시 — 비활성화만 */
 	virtual void HandleHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, const FHitResult& Hit) override;
 
-	/** 바운스 콜백 — Block 충돌 후 원래 방향으로 속도 복원 */
+	/** 적 Overlap 충돌 시 — 데미지 적용 + 관통 */
 	UFUNCTION()
-	void OnBounce(const FHitResult& ImpactResult, const FVector& ImpactVelocity);
+	void OnOverlapEnemy(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor,
+		class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+		bool bFromSweep, const FHitResult& SweepResult);
 
 	/** 최대 관통 횟수 (0 = 무제한) */
 	UPROPERTY(EditDefaultsOnly, Category = "Projectile|Penetration")
@@ -40,6 +41,7 @@ protected:
 	/** 이미 데미지를 적용한 액터 (중복 방지) */
 	TSet<TWeakObjectPtr<AActor>> HitActors;
 
-	/** ActivateProjectile에서 캐싱한 발사 방향 */
-	FVector CachedDirection = FVector::ForwardVector;
+	/** 관통탄 전용 트레일 이펙트 (스크류 궤적) */
+	UPROPERTY(EditDefaultsOnly, Category = "Effect")
+	TObjectPtr<class UNiagaraSystem> PenetratingTrailAsset;
 };

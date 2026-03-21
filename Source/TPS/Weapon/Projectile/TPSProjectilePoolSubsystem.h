@@ -49,6 +49,10 @@ protected:
 	UPROPERTY()
 	TSubclassOf<class ATPSProjectileBase> LoadedProjectileClass;
 
+	/** 로드 완료된 관통탄 클래스 */
+	UPROPERTY()
+	TSubclassOf<class ATPSProjectileBase> LoadedPenetratingClass;
+
 	FTimerHandle DeferredSpawnTimerHandle;
 
 	int32 PoolSize = 0;
