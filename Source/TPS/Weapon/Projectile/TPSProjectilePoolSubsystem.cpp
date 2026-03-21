@@ -3,6 +3,7 @@
 #include "TimerManager.h"
 #include "TPSProjectilePoolConfig.h"
 #include "Weapon/Projectile/TPSProjectileBase.h"
+#include "Weapon/Projectile/TPSPenetratingProjectile.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(PoolLog, Log, All);
 DEFINE_LOG_CATEGORY(PoolLog);
@@ -57,6 +58,24 @@ void UTPSProjectilePoolSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 			DeferredSpawnTimerHandle, this, &UTPSProjectilePoolSubsystem::DeferredSpawn,
 			0.016f, true);
 	}
+
+	// ④ 관통탄 풀 초기화
+	{
+		PenetratingPool.Reserve(PenetratingPoolSize);
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		for (int32 i = 0; i < PenetratingPoolSize; ++i)
+		{
+			ATPSPenetratingProjectile* pProj = InWorld.SpawnActor<ATPSPenetratingProjectile>(
+				ATPSPenetratingProjectile::StaticClass(),
+				FTransform(FVector(0.f, 0.f, -10000.f)), SpawnParams);
+			if (pProj)
+			{
+				PenetratingPool.Add(pProj);
+			}
+		}
+		UE_LOG(PoolLog, Log, TEXT("[OnWorldBeginPlay] Penetrating pool spawned: %d"), PenetratingPool.Num());
+	}
 }
 
 void UTPSProjectilePoolSubsystem::Deinitialize()
@@ -68,6 +87,7 @@ void UTPSProjectilePoolSubsystem::Deinitialize()
 	}
 
 	Pool.Empty();
+	PenetratingPool.Empty();
 	TotalSpawnedCount = 0;
 
 	Super::Deinitialize();
@@ -100,11 +120,36 @@ ATPSProjectileBase* UTPSProjectilePoolSubsystem::GetProjectile()
 	return pProjectile;
 }
 
+ATPSProjectileBase* UTPSProjectilePoolSubsystem::GetPenetratingProjectile()
+{
+	if (PenetratingPool.Num() > 0)
+	{
+		return PenetratingPool.Pop();
+	}
+
+	// 풀 고갈 시 긴급 스폰
+	UE_LOG(PoolLog, Warning, TEXT("[GetPenetratingProjectile] Pool exhausted! Emergency spawning."));
+	UWorld* pWorld = GetWorld();
+	if (!ensure(pWorld)) return nullptr;
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	return pWorld->SpawnActor<ATPSPenetratingProjectile>(
+		ATPSPenetratingProjectile::StaticClass(), FTransform::Identity, SpawnParams);
+}
+
 void UTPSProjectilePoolSubsystem::ReturnProjectile(ATPSProjectileBase* InProjectile)
 {
 	if (!ensure(InProjectile)) return;
 
-	Pool.Push(InProjectile);
+	if (InProjectile->IsA<ATPSPenetratingProjectile>())
+	{
+		PenetratingPool.Push(InProjectile);
+	}
+	else
+	{
+		Pool.Push(InProjectile);
+	}
 }
 
 void UTPSProjectilePoolSubsystem::SpawnProjectileBatch(int32 InCount)

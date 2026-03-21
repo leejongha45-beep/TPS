@@ -108,7 +108,7 @@ void FEnemyScheduler::Tick(float DeltaTime)
 	// 2. Phase_Damage (큐 소비 → CHealth 감산 → PushToPrev)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Phase2_Damage);
-		DamageSystem::Tick(Registry, DamageQueue, InstanceToEntityPerLOD);
+		FramePlayerKillCount = DamageSystem::Tick(Registry, DamageQueue, InstanceToEntityPerLOD);
 	}
 
 	// 3. Phase_AI (Rush: Waypoint / Chase: NavTarget)
@@ -197,6 +197,12 @@ void FEnemyScheduler::Tick(float DeltaTime)
 				                    InstanceToEntityPerLOD[LODIdx], static_cast<uint8>(LODIdx));
 			}
 		}
+	}
+
+	// 킬 콜백 — DamageSystem에서 감지한 플레이어 킬 수 브로드캐스트
+	if (FramePlayerKillCount > 0 && PostTickKillCallback)
+	{
+		PostTickKillCallback(FramePlayerKillCount);
 	}
 
 	++FrameCounter;

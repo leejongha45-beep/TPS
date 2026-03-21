@@ -87,6 +87,24 @@ protected:
 	/** 재장전 중 플래그 */
 	uint8 bIsReloading : 1 = false;
 
+	/** PsychoSync — 무한탄창 */
+	uint8 bInfiniteAmmo : 1 = false;
+
+	/** PsychoSync — 관통탄 사용 */
+	uint8 bPenetration : 1 = false;
+
+	/** 관통탄 연사 간격 배율 (기본 FireInterval × 이 값) */
+	UPROPERTY(EditDefaultsOnly, Category = "PsychoSync")
+	float PenetrationFireIntervalMultiplier = 1.5f;
+
+public:
+	FORCEINLINE void SetInfiniteAmmo(bool bInValue) { bInfiniteAmmo = bInValue; }
+	void SetPenetration(bool bInValue);
+	FORCEINLINE bool GetInfiniteAmmo() const { return bInfiniteAmmo; }
+	FORCEINLINE bool GetPenetration() const { return bPenetration; }
+
+protected:
+
 	/** 카메라 뷰포인트 획득 콜백 */
 	TFunction<void (FVector&, FRotator&)> ViewPointGetter;
 

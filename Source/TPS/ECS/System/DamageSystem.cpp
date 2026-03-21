@@ -18,10 +18,12 @@ void PushToPrev(CHealthPrev& OutPrev, const CHealth& InCurrent)
 
 } // anonymous namespace
 
-void DamageSystem::Tick(entt::registry& Registry,
-                        TArray<FDamageEvent>& DamageQueue,
-                        TArray<entt::entity> (&InstanceToEntityPerLOD)[HISM_LOD_COUNT])
+int32 DamageSystem::Tick(entt::registry& Registry,
+                         TArray<FDamageEvent>& DamageQueue,
+                         TArray<entt::entity> (&InstanceToEntityPerLOD)[HISM_LOD_COUNT])
 {
+	int32 PlayerKillCount = 0;
+
 	for (const FDamageEvent& Event : DamageQueue)
 	{
 		// ① Read: LOD + InstanceIndex 유효성 검증
@@ -47,7 +49,14 @@ void DamageSystem::Tick(entt::registry& Registry,
 
 		// ③ PushToPrev
 		PushToPrev(Registry.get<CHealthPrev>(Entity), Health);
+
+		// ④ 플레이어 킬 감지
+		if (Event.bFromPlayer && Health.Current <= 0.f)
+		{
+			++PlayerKillCount;
+		}
 	}
 
 	DamageQueue.Reset();
+	return PlayerKillCount;
 }

@@ -6,6 +6,7 @@
 #include "TimerManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 void UTPSNPCPoolSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -136,6 +137,23 @@ void UTPSNPCPoolSubsystem::DeactivateNPC(ATPSSoldierNPC* InNPC)
 	{
 		SkelMesh->SetComponentTickEnabled(false);
 	}
+
+	// CharacterMovement 틱 해제
+	if (UCharacterMovementComponent* CMC = InNPC->GetCharacterMovement())
+	{
+		CMC->StopMovementImmediately();
+		CMC->SetMovementMode(MOVE_None);
+		if (CMC->PrimaryComponentTick.IsTickFunctionRegistered())
+		{
+			CMC->PrimaryComponentTick.UnRegisterTickFunction();
+		}
+	}
+
+	// AI 틱 비활성화
+	if (ATPSNPCController* NPCCtrl = Cast<ATPSNPCController>(InNPC->GetController()))
+	{
+		NPCCtrl->SetAITickEnabled(false);
+	}
 }
 
 void UTPSNPCPoolSubsystem::ActivateNPC(ATPSSoldierNPC* InNPC, const FVector& InLocation)
@@ -166,9 +184,21 @@ void UTPSNPCPoolSubsystem::ActivateNPC(ATPSSoldierNPC* InNPC, const FVector& InL
 		SkelMesh->SetComponentTickEnabled(true);
 	}
 
-	// AI 상태 리셋
+	// CharacterMovement 재활성화 — 틱 미등록 시 등록
+	if (UCharacterMovementComponent* CMC = InNPC->GetCharacterMovement())
+	{
+		if (!CMC->PrimaryComponentTick.IsTickFunctionRegistered())
+		{
+			CMC->PrimaryComponentTick.RegisterTickFunction(InNPC->GetLevel());
+		}
+		CMC->SetComponentTickEnabled(true);
+		CMC->SetMovementMode(MOVE_Walking);
+	}
+
+	// AI 틱 재활성화 + 상태 리셋
 	if (ATPSNPCController* NPCCtrl = Cast<ATPSNPCController>(InNPC->GetController()))
 	{
+		NPCCtrl->SetAITickEnabled(true);
 		NPCCtrl->ResetAIState();
 	}
 

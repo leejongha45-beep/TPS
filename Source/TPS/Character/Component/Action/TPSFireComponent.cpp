@@ -25,7 +25,7 @@ void UTPSFireComponent::StartFire(ATPSWeaponBase* InWeapon, TFunction<void (FVec
 		ATPSWeaponBase* pWeapon = WeaponRef.Get();
 		if (ensure(pWeapon))
 		{
-			if (!pWeapon->HasAmmo()) return;
+			if (!bInfiniteAmmo && !pWeapon->HasAmmo()) return;
 		}
 	}
 
@@ -36,14 +36,18 @@ void UTPSFireComponent::StartFire(ATPSWeaponBase* InWeapon, TFunction<void (FVec
 
 	OnFireStateChangedDelegate.Broadcast(true);
 
-	// ③ 즉시 1발 발사 + 연사 타이머 등록
+	// ③ 즉시 1발 발사 + 연사 타이머 등록 (관통탄이면 연사력 하락)
 	FireOnce();
+
+	const float BaseInterval = InWeapon->GetFireInterval();
+	const float FinalInterval = bPenetration ? BaseInterval * PenetrationFireIntervalMultiplier : BaseInterval;
 
 	GetWorld()->GetTimerManager().SetTimer(
 		FireTimerHandle, this, &UTPSFireComponent::FireOnce,
-		InWeapon->GetFireInterval(), true);
+		FinalInterval, true);
 
-	UE_LOG(FireLog, Log, TEXT("[StartFire] Firing started. FireInterval: %.3f"), InWeapon->GetFireInterval());
+	UE_LOG(FireLog, Log, TEXT("[StartFire] Firing started. FireInterval: %.3f (Penetration: %s)"),
+		FinalInterval, bPenetration ? TEXT("ON") : TEXT("OFF"));
 }
 
 void UTPSFireComponent::StopFire()
@@ -69,15 +73,18 @@ void UTPSFireComponent::FireOnce()
 		return;
 	}
 
-	if (!pWeapon->HasAmmo())
+	if (!bInfiniteAmmo && !pWeapon->HasAmmo())
 	{
 		UE_LOG(FireLog, Log, TEXT("[FireOnce] Out of ammo. Stopping fire."));
 		StopFire();
 		return;
 	}
 
-	// ② 탄약 소모 + 총구 정보 획득
-	pWeapon->ConsumeAmmo();
+	// ② 탄약 소모 + 총구 정보 획득 (무한탄창이면 스킵)
+	if (!bInfiniteAmmo)
+	{
+		pWeapon->ConsumeAmmo();
+	}
 
 	const FTransform MuzzleTransform = pWeapon->GetMuzzleTransform();
 
@@ -196,13 +203,39 @@ void UTPSFireComponent::OnReloadMontageFinished(bool bInterrupted)
 	OnReloadStateChangedDelegate.Broadcast(false);
 }
 
+void UTPSFireComponent::SetPenetration(bool bInValue)
+{
+	if (bPenetration == bInValue) return;
+	bPenetration = bInValue;
+
+	// 사격 중이면 연사 타이머를 새 간격으로 재등록
+	if (bIsFiring)
+	{
+		ATPSWeaponBase* pWeapon = WeaponRef.Get();
+		if (pWeapon)
+		{
+			const float BaseInterval = pWeapon->GetFireInterval();
+			const float FinalInterval = bPenetration ? BaseInterval * PenetrationFireIntervalMultiplier : BaseInterval;
+
+			GetWorld()->GetTimerManager().ClearTimer(FireTimerHandle);
+			GetWorld()->GetTimerManager().SetTimer(
+				FireTimerHandle, this, &UTPSFireComponent::FireOnce,
+				FinalInterval, true);
+
+			UE_LOG(FireLog, Log, TEXT("[SetPenetration] Timer updated mid-fire. NewInterval: %.3f"), FinalInterval);
+		}
+	}
+}
+
 void UTPSFireComponent::ActivateProjectileFromPool(const FTransform& InMuzzleTransform, const FVector& InDirection, ATPSWeaponBase* InWeapon)
 {
 	// ① 풀 서브시스템에서 투사체 꺼내기
 	UTPSProjectilePoolSubsystem* pPool = GetWorld()->GetSubsystem<UTPSProjectilePoolSubsystem>();
 	if (!ensure(pPool)) return;
 
-	ATPSProjectileBase* pProjectile = pPool->GetProjectile();
+	ATPSProjectileBase* pProjectile = bPenetration
+		? pPool->GetPenetratingProjectile()
+		: pPool->GetProjectile();
 	if (!ensure(pProjectile)) return;
 
 	// ② Instigator/Owner 설정 + 투사체 활성화

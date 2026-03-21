@@ -4,6 +4,8 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "ECS/Scheduler/EnemyScheduler.h"
 #include "ECS/Data/EnemySpawnParams.h"
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnPlayerKillECS, int32 /* KillCount */);
+
 #include "EnemyManagerSubsystem.generated.h"
 
 /**
@@ -32,7 +34,10 @@ public:
 	 *  @param InstanceIndex  HISM 인스턴스 인덱스 (FHitResult.Item)
 	 *  @param LODLevel       피격된 HISM의 LOD 인덱스
 	 *  @param Damage         데미지량 */
-	void ApplyDamage(int32 InstanceIndex, uint8 LODLevel, float Damage);
+	void ApplyDamage(int32 InstanceIndex, uint8 LODLevel, float Damage, bool bFromPlayer = false);
+
+	/** 플레이어가 ECS 적을 처치했을 때 브로드캐스트 */
+	FOnPlayerKillECS OnPlayerKillECSDelegate;
 
 	FORCEINLINE FEnemyScheduler* GetScheduler() const { return EnemySchedulerInst.Get(); }
 

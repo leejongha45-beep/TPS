@@ -1,9 +1,12 @@
 ﻿#include "UI/HUD/TPSHUD.h"
 #include "UI/ViewModel/AmmoViewModel.h"
+#include "UI/ViewModel/PsychoSyncViewModel.h"
 #include "UI/Widget/Ammo/TPSAmmoWidget.h"
+#include "UI/Widget/PsychoSync/TPSPsychoSyncWidget.h"
 #include "UI/Widget/SpawnSelect/TPSSpawnSelectWidget.h"
 #include "UI/Widget/Minimap/TPSMinimapWidget.h"
 #include "Character/Player/TPSPlayer.h"
+#include "Character/Component/Action/TPSPsychoSyncComponent.h"
 #include "Spawn/TPSPlayerSpawnSubsystem.h"
 #include "Core/GameMode/TPSGameModeBase.h"
 #include "Blueprint/UserWidget.h"
@@ -37,6 +40,27 @@ void ATPSHUD::BeginPlay()
 		}
 	}
 
+	// ②-b 사이코싱크 위젯 생성 + ViewModel 초기화
+	if (PsychoSyncWidgetClass)
+	{
+		PsychoSyncWidgetInst = CreateWidget<UTPSPsychoSyncWidget>(pPC, PsychoSyncWidgetClass);
+		if (ensure(PsychoSyncWidgetInst.Get()))
+		{
+			PsychoSyncWidgetInst->AddToViewport();
+			PsychoSyncWidgetInst->SetVisibility(ESlateVisibility::HitTestInvisible);
+		}
+	}
+
+	PsychoSyncViewModelInst = NewObject<UPsychoSyncViewModel>(this);
+	if (ensure(PsychoSyncViewModelInst.Get()))
+	{
+		UTPSPsychoSyncComponent* pPsychoSync = pPlayer->FindComponentByClass<UTPSPsychoSyncComponent>();
+		if (pPsychoSync)
+		{
+			PsychoSyncViewModelInst->Initialize(pPsychoSync);
+		}
+	}
+
 	// ③ 미니맵 위젯 생성 (Collapsed — M키로 토글)
 	if (MinimapWidgetClass)
 	{
@@ -64,6 +88,7 @@ void ATPSHUD::DrawHUD()
 
 	DrawCrosshair();
 	UpdateAmmoWidget();
+	UpdatePsychoSyncWidget();
 }
 
 void ATPSHUD::DrawCrosshair()
@@ -168,6 +193,19 @@ void ATPSHUD::UpdateAmmoWidget()
 	AmmoWidgetInst->UpdateAmmoDisplay(pViewModel->GetCurrentAmmo(), pViewModel->GetMaxAmmo(), pViewModel->GetAmmoColor());
 }
 
+void ATPSHUD::UpdatePsychoSyncWidget()
+{
+	if (!PsychoSyncViewModelInst.Get()) return;
+	if (!PsychoSyncWidgetInst.Get()) return;
+
+	PsychoSyncViewModelInst->Update(GetWorld()->GetDeltaSeconds());
+
+	PsychoSyncWidgetInst->UpdateDisplay(
+		PsychoSyncViewModelInst->GetGaugePercent(),
+		PsychoSyncViewModelInst->GetPhaseDisplayText(),
+		PsychoSyncViewModelInst->GetGaugeColor());
+}
+
 // ──────────────────────────────────────────────
 //  스폰 선택 UI
 // ──────────────────────────────────────────────
@@ -212,10 +250,14 @@ void ATPSHUD::ShowSpawnSelect(ATPSGameModeBase* InGameMode)
 	// ④ 위젯 표시
 	SpawnSelectWidgetInst->SetVisibility(ESlateVisibility::Visible);
 
-	// ⑤ 탄약 위젯 숨김
+	// ⑤ 탄약 + 사이코싱크 위젯 숨김
 	if (AmmoWidgetInst)
 	{
 		AmmoWidgetInst->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (PsychoSyncWidgetInst)
+	{
+		PsychoSyncWidgetInst->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 
@@ -226,6 +268,12 @@ void ATPSHUD::HideSpawnSelect()
 	if (SpawnSelectWidgetInst)
 	{
 		SpawnSelectWidgetInst->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	// 사이코싱크 위젯 복원
+	if (PsychoSyncWidgetInst)
+	{
+		PsychoSyncWidgetInst->SetVisibility(ESlateVisibility::HitTestInvisible);
 	}
 }
 

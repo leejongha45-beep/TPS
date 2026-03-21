@@ -1,12 +1,13 @@
 #include "Character/Base/TPSCharacterBase.h"
 #include "Engine/World.h"
 #include "Character/Component/Action/TPSCMC.h"
-#include "Engine/World.h"
 #include "Character/Component/Data/TPSPlayerStateComponent.h"
 #include "Character/Component/Data/TPSPlayerStatusComponent.h"
 #include "Character/Component/Data/TPSFootstepComponent.h"
 #include "Core/Subsystem/TPSTargetSubsystem.h"
 #include "Core/Subsystem/TPSDamageSubsystem.h"
+#include "ECS/Scheduler/EnemyManagerSubsystem.h"
+#include "GameFramework/Pawn.h"
 
 ATPSCharacterBase::ATPSCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UTPSCMC>(ACharacter::CharacterMovementComponentName))
@@ -219,7 +220,25 @@ float ATPSCharacterBase::ReceiveDamage(float Damage, AActor* DamageCauser)
 	if (IsDead()) return 0.f;
 
 	const float FinalDamage = ProcessDamage(Damage, DamageCauser);
+	const bool bWasAlive = !IsDead();
 	ApplyDamageToHP(FinalDamage);
+
+	// NPC 사망 감지 → DamageCauser의 Instigator가 플레이어면 킬 이벤트 브로드캐스트
+	if (bWasAlive && IsDead() && DamageCauser)
+	{
+		APawn* pInstigator = DamageCauser->GetInstigator();
+		if (pInstigator && pInstigator->IsPlayerControlled())
+		{
+			if (UWorld* pWorld = GetWorld())
+			{
+				if (UEnemyManagerSubsystem* pEnemyMgr = pWorld->GetSubsystem<UEnemyManagerSubsystem>())
+				{
+					pEnemyMgr->OnPlayerKillECSDelegate.Broadcast(1);
+					UE_LOG(LogTemp, Log, TEXT("[TPSCharacterBase] NPC killed by player — PsychoSync kill broadcast."));
+				}
+			}
+		}
+	}
 
 	return FinalDamage;
 }

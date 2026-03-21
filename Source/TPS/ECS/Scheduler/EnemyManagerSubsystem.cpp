@@ -25,6 +25,10 @@ void UEnemyManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{
 			EnemySchedulerInst->Initialize(GetWorld());
 			EnemySchedulerInst->PreTickCallback = [this]() { FlushSpawnQueue(); };
+			EnemySchedulerInst->PostTickKillCallback = [this](int32 KillCount)
+			{
+				OnPlayerKillECSDelegate.Broadcast(KillCount);
+			};
 		}
 	}
 }
@@ -206,11 +210,11 @@ void UEnemyManagerSubsystem::FlushSpawnQueue()
 	SpawnQueue.Reset();
 }
 
-void UEnemyManagerSubsystem::ApplyDamage(int32 InstanceIndex, uint8 LODLevel, float Damage)
+void UEnemyManagerSubsystem::ApplyDamage(int32 InstanceIndex, uint8 LODLevel, float Damage, bool bFromPlayer)
 {
 	if (ensure(EnemySchedulerInst))
 	{
-		EnemySchedulerInst->QueueDamage(InstanceIndex, LODLevel, Damage);
+		EnemySchedulerInst->QueueDamage(InstanceIndex, LODLevel, Damage, bFromPlayer);
 	}
 }
 

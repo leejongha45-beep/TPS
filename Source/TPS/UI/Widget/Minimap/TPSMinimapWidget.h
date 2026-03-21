@@ -52,5 +52,4 @@ private:
 	/** 위젯 크기 캐시 */
 	FVector2D WidgetSize = FVector2D(600.f, 600.f);
 
-	bool bBasesInitialized = false;
 };

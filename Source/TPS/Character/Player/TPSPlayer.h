@@ -45,6 +45,9 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Interaction")
 	TObjectPtr<class UTPSPlayerInteractionComponent> InteractionComponentInst;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Component|Action")
+	TObjectPtr<class UTPSPsychoSyncComponent> PsychoSyncComponentInst;
 #pragma endregion
 
 #pragma region PlayerOverride
@@ -53,6 +56,7 @@ protected:
 	virtual void StopAim() override;
 	virtual void StartFire() override;
 	virtual void OnEquipStateChanged(bool bIsEquipped) override;
+	virtual float ReceiveDamage(float Damage, AActor* DamageCauser) override;
 #pragma endregion
 
 #pragma region AimRotation

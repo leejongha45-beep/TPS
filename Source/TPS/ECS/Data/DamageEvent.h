@@ -8,4 +8,5 @@ struct FDamageEvent
 	int32 InstanceIndex;
 	uint8 LODLevel;
 	float Damage;
+	uint8 bFromPlayer : 1 = false;
 };

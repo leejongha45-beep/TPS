@@ -53,5 +53,4 @@ private:
 	FVector2D MapWorldCenter = FVector2D::ZeroVector;
 	float MapWorldExtent = 50000.f;
 
-	bool bBasesInitialized = false;
 };

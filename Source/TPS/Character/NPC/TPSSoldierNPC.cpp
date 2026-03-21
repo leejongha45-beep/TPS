@@ -62,6 +62,16 @@ void ATPSSoldierNPC::BeginPlay()
 	{
 		TargetSS->RegisterNPC(this);
 	}
+
+	// 풀 시스템용 — 모든 초기화 후 CMC 틱 해제 (ActivateNPC에서 재등록)
+	if (UCharacterMovementComponent* CMC = GetCharacterMovement())
+	{
+		CMC->SetComponentTickEnabled(false);
+		if (CMC->PrimaryComponentTick.IsTickFunctionRegistered())
+		{
+			CMC->PrimaryComponentTick.UnRegisterTickFunction();
+		}
+	}
 }
 
 void ATPSSoldierNPC::StartFire()

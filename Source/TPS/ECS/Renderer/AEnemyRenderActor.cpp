@@ -1,6 +1,7 @@
 #include "ECS/Renderer/AEnemyRenderActor.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Utils/Collision/TPSCollisionChannels.h"
 
 AEnemyRenderActor::AEnemyRenderActor()
 {
@@ -35,7 +36,8 @@ void AEnemyRenderActor::InitializeISMs(UStaticMesh* Meshes[], int32 Count)
 		pISM->SetReceivesDecals(false);
 		pISM->SetCastShadow(false);
 		pISM->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		pISM->SetCollisionProfileName(TEXT("BlockAll"));
+		pISM->SetCollisionObjectType(TPSCollision::Enemy);
+		pISM->SetCollisionResponseToAllChannels(ECR_Block);
 		pISM->SetCullDistances(0, 1000000);
 		pISM->SetupAttachment(GetRootComponent());
 

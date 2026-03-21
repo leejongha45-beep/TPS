@@ -119,12 +119,17 @@ private:
 	float FoldRadius = 20000.f;
 
 	/** 군집끼리 교전 판정 반경 */
-	float EngageRadius = 3000.f;
+	float EngageRadius = 5000.f;
 
 	/** 군집이 기지에 도달하는 판정 반경 */
 	float BaseAttackRadius = 2000.f;
 
 	bool bWaypointsCollected = false;
+
+	/** 맵 범위 — 웨이포인트/기지/스포너에서 자동 계산 */
+	FVector2D AutoMapCenter = FVector2D::ZeroVector;
+	float AutoMapExtent = 50000.f;
+	void CalcMapBounds();
 
 	// ──────────── 웨이브 상태 ────────────
 	UPROPERTY()

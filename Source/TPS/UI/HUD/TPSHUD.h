@@ -73,6 +73,23 @@ protected:
 	void UpdateAmmoWidget();
 #pragma endregion
 
+#pragma region PsychoSync
+	/** 사이코싱크 위젯 클래스 (BP에서 지정) */
+	UPROPERTY(EditDefaultsOnly, Category = "PsychoSync")
+	TSubclassOf<class UTPSPsychoSyncWidget> PsychoSyncWidgetClass;
+
+	/** 사이코싱크 위젯 인스턴스 */
+	UPROPERTY()
+	TObjectPtr<class UTPSPsychoSyncWidget> PsychoSyncWidgetInst;
+
+	/** 사이코싱크 뷰모델 */
+	UPROPERTY()
+	TObjectPtr<class UPsychoSyncViewModel> PsychoSyncViewModelInst;
+
+	/** PsychoSyncViewModel → Widget 갱신 */
+	void UpdatePsychoSyncWidget();
+#pragma endregion
+
 #pragma region SpawnSelect
 	/** 스폰 선택 위젯 클래스 (BP에서 지정) */
 	UPROPERTY(EditDefaultsOnly, Category = "SpawnSelect")

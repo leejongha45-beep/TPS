@@ -18,6 +18,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Pawn.h"
 #include "UI/ViewModel/MinimapViewModel.h"
+#include "LandscapeProxy.h"
 
 void UTPSSwarmSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -43,6 +44,7 @@ void UTPSSwarmSubsystem::Tick(float DeltaTime)
 	if (!bWaypointsCollected)
 	{
 		CollectWaypoints();
+		CalcMapBounds();
 		bWaypointsCollected = true;
 	}
 
@@ -78,7 +80,7 @@ void UTPSSwarmSubsystem::Tick(float DeltaTime)
 	// 7. 미니맵 뷰모델 갱신
 	if (MinimapViewModelInst.Get())
 	{
-		MinimapViewModelInst->Update(GetWorld(), FVector2D::ZeroVector, 50000.f);
+		MinimapViewModelInst->Update(GetWorld(), AutoMapCenter, AutoMapExtent);
 	}
 }
 
@@ -192,6 +194,65 @@ void UTPSSwarmSubsystem::CollectWaypoints()
 
 	UE_LOG(LogTemp, Warning, TEXT("[Swarm] CollectWaypoints — EnemyRoutes=%d, AllyRoutes=%d"),
 		EnemyWaypointRoutes.Num(), AllyWaypointRoutes.Num());
+}
+
+void UTPSSwarmSubsystem::CalcMapBounds()
+{
+	FVector Min(FLT_MAX, FLT_MAX, 0.f);
+	FVector Max(-FLT_MAX, -FLT_MAX, 0.f);
+
+	auto Expand = [&](const FVector& Pos)
+	{
+		Min.X = FMath::Min(Min.X, Pos.X);
+		Min.Y = FMath::Min(Min.Y, Pos.Y);
+		Max.X = FMath::Max(Max.X, Pos.X);
+		Max.Y = FMath::Max(Max.Y, Pos.Y);
+	};
+
+	// 웨이포인트
+	for (const auto& Route : EnemyWaypointRoutes)
+	{
+		for (const FVector& WP : Route) { Expand(WP); }
+	}
+	for (const auto& Route : AllyWaypointRoutes)
+	{
+		for (const FVector& WP : Route) { Expand(WP); }
+	}
+
+	// 스포너
+	for (const auto& Weak : CachedSpawners)
+	{
+		if (Weak.Get()) { Expand(Weak->GetActorLocation()); }
+	}
+
+	// 랜드스케이프
+	for (TActorIterator<class ALandscapeProxy> It(GetWorld()); It; ++It)
+	{
+		FVector Origin, BoxExtent;
+		It->GetActorBounds(false, Origin, BoxExtent);
+		Expand(Origin - BoxExtent);
+		Expand(Origin + BoxExtent);
+	}
+
+	// 기지
+	UTPSTargetSubsystem* TargetSS = GetWorld()->GetSubsystem<UTPSTargetSubsystem>();
+	if (TargetSS)
+	{
+		for (const auto& Base : TargetSS->GetAllyBases())
+		{
+			if (Base.Get()) { Expand(Base->GetActorLocation()); }
+		}
+		for (const auto& Base : TargetSS->GetEnemyBases())
+		{
+			if (Base.Get()) { Expand(Base->GetActorLocation()); }
+		}
+	}
+
+	if (Min.X < Max.X && Min.Y < Max.Y)
+	{
+		AutoMapCenter = FVector2D((Min.X + Max.X) * 0.5f, (Min.Y + Max.Y) * 0.5f);
+		AutoMapExtent = FMath::Max(Max.X - Min.X, Max.Y - Min.Y) * 0.5f * 1.1f;
+	}
 }
 
 // ──────────── 1. 군집 이동 ────────────
@@ -538,6 +599,9 @@ void UTPSSwarmSubsystem::StartWaveSystem()
 	if (bIsActive) { return; }
 
 	CollectSwarmSpawners();
+
+	// 스포너 수집 후 맵 범위 재계산 (스포너 위치 포함)
+	CalcMapBounds();
 
 	UE_LOG(LogTemp, Warning, TEXT("[Swarm] StartWaveSystem — Spawners=%d, EnemyType=%s"),
 		CachedSpawners.Num(), CachedEnemyType.Get() ? *CachedEnemyType->GetName() : TEXT("None"));

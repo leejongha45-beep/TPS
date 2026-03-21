@@ -24,6 +24,9 @@ public:
 	/** 풀에서 비활성 발사체 1개 가져오기 */
 	class ATPSProjectileBase* GetProjectile();
 
+	/** 관통탄 풀에서 1개 가져오기 */
+	class ATPSProjectileBase* GetPenetratingProjectile();
+
 	/** 사용 완료된 발사체를 풀에 반환 */
 	void ReturnProjectile(class ATPSProjectileBase* InProjectile);
 
@@ -51,4 +54,10 @@ protected:
 	int32 PoolSize = 0;
 	int32 DeferredSpawnBatchSize = 0;
 	int32 TotalSpawnedCount = 0;
+
+	/** 관통탄 풀 */
+	UPROPERTY()
+	TArray<TObjectPtr<class ATPSProjectileBase>> PenetratingPool;
+
+	static constexpr int32 PenetratingPoolSize = 20;
 };

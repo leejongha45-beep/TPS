@@ -43,13 +43,17 @@ public:
 	FORCEINLINE class UInstancedStaticMeshComponent* GetHISM(int32 LODIndex) const { return HISMRefs[LODIndex]; }
 
 	TFunction<void()> PreTickCallback;
+	TFunction<void(int32)> PostTickKillCallback;
 
 	uint8 bHasEntities : 1 = false;
 
-	FORCEINLINE void QueueDamage(int32 InstanceIndex, uint8 LODLevel, float Damage)
+	FORCEINLINE void QueueDamage(int32 InstanceIndex, uint8 LODLevel, float Damage, bool bFromPlayer = false)
 	{
-		DamageQueue.Add({ InstanceIndex, LODLevel, Damage });
+		DamageQueue.Add({ InstanceIndex, LODLevel, Damage, static_cast<uint8>(bFromPlayer ? 1u : 0u) });
 	}
+
+	/** 이 프레임의 플레이어 킬 수 — DamageSystem::Tick 이후 갱신 */
+	int32 FramePlayerKillCount = 0;
 
 	int32 FindLODIndexByHISM(const class UInstancedStaticMeshComponent* InHISM) const;
 

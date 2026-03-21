@@ -17,6 +17,9 @@ public:
 	/** 풀에서 꺼낼 때 상태 리셋 — 웨이포인트 인덱스/이동 플래그 초기화 */
 	void ResetAIState();
 
+	/** AI 틱 활성화/비활성화 — 풀 Activate/Deactivate용 */
+	void SetAITickEnabled(bool bEnabled);
+
 protected:
 	virtual void RegisterActorTickFunctions(bool bRegister) override;
 	virtual void AI_Control_Tick(float DeltaTime) override;

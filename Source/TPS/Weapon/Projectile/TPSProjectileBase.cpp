@@ -11,6 +11,7 @@
 #include "ECS/Scheduler/EnemyManagerSubsystem.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Core/Subsystem/TPSTargetSubsystem.h"
+#include "Utils/Collision/TPSCollisionChannels.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(ProjectileLog, Log, All);
 DEFINE_LOG_CATEGORY(ProjectileLog);
@@ -24,7 +25,9 @@ ATPSProjectileBase::ATPSProjectileBase()
 		if (ensure(CollisionComponentInst.Get()))
 		{
 			CollisionComponentInst->InitSphereRadius(5.f);
-			CollisionComponentInst->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+			CollisionComponentInst->SetCollisionObjectType(TPSCollision::Projectile);
+			CollisionComponentInst->SetCollisionResponseToAllChannels(ECR_Block);
+			CollisionComponentInst->SetCollisionResponseToChannel(TPSCollision::Projectile, ECR_Ignore);
 			SetRootComponent(CollisionComponentInst.Get());
 
 			CollisionComponentInst->OnComponentHit.AddDynamic(this, &ATPSProjectileBase::OnHit);
@@ -133,6 +136,11 @@ void ATPSProjectileBase::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 		return;
 	}
 
+	HandleHit(OtherActor, OtherComp, Hit);
+}
+
+void ATPSProjectileBase::HandleHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, const FHitResult& Hit)
+{
 	// ① 대상에 데미지 적용
 	if (auto* pHISMComp = Cast<UInstancedStaticMeshComponent>(OtherComp))
 	{
@@ -145,13 +153,13 @@ void ATPSProjectileBase::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 				FEnemyScheduler* pScheduler = pEnemyMgr->GetScheduler();
 				const int32 LODIndex = pScheduler ? pScheduler->FindLODIndexByHISM(pHISMComp) : 0;
 				const uint8 LODLevel = static_cast<uint8>(FMath::Max(LODIndex, 0));
-				pEnemyMgr->ApplyDamage(Hit.Item, LODLevel, Damage);
+				pEnemyMgr->ApplyDamage(Hit.Item, LODLevel, Damage, /*bFromPlayer=*/true);
 			}
 		}
 	}
-	else
+	else if (OtherComp->GetCollisionObjectType() == TPSCollision::Enemy)
 	{
-		// 기존 액터 기반 데미지
+		// Enemy 채널 액터 기반 데미지
 		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetInstigatorController(), this, nullptr);
 	}
 

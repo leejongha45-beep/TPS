@@ -6,7 +6,6 @@
 #include "Character/NPC/TPSNPCWaypointActor.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
-#include "GameFramework/CharacterMovementComponent.h"
 
 DECLARE_STATS_GROUP(TEXT("NPCController"), STATGROUP_NPCController, STATCAT_Advanced);
 DECLARE_CYCLE_STAT(TEXT("AI_Control_Tick"), STAT_NPCControlTick, STATGROUP_NPCController);
@@ -52,11 +51,17 @@ void ATPSNPCController::ResetAIState()
 	AIFrameCounter = 0;
 }
 
+void ATPSNPCController::SetAITickEnabled(bool bEnabled)
+{
+	AIControlTick.SetTickFunctionEnable(bEnabled);
+}
+
 void ATPSNPCController::AI_Control_Tick(float DeltaTime)
 {
 	SCOPE_CYCLE_COUNTER(STAT_NPCControlTick);
 
 	APawn* pPawn = GetPawn();
+	if (!pPawn || pPawn->IsHidden()) { return; }
 	if (!pPawn) { return; }
 
 	// 1. 적 감지 — N프레임마다 갱신
@@ -73,20 +78,11 @@ void ATPSNPCController::AI_Control_Tick(float DeltaTime)
 
 		if (DistSq <= FireRangeSq)
 		{
-			// 사거리 내 → 정지 + CMC 비활성화 + 회전 + 사격
+			// 사거리 내 → 정지 + 회전 + 사격
 			if (bIsMovingToWaypoint)
 			{
 				StopMovement();
 				bIsMovingToWaypoint = false;
-			}
-
-			// CMC 틱 비활성화 — 정지 상태에서 불필요한 물리 연산 제거
-			if (auto* CMC = pPawn->FindComponentByClass<UCharacterMovementComponent>())
-			{
-				if (CMC->IsComponentTickEnabled())
-				{
-					CMC->SetComponentTickEnabled(false);
-				}
 			}
 
 			RotateToTarget(CachedEnemyLocation, DeltaTime);
@@ -100,15 +96,6 @@ void ATPSNPCController::AI_Control_Tick(float DeltaTime)
 	// 적 없거나 사거리 밖 → 사격 중지 + 재장전
 	CommandCeaseFire();
 	CommandReload();
-
-	// CMC 틱 재활성화 — 이동 필요
-	if (auto* CMC = pPawn->FindComponentByClass<UCharacterMovementComponent>())
-	{
-		if (!CMC->IsComponentTickEnabled())
-		{
-			CMC->SetComponentTickEnabled(true);
-		}
-	}
 
 	// 2. 웨이포인트 러쉬
 	if (CachedWaypoints.IsValidIndex(CurrentWaypointIndex))

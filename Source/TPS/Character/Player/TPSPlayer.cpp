@@ -4,6 +4,7 @@
 #include "Character/Component/Action/TPSCameraControlComponent.h"
 #include "Character/Component/Action/TPSEquipComponent.h"
 #include "Character/Component/Action/TPSFireComponent.h"
+#include "Character/Component/Action/TPSPsychoSyncComponent.h"
 #include "Character/Component/Data/TPSAnimLayerComponent.h"
 #include "Character/Component/Data/TPSPlayerStateComponent.h"
 #include "Character/Component/Action/TPSPlayerInteractionComponent.h"
@@ -61,6 +62,12 @@ void ATPSPlayer::CreateDefaultComponents()
 		InteractionComponentInst = CreateDefaultSubobject<UTPSPlayerInteractionComponent>(TEXT("InteractionComponent"));
 		ensure(InteractionComponentInst.Get());
 	}
+
+	if (!PsychoSyncComponentInst)
+	{
+		PsychoSyncComponentInst = CreateDefaultSubobject<UTPSPsychoSyncComponent>(TEXT("PsychoSyncComponent"));
+		ensure(PsychoSyncComponentInst.Get());
+	}
 }
 
 void ATPSPlayer::PostInitializeComponents()
@@ -71,6 +78,12 @@ void ATPSPlayer::PostInitializeComponents()
 	if (ensure(CameraControlComponentInst.Get()))
 	{
 		CameraControlComponentInst->Initialize(SpringArmComponentInst.Get(), CameraComponentInst.Get());
+	}
+
+	// PsychoSync 초기화 — EnemyManagerSubsystem 킬 델리게이트 바인딩
+	if (ensure(PsychoSyncComponentInst.Get()))
+	{
+		PsychoSyncComponentInst->Initialize();
 	}
 }
 
@@ -155,11 +168,11 @@ void ATPSPlayer::StartFire()
 	// ① 장착 상태 확인
 	if (!StateComponentInst->HasState(EActionState::Equipping)) return;
 
-	// ② 무기 + 탄약 확인
+	// ② 무기 + 탄약 확인 (무한탄창이면 탄약 체크 스킵)
 	ATPSWeaponBase* pWeapon = EquipComponentInst->GetWeaponActor();
 	if (!ensure(pWeapon)) return;
 
-	if (!pWeapon->HasAmmo()) return;
+	if (!FireComponentInst->GetInfiniteAmmo() && !pWeapon->HasAmmo()) return;
 
 	// ③ 뷰포인트 콜백 설정 → FireComponent에 사격 요청
 	ATPSPlayerController* pController = Cast<ATPSPlayerController>(GetController());
@@ -203,6 +216,24 @@ void ATPSPlayer::OnEquipStateChanged(bool bIsEquipped)
 		// ③ Player 전용: 컨트롤러 Yaw 해제
 		bUseControllerRotationYaw = false;
 	}
+}
+
+float ATPSPlayer::ReceiveDamage(float Damage, AActor* DamageCauser)
+{
+	const bool bWasAlive = !IsDead();
+	const float FinalDamage = Super::ReceiveDamage(Damage, DamageCauser);
+
+	// 사망 감지 → PsychoSync 완전 초기화
+	if (bWasAlive && IsDead())
+	{
+		if (ensure(PsychoSyncComponentInst.Get()))
+		{
+			PsychoSyncComponentInst->Reset();
+			UE_LOG(LogTemp, Warning, TEXT("[TPSPlayer] Player died — PsychoSync reset."));
+		}
+	}
+
+	return FinalDamage;
 }
 
 void ATPSPlayer::Interpolate_Tick(float DeltaTime)

@@ -27,17 +27,20 @@ public:
 	 * @param InDamage           데미지
 	 * @param InSpeed            발사체 속도
 	 */
-	void ActivateProjectile(const FTransform& InMuzzleTransform, const FVector& InDirection, float InDamage, float InSpeed);
+	virtual void ActivateProjectile(const FTransform& InMuzzleTransform, const FVector& InDirection, float InDamage, float InSpeed);
 
 	/** 비활성화 후 풀에 반환 */
 	void DeactivateProjectile();
 
 protected:
-	/** 충돌 시 콜백 — 데미지 적용 + 이펙트 + 비활성화 */
+	/** 충돌 시 콜백 — HandleHit 호출 */
 	UFUNCTION()
-	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
-		UPrimitiveComponent* OtherComp, FVector NormalImpulse,
+	void OnHit(class UPrimitiveComponent* HitComponent, class AActor* OtherActor,
+		class UPrimitiveComponent* OtherComp, FVector NormalImpulse,
 		const FHitResult& Hit);
+
+	/** 충돌 처리 — 자식에서 override 가능 */
+	virtual void HandleHit(class AActor* OtherActor, class UPrimitiveComponent* OtherComp, const FHitResult& Hit);
 
 	/** 수명 만료 시 비활성화 */
 	void OnLifeSpanExpired();

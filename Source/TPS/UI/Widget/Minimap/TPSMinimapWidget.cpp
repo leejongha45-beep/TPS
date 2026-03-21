@@ -10,8 +10,6 @@ void UTPSMinimapWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	bBasesInitialized = false;
-
 	// 플레이어 마커 동적 생성 (초록)
 	PlayerMarker = CreateMarkerImage(FLinearColor::Green, 14.f);
 }
@@ -29,32 +27,50 @@ void UTPSMinimapWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTim
 	UMinimapViewModel* pVM = pSwarmSS->GetMinimapViewModel();
 	if (!pVM) return;
 
-	// ① 위젯 크기 캐시
-	if (MinimapBackground.Get())
+	// ① 위젯 크기 캐시 (MarkerCanvas 기준)
+	if (MarkerCanvas.Get())
 	{
-		const FVector2D BgSize = MinimapBackground->GetCachedGeometry().GetLocalSize();
-		if (BgSize.X > 0.f && BgSize.Y > 0.f)
+		const FVector2D CanvasSize = MarkerCanvas->GetCachedGeometry().GetLocalSize();
+		if (CanvasSize.X > 0.f && CanvasSize.Y > 0.f)
 		{
-			WidgetSize = BgSize;
+			WidgetSize = CanvasSize;
 		}
 	}
 
-	// ② 기지 마커 초기화 (1회)
-	if (!bBasesInitialized)
+	// ② 기지 마커 갱신
+	const TArray<FMinimapMarkerData>& BaseData = pVM->GetBaseMarkers();
+
+	while (BaseMarkerPool.Num() < BaseData.Num())
 	{
-		const TArray<FMinimapMarkerData>& BaseData = pVM->GetBaseMarkers();
-		if (BaseData.Num() > 0)
+		UImage* Marker = CreateMarkerImage(FLinearColor::White, 20.f);
+		if (Marker)
 		{
-			for (const FMinimapMarkerData& Data : BaseData)
-			{
-				UImage* Marker = CreateMarkerImage(Data.Color, Data.Size);
-				if (Marker)
-				{
-					BaseMarkerPool.Add(Marker);
-					UpdateMarkerPosition(Marker, NormalizedToLocal(Data.Position));
-				}
-			}
-			bBasesInitialized = true;
+			BaseMarkerPool.Add(Marker);
+		}
+	}
+
+	for (int32 i = 0; i < BaseData.Num(); ++i)
+	{
+		const FMinimapMarkerData& Data = BaseData[i];
+		UImage* Marker = BaseMarkerPool[i].Get();
+		if (!Marker) continue;
+
+		Marker->SetVisibility(ESlateVisibility::HitTestInvisible);
+		Marker->SetColorAndOpacity(Data.Color);
+
+		if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Marker->Slot))
+		{
+			CanvasSlot->SetSize(FVector2D(Data.Size, Data.Size));
+		}
+
+		UpdateMarkerPosition(Marker, NormalizedToLocal(Data.Position));
+	}
+
+	for (int32 i = BaseData.Num(); i < BaseMarkerPool.Num(); ++i)
+	{
+		if (BaseMarkerPool[i].Get())
+		{
+			BaseMarkerPool[i]->SetVisibility(ESlateVisibility::Collapsed);
 		}
 	}
 

@@ -20,8 +20,7 @@ void UMinimapViewModel::Update(UWorld* InWorld, const FVector2D& InMapCenter, fl
 	MapWorldCenter = InMapCenter;
 	MapWorldExtent = InMapExtent;
 
-	// ① 기지 마커 (1회 초기화)
-	if (!bBasesInitialized)
+	// ① 기지 마커 (매 프레임 갱신 — MapBounds 변경 대응)
 	{
 		UTPSTargetSubsystem* pTargetSS = InWorld->GetSubsystem<UTPSTargetSubsystem>();
 		if (pTargetSS)
@@ -36,6 +35,7 @@ void UMinimapViewModel::Update(UWorld* InWorld, const FVector2D& InMapCenter, fl
 					Marker.Position = WorldToNormalized(Base->GetActorLocation());
 					Marker.Color = FLinearColor(0.2f, 0.4f, 1.f, 1.f);
 					Marker.Size = 20.f;
+					Marker.bVisible = true;
 					BaseMarkers.Add(Marker);
 				}
 			}
@@ -48,14 +48,11 @@ void UMinimapViewModel::Update(UWorld* InWorld, const FVector2D& InMapCenter, fl
 					Marker.Position = WorldToNormalized(Base->GetActorLocation());
 					Marker.Color = FLinearColor(1.f, 0.2f, 0.2f, 1.f);
 					Marker.Size = 20.f;
+					Marker.bVisible = true;
 					BaseMarkers.Add(Marker);
 				}
 			}
 
-			if (BaseMarkers.Num() > 0)
-			{
-				bBasesInitialized = true;
-			}
 		}
 	}
 
@@ -64,6 +61,7 @@ void UMinimapViewModel::Update(UWorld* InWorld, const FVector2D& InMapCenter, fl
 	if (pSwarmSS)
 	{
 		const TArray<FSwarm>& Swarms = pSwarmSS->GetSwarms();
+
 
 		SwarmMarkers.SetNum(Swarms.Num());
 
@@ -84,6 +82,7 @@ void UMinimapViewModel::Update(UWorld* InWorld, const FVector2D& InMapCenter, fl
 				? FLinearColor(1.f, 0.3f, 0.3f, 0.9f)
 				: FLinearColor(0.3f, 0.5f, 1.f, 0.9f);
 			Marker.Size = FMath::Clamp(6.f + Swarm.TroopCount * 0.03f, 6.f, 20.f);
+
 		}
 	}
 
@@ -103,8 +102,9 @@ void UMinimapViewModel::Update(UWorld* InWorld, const FVector2D& InMapCenter, fl
 
 FVector2D UMinimapViewModel::WorldToNormalized(const FVector& WorldPos) const
 {
-	const float NormX = (WorldPos.X - MapWorldCenter.X) / MapWorldExtent;
-	const float NormY = (WorldPos.Y - MapWorldCenter.Y) / MapWorldExtent;
+	const float NormX = (WorldPos.Y - MapWorldCenter.Y) / MapWorldExtent;
+	const float NormY = (WorldPos.X - MapWorldCenter.X) / MapWorldExtent;
 
-	return FVector2D(NormX * 0.5f + 0.5f, NormY * 0.5f + 0.5f);
+	// X 반전
+	return FVector2D(0.5f - NormX * 0.5f, NormY * 0.5f + 0.5f);
 }
