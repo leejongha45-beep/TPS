@@ -9,4 +9,13 @@ struct FDamageEvent
 	uint8 LODLevel;
 	float Damage;
 	uint8 bFromPlayer : 1 = false;
+	FVector HitLocation = FVector::ZeroVector;
+	FVector HitNormal = FVector::ForwardVector;
+};
+
+/** 히트 이펙트 요청 — DamageSystem이 생성, 게임 스레드에서 스폰 */
+struct FHitEffectRequest
+{
+	FVector Location;
+	FVector Normal;
 };

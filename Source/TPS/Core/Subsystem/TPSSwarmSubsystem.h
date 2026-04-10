@@ -16,10 +16,12 @@ struct FSwarm
 	ESwarmTeam Team = ESwarmTeam::Enemy;
 
 	int32 TroopCount = 0;
-	float UnitMaxHP = 100.f;
-	float CurrentUnitHP = 100.f;
-	float AttackPower = 10.f;
-	float MoveSpeed = 300.f;
+	float UnitMaxHP = 0.f;
+	float CurrentUnitHP = 0.f;
+	float AttackPower = 0.f;
+	float AttackCooldown = 0.f;
+	float MoveSpeed = 0.f;
+	float MeshYawOffset = 0.f;
 
 	int32 WaypointIndex = 0;
 	int32 RouteIndex = 0;

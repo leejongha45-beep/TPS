@@ -61,7 +61,10 @@ void ATPSPenetratingProjectile::OnOverlapEnemy(UPrimitiveComponent* OverlappedCo
 				FEnemyScheduler* pScheduler = pEnemyMgr->GetScheduler();
 				const int32 LODIndex = pScheduler ? pScheduler->FindLODIndexByHISM(pHISMComp) : 0;
 				const uint8 LODLevel = static_cast<uint8>(FMath::Max(LODIndex, 0));
-				pEnemyMgr->ApplyDamage(Item, LODLevel, Damage, /*bFromPlayer=*/true);
+				const bool bIsPlayer = GetInstigator() && GetInstigator()->IsPlayerControlled();
+				const FVector HitLoc = bFromSweep ? FVector(SweepResult.ImpactPoint) : GetActorLocation();
+				const FVector HitNorm = bFromSweep ? FVector(SweepResult.ImpactNormal) : -GetActorForwardVector();
+				pEnemyMgr->ApplyDamage(Item, LODLevel, Damage, bIsPlayer, HitLoc, HitNorm);
 			}
 
 			++CurrentPenetrationCount;

@@ -1,6 +1,8 @@
 #include "Actor/SwarmSpawner/TPSSwarmSpawner.h"
 #include "Components/SceneComponent.h"
 #include "Components/BillboardComponent.h"
+#include "ECS/Data/TPSEnemyTypeDataAsset.h"
+#include "Wave/TPSWaveSettings.h"
 
 ATPSSwarmSpawner::ATPSSwarmSpawner()
 {
@@ -40,11 +42,21 @@ FSwarm ATPSSwarmSpawner::SpawnSwarm(int32 OverrideTroopCount) const
 	Swarm.Position = CalcSpawnPosition();
 	Swarm.Team = Team;
 	Swarm.TroopCount = OverrideTroopCount;
-	Swarm.UnitMaxHP = UnitMaxHP;
-	Swarm.CurrentUnitHP = UnitMaxHP;
-	Swarm.AttackPower = AttackPower;
-	Swarm.MoveSpeed = MoveSpeed;
 	Swarm.RouteIndex = RouteIndex;
+
+	// DataAsset에서 스탯 로드 (유일한 정의 소스)
+	const UTPSWaveSettings* Settings = GetDefault<UTPSWaveSettings>();
+	const class UTPSEnemyTypeDataAsset* EnemyType = Settings ? Settings->EnemyType.LoadSynchronous() : nullptr;
+	if (EnemyType)
+	{
+		Swarm.UnitMaxHP = EnemyType->MaxHealth;
+		Swarm.CurrentUnitHP = EnemyType->MaxHealth;
+		Swarm.AttackPower = EnemyType->AttackDamage;
+		Swarm.AttackCooldown = EnemyType->AttackCooldown;
+		Swarm.MoveSpeed = EnemyType->MaxSpeed;
+		Swarm.MeshYawOffset = EnemyType->MeshYawOffset;
+	}
+
 	return Swarm;
 }
 

@@ -20,7 +20,8 @@ void PushToPrev(CHealthPrev& OutPrev, const CHealth& InCurrent)
 
 int32 DamageSystem::Tick(entt::registry& Registry,
                          TArray<FDamageEvent>& DamageQueue,
-                         TArray<entt::entity> (&InstanceToEntityPerLOD)[HISM_LOD_COUNT])
+                         TArray<entt::entity> (&InstanceToEntityPerLOD)[HISM_LOD_COUNT],
+                         TArray<FHitEffectRequest>& OutHitEffects)
 {
 	int32 PlayerKillCount = 0;
 
@@ -50,7 +51,13 @@ int32 DamageSystem::Tick(entt::registry& Registry,
 		// ③ PushToPrev
 		PushToPrev(Registry.get<CHealthPrev>(Entity), Health);
 
-		// ④ 플레이어 킬 감지
+		// ④ 히트 이펙트 요청
+		if (!Event.HitLocation.IsZero())
+		{
+			OutHitEffects.Add({ Event.HitLocation, Event.HitNormal });
+		}
+
+		// ⑤ 플레이어 킬 감지
 		if (Event.bFromPlayer && Health.Current <= 0.f)
 		{
 			++PlayerKillCount;

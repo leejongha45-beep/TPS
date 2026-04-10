@@ -402,30 +402,49 @@ void UTPSSwarmSubsystem::UpdateUnfoldedSwarmPositions()
 
 		if (Swarm.Team == ESwarmTeam::Enemy && EnemyMgr && EnemyMgr->GetScheduler())
 		{
-			// 첫 번째 생존 엔티티 위치로 갱신
+			// 같은 SwarmID의 생존 엔티티 평균 위치로 갱신
 			entt::registry& Registry = EnemyMgr->GetScheduler()->GetRegistry();
 
-			auto View = Registry.view<CTransform, CEnemyState>();
+			FVector Sum = FVector::ZeroVector;
+			int32 Count = 0;
+
+			auto View = Registry.view<CTransform, CEnemyState, CSwarmID>();
 			for (auto Entity : View)
 			{
+				const auto& SwarmComp = View.get<CSwarmID>(Entity);
+				if (SwarmComp.ID != Swarm.SwarmID) { continue; }
+
 				const auto& State = View.get<CEnemyState>(Entity);
 				if (State.State == EEnemyState::Dying || State.State == EEnemyState::Dead) { continue; }
 
-				Swarm.Position = View.get<CTransform>(Entity).Position;
-				break;
+				Sum += View.get<CTransform>(Entity).Position;
+				++Count;
+			}
+
+			if (Count > 0)
+			{
+				Swarm.Position = Sum / static_cast<float>(Count);
 			}
 		}
 		else if (Swarm.Team == ESwarmTeam::Ally && TargetSS)
 		{
-			// 같은 SwarmID의 첫 번째 NPC 위치로 갱신
+			// 같은 SwarmID의 생존 NPC 평균 위치로 갱신
+			FVector Sum = FVector::ZeroVector;
+			int32 Count = 0;
+
 			for (const auto& NPCActor : TargetSS->GetNPCs())
 			{
 				class ATPSSoldierNPC* NPC = Cast<ATPSSoldierNPC>(NPCActor.Get());
 				if (NPC && NPC->OwnerSwarmID == Swarm.SwarmID)
 				{
-					Swarm.Position = NPC->GetActorLocation();
-					break;
+					Sum += NPC->GetActorLocation();
+					++Count;
 				}
+			}
+
+			if (Count > 0)
+			{
+				Swarm.Position = Sum / static_cast<float>(Count);
 			}
 		}
 	}
@@ -451,10 +470,14 @@ void UTPSSwarmSubsystem::CheckPlayerProximity()
 
 		if (!Swarm.bUnfolded && DistSq <= UnfoldRadiusSq)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("[Swarm] Unfold — ID=%d Team=%d Dist=%.0f UnfoldRadius=%.0f SwarmPos=%s"),
+				Swarm.SwarmID, (int32)Swarm.Team, FMath::Sqrt(DistSq), FMath::Sqrt(UnfoldRadiusSq), *Swarm.Position.ToString());
 			UnfoldSwarm(i);
 		}
 		else if (Swarm.bUnfolded && DistSq > FoldRadiusSq)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("[Swarm] Fold — ID=%d Team=%d Dist=%.0f FoldRadius=%.0f SwarmPos=%s"),
+				Swarm.SwarmID, (int32)Swarm.Team, FMath::Sqrt(DistSq), FMath::Sqrt(FoldRadiusSq), *Swarm.Position.ToString());
 			FoldSwarm(i);
 		}
 	}
@@ -483,14 +506,12 @@ void UTPSSwarmSubsystem::UnfoldSwarm(int32 Index)
 				FMath::FRandRange(-500.f, 500.f),
 				0.f
 			);
-			Params.MaxHealth = Swarm.UnitMaxHP;
-			Params.AttackDamage = Swarm.AttackPower;
-			if (CachedEnemyType.Get())
-			{
-				Params.MaxSpeed = CachedEnemyType->MaxSpeed;
-				Params.AttackCooldown = CachedEnemyType->AttackCooldown;
-				Params.MeshYawOffset = CachedEnemyType->MeshYawOffset;
-			}
+			Params.SwarmID        = Swarm.SwarmID;
+			Params.MaxHealth      = Swarm.UnitMaxHP;
+			Params.MaxSpeed       = Swarm.MoveSpeed;
+			Params.AttackDamage   = Swarm.AttackPower;
+			Params.AttackCooldown = Swarm.AttackCooldown;
+			Params.MeshYawOffset  = Swarm.MeshYawOffset;
 
 			EnemyMgr->QueueSpawn(Params);
 		}
@@ -539,19 +560,17 @@ void UTPSSwarmSubsystem::FoldSwarm(int32 Index)
 			entt::registry& Registry = EnemyMgr->GetScheduler()->GetRegistry();
 			int32 AliveCount = 0;
 
-			auto View = Registry.view<CTransform, CEnemyState, CHealth>();
+			auto View = Registry.view<CEnemyState, CSwarmID>();
 			for (auto Entity : View)
 			{
+				const auto& SwarmComp = View.get<CSwarmID>(Entity);
+				if (SwarmComp.ID != Swarm.SwarmID) { continue; }
+
 				auto& State = View.get<CEnemyState>(Entity);
 				if (State.State == EEnemyState::Dying || State.State == EEnemyState::Dead) { continue; }
 
-				auto& Transform = View.get<CTransform>(Entity);
-				const float DistSq = FVector::DistSquared(Transform.Position, Swarm.Position);
-				if (DistSq <= CollectRadiusSq)
-				{
-					++AliveCount;
-					State.State = EEnemyState::Dead;
-				}
+				++AliveCount;
+				State.State = EEnemyState::Dead;
 			}
 
 			Swarm.TroopCount = AliveCount;
@@ -589,6 +608,7 @@ void UTPSSwarmSubsystem::FoldSwarm(int32 Index)
 		}
 	}
 
+	Swarm.CurrentUnitHP = Swarm.UnitMaxHP;
 	Swarm.bUnfolded = false;
 }
 

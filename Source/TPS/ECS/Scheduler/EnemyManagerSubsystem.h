@@ -34,7 +34,12 @@ public:
 	 *  @param InstanceIndex  HISM 인스턴스 인덱스 (FHitResult.Item)
 	 *  @param LODLevel       피격된 HISM의 LOD 인덱스
 	 *  @param Damage         데미지량 */
-	void ApplyDamage(int32 InstanceIndex, uint8 LODLevel, float Damage, bool bFromPlayer = false);
+	void ApplyDamage(int32 InstanceIndex, uint8 LODLevel, float Damage, bool bFromPlayer = false,
+		const FVector& HitLocation = FVector::ZeroVector, const FVector& HitNormal = FVector::ForwardVector);
+
+	/** 히트 이펙트 DataAsset — Project Settings에서 할당 */
+	UPROPERTY(EditDefaultsOnly, Category = "Effect")
+	TObjectPtr<class UTPSHitEffectDataAsset> HitEffectData;
 
 	/** 플레이어가 ECS 적을 처치했을 때 브로드캐스트 */
 	FOnPlayerKillECS OnPlayerKillECSDelegate;

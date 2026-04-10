@@ -2,11 +2,14 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "ECS/Component/Components.h"
 #include "ECS/Data/TPSEnemyTypeDataAsset.h"
+#include "ECS/Data/TPSHitEffectDataAsset.h"
 #include "ECS/Renderer/AEnemyRenderActor.h"
 #include "ECS/Scheduler/EnemyScheduler.h"
 #include "ECS/System/SpawnSystem.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "Wave/TPSWaveSettings.h"
 
 UEnemyManagerSubsystem::~UEnemyManagerSubsystem()
@@ -28,6 +31,22 @@ void UEnemyManagerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 			EnemySchedulerInst->PostTickKillCallback = [this](int32 KillCount)
 			{
 				OnPlayerKillECSDelegate.Broadcast(KillCount);
+			};
+			EnemySchedulerInst->HitEffectCallback = [this](const TArray<FHitEffectRequest>& HitEffects)
+			{
+				if (!HitEffectData.Get()) { return; }
+				UNiagaraSystem* pEffect = HitEffectData->HitEffectAsset.LoadSynchronous();
+				if (!pEffect) { return; }
+				UWorld* pWorld = GetWorld();
+				if (!pWorld) { return; }
+				const float Scale = HitEffectData->EffectScale;
+				for (const FHitEffectRequest& Req : HitEffects)
+				{
+					UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+						pWorld, pEffect, Req.Location,
+						Req.Normal.Rotation(), FVector(Scale),
+						true, true, ENCPoolMethod::AutoRelease);
+				}
 			};
 		}
 	}
@@ -120,15 +139,23 @@ void UEnemyManagerSubsystem::StartWave(int32 WaveNumber)
 	CurrentWave = WaveNumber;
 	const int32 EnemyCount = FMath::Min(20 + (WaveNumber * 10), 3000);
 
+	// DataAsset에서 스탯 로드 (유일한 정의 소스)
+	const UTPSWaveSettings* Settings = GetDefault<UTPSWaveSettings>();
+	const UTPSEnemyTypeDataAsset* EnemyType = Settings ? Settings->EnemyType.LoadSynchronous() : nullptr;
+
 	for (int32 i = 0; i < EnemyCount; ++i)
 	{
 		FEnemySpawnParams Params;
 		Params.Position = FVector(FMath::RandRange(-2000.f, 2000.f),
 		                          FMath::RandRange(-2000.f, 2000.f), 0.f);
-		Params.MaxHealth      = 50.f;
-		Params.MaxSpeed       = 300.f;
-		Params.AttackDamage   = ECSConstants::AttackDamage;
-		Params.AttackCooldown = ECSConstants::AttackCooldown;
+		if (EnemyType)
+		{
+			Params.MaxHealth      = EnemyType->MaxHealth;
+			Params.MaxSpeed       = EnemyType->MaxSpeed;
+			Params.AttackDamage   = EnemyType->AttackDamage;
+			Params.AttackCooldown = EnemyType->AttackCooldown;
+			Params.MeshYawOffset  = EnemyType->MeshYawOffset;
+		}
 
 		QueueSpawn(Params);
 	}
@@ -210,11 +237,12 @@ void UEnemyManagerSubsystem::FlushSpawnQueue()
 	SpawnQueue.Reset();
 }
 
-void UEnemyManagerSubsystem::ApplyDamage(int32 InstanceIndex, uint8 LODLevel, float Damage, bool bFromPlayer)
+void UEnemyManagerSubsystem::ApplyDamage(int32 InstanceIndex, uint8 LODLevel, float Damage, bool bFromPlayer,
+	const FVector& HitLocation, const FVector& HitNormal)
 {
 	if (ensure(EnemySchedulerInst))
 	{
-		EnemySchedulerInst->QueueDamage(InstanceIndex, LODLevel, Damage, bFromPlayer);
+		EnemySchedulerInst->QueueDamage(InstanceIndex, LODLevel, Damage, bFromPlayer, HitLocation, HitNormal);
 	}
 }
 

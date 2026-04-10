@@ -17,5 +17,6 @@ namespace DamageSystem
 	/** @return 이 프레임에 플레이어가 처치한 적 수 */
 	int32 Tick(entt::registry& Registry,
 	           TArray<FDamageEvent>& DamageQueue,
-	           TArray<entt::entity> (&InstanceToEntityPerLOD)[HISM_LOD_COUNT]);
+	           TArray<entt::entity> (&InstanceToEntityPerLOD)[HISM_LOD_COUNT],
+	           TArray<FHitEffectRequest>& OutHitEffects);
 };

@@ -47,18 +47,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Swarm", meta = (ClampMin = "1"))
 	int32 TroopCount = 50;
 
-	/** 유닛 최대 HP */
-	UPROPERTY(EditAnywhere, Category = "Swarm|Stats")
-	float UnitMaxHP = 50.f;
-
-	/** 유닛 공격력 */
-	UPROPERTY(EditAnywhere, Category = "Swarm|Stats")
-	float AttackPower = 1.f;
-
-	/** 유닛 이동속도 */
-	UPROPERTY(EditAnywhere, Category = "Swarm|Stats")
-	float MoveSpeed = 300.f;
-
 	/** 웨이포인트 경로 인덱스 — 어떤 루트로 군집을 보낼지 */
 	UPROPERTY(EditAnywhere, Category = "Swarm")
 	int32 RouteIndex = 0;

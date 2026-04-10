@@ -27,6 +27,7 @@ entt::entity SpawnSystem::Spawn(entt::registry& Registry,
 	Registry.emplace<CAIMode>(Entity);
 	Registry.emplace<CNavTarget>(Entity);
 	Registry.emplace<CWaypoint>(Entity);
+	Registry.emplace<CSwarmID>(Entity, Params.SwarmID);
 
 	// ② Prev (초기값 = Current와 동일)
 	Registry.emplace<CEnemyStatePrev>(Entity);

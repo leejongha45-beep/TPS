@@ -44,12 +44,14 @@ public:
 
 	TFunction<void()> PreTickCallback;
 	TFunction<void(int32)> PostTickKillCallback;
+	TFunction<void(const TArray<FHitEffectRequest>&)> HitEffectCallback;
 
 	uint8 bHasEntities : 1 = false;
 
-	FORCEINLINE void QueueDamage(int32 InstanceIndex, uint8 LODLevel, float Damage, bool bFromPlayer = false)
+	FORCEINLINE void QueueDamage(int32 InstanceIndex, uint8 LODLevel, float Damage, bool bFromPlayer = false,
+		const FVector& HitLocation = FVector::ZeroVector, const FVector& HitNormal = FVector::ForwardVector)
 	{
-		DamageQueue.Add({ InstanceIndex, LODLevel, Damage, static_cast<uint8>(bFromPlayer ? 1u : 0u) });
+		DamageQueue.Add({ InstanceIndex, LODLevel, Damage, static_cast<uint8>(bFromPlayer ? 1u : 0u), HitLocation, HitNormal });
 	}
 
 	/** 이 프레임의 플레이어 킬 수 — DamageSystem::Tick 이후 갱신 */

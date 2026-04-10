@@ -11,9 +11,10 @@
 struct FEnemySpawnParams
 {
 	FVector Position     = FVector::ZeroVector;
-	float MaxHealth      = 50.f;
-	float MaxSpeed       = 300.f;
-	float AttackDamage   = 10.f;
-	float AttackCooldown = 1.5f;
-	float MeshYawOffset = 0.f;
+	int32 SwarmID        = INDEX_NONE;
+	float MaxHealth      = 0.f;
+	float MaxSpeed       = 0.f;
+	float AttackDamage   = 0.f;
+	float AttackCooldown = 0.f;
+	float MeshYawOffset  = 0.f;
 };

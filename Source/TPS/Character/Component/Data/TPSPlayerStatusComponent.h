@@ -29,6 +29,9 @@ public:
 	FORCEINLINE float GetCurrentHP() const { return CurrentHP; }
 	FORCEINLINE float GetMaxHP() const { return MaxHP; }
 
+	FORCEINLINE void SetDamageMultiplier(float InValue) { DamageMultiplier = InValue; }
+	FORCEINLINE float GetDamageMultiplier() const { return DamageMultiplier; }
+
 protected:
 	/** 기본 걷기 속도 (CMC에서 초기화) */
 	UPROPERTY(VisibleDefaultsOnly, Category="Speed")
@@ -45,4 +48,8 @@ protected:
 	/** 최대 체력 */
 	UPROPERTY(VisibleDefaultsOnly, Category="Health")
 	float MaxHP = 100.f;
+
+	/** 플레이어 데미지 배율 */
+	UPROPERTY(EditDefaultsOnly, Category="Combat")
+	float DamageMultiplier = 4.0f;
 };

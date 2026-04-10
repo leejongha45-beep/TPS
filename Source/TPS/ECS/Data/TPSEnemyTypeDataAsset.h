@@ -22,7 +22,7 @@ public:
 
 	/* ── 전투 스탯 ── */
 	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "1.0"))
-	float MaxHealth = 50.f;
+	float MaxHealth = 500.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Stats", meta = (ClampMin = "0.0"))
 	float MaxSpeed = 300.f;

@@ -7,6 +7,7 @@
 #include "Weapon/Projectile/TPSProjectilePoolSubsystem.h"
 #include "Weapon/TPSWeaponBase.h"
 #include "Weapon/Projectile/TPSProjectileBase.h"
+#include "Character/Component/Data/TPSPlayerStatusComponent.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(FireLog, Log, All);
 
@@ -241,5 +242,11 @@ void UTPSFireComponent::ActivateProjectileFromPool(const FTransform& InMuzzleTra
 	// ② Instigator/Owner 설정 + 투사체 활성화
 	pProjectile->SetInstigator(Cast<APawn>(GetOwner()));
 	pProjectile->SetOwner(GetOwner());
-	pProjectile->ActivateProjectile(InMuzzleTransform, InDirection, InWeapon->GetDamage(), InWeapon->GetProjectileSpeed());
+	// 데미지 배율: Owner에 StatusComponent가 있으면 적용
+	float FinalDamage = InWeapon->GetDamage();
+	if (class UTPSPlayerStatusComponent* pStatus = GetOwner()->FindComponentByClass<class UTPSPlayerStatusComponent>())
+	{
+		FinalDamage *= pStatus->GetDamageMultiplier();
+	}
+	pProjectile->ActivateProjectile(InMuzzleTransform, InDirection, FinalDamage, InWeapon->GetProjectileSpeed());
 }

@@ -105,10 +105,16 @@ void FEnemyScheduler::Tick(float DeltaTime)
 		LODSystem::Tick(Registry, PlayerPosition, DeltaTime, FrameCounter);
 	}
 
-	// 2. Phase_Damage (큐 소비 → CHealth 감산 → PushToPrev)
+	// 2. Phase_Damage (큐 소비 → CHealth 감산 → PushToPrev + 히트 이펙트 수집)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Phase2_Damage);
-		FramePlayerKillCount = DamageSystem::Tick(Registry, DamageQueue, InstanceToEntityPerLOD);
+		TArray<FHitEffectRequest> HitEffects;
+		FramePlayerKillCount = DamageSystem::Tick(Registry, DamageQueue, InstanceToEntityPerLOD, HitEffects);
+
+		if (HitEffects.Num() > 0 && HitEffectCallback)
+		{
+			HitEffectCallback(HitEffects);
+		}
 	}
 
 	// 3. Phase_AI (Rush: Waypoint / Chase: NavTarget)

@@ -182,7 +182,8 @@ void ATPSProjectileBase::HandleHit(AActor* OtherActor, UPrimitiveComponent* Othe
 				FEnemyScheduler* pScheduler = pEnemyMgr->GetScheduler();
 				const int32 LODIndex = pScheduler ? pScheduler->FindLODIndexByHISM(pHISMComp) : 0;
 				const uint8 LODLevel = static_cast<uint8>(FMath::Max(LODIndex, 0));
-				pEnemyMgr->ApplyDamage(Hit.Item, LODLevel, Damage, /*bFromPlayer=*/true);
+				const bool bIsPlayer = GetInstigator() && GetInstigator()->IsPlayerControlled();
+				pEnemyMgr->ApplyDamage(Hit.Item, LODLevel, Damage, bIsPlayer, Hit.ImpactPoint, Hit.ImpactNormal);
 			}
 		}
 	}

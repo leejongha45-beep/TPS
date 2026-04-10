@@ -53,8 +53,6 @@ namespace ECSConstants
 	constexpr float SeparationCullingRadiusSq = SeparationCullingRadius * SeparationCullingRadius;
 
 	// ── Attack (공격 수행) ──
-	constexpr float AttackDamage          = 10.f;
-	constexpr float AttackCooldown        = 1.5f;
 	constexpr float AttackReadyDuration   = 0.5f;
 	constexpr float AttackDuration        = 0.3f;
 
@@ -159,6 +157,12 @@ struct CNavTarget
 {
 	FVector NextWaypoint = FVector::ZeroVector;
 	float GroundZ = 0.f;   // NavMesh 투영 지면 높이
+};
+
+/** 소속 군집 ID — Fold/Unfold 시 필터링용 */
+struct CSwarmID
+{
+	int32 ID = INDEX_NONE;
 };
 
 /** Rush 웨이포인트 인덱스 */
