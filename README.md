@@ -232,51 +232,30 @@ lock 대신 더블버퍼링을 선택한 이유: 수천 Entity에 lock을 걸면
 ④ PushToPrev — Current → Prev 복사 (다음 Phase/프레임의 Read용)
 ```
 
-**병렬 실행 시스템 — AISystem (ParallelFor):**
+**병렬 실행 — Animation ∥ Movement (Write 대상 상호 배타):**
 
 ```cpp
-// 수천 Entity를 워커 스레드에서 병렬 처리 — Prev/Current 분리로 lock 불필요
-ParallelFor(Count, [&](int32 Index)
-{
-    const entt::entity Entity = Entities[Index];
+// ── Phase 5+6: 두 시스템이 TaskGraph로 동시 실행 ──
+// Animation → CAnimation에만 쓰기  |  Movement → CTransform에만 쓰기
+// Write 대상이 겹치지 않으므로 lock 없이 병렬 안전
 
-    // ① Read — Prev에서 지역변수로 캐싱 (이번 프레임 Write와 격리)
-    const FVector Pos   = View.get<CTransformPrev>(Entity).Position;
-    const float HP      = View.get<CHealthPrev>(Entity).Current;
-    const float Speed   = View.get<CMovementPrev>(Entity).MaxSpeed;
+// [Thread A] AnimationSystem              [Thread B] MovementSystem
+// W: CAnimation                           W: CTransform
+// R: CEnemyStatePrev, CLODPrev            R: CMovementPrev, CNavTargetPrev
 
-    // ② 계산 — 지역변수만 사용
-    if (HP <= 0.f) { NewState = Dying;  NewVelocity = FVector::ZeroVector; }
-    else           { NewVelocity = Dir * Speed; NewState = Moving; }
+ParallelFor(Count, [&](int32 Index)        ParallelFor(Count, [&](int32 Index)
+{                                          {
+    // ① Read                                  // ① Read
+    State = CEnemyStatePrev.State;              Vel = CMovementPrev.Velocity;
+    AccumDT = CLODPrev.AccumDT;                 GroundZ = CNavTargetPrev.GroundZ;
 
-    // ③ Write — Current에 쓰기
-    View.get<CEnemyState>(Entity).State  = NewState;
-    View.get<CMovement>(Entity).Velocity = NewVelocity;
+    // ③ Write                                  // ③ Write
+    CAnimation.AnimIndex = NewIdx;              CTransform.Position += Vel * DT;
+    CAnimation.AnimTime  = NewTime;             CTransform.Rotation = NewRot;
 
-    // ④ PushToPrev — 다음 Phase/프레임의 Read용
-    View.get<CEnemyStatePrev>(Entity).State  = NewState;
-    View.get<CMovementPrev>(Entity).Velocity = NewVelocity;
-});
-```
-
-**직렬 실행 시스템 — DamageSystem (GameThread 단일):**
-
-```cpp
-// DamageQueue는 투사체 OnHit에서 임의 타이밍에 적재 → Phase 2에서 동기적 일괄 소비
-// 단일 스레드: 큐 소비 + Entity 상태 변경이 순서 보장 필요
-for (const FDamageEvent& Event : DamageQueue)
-{
-    // ① Read — InstanceToEntity 룩업으로 O(1) Entity 특정
-    const entt::entity Entity = InstanceToEntityPerLOD[Event.LODLevel][Event.InstanceIndex];
-
-    // ② Write — 체력 감산
-    CHealth& Health = Registry.get<CHealth>(Entity);
-    Health.Current = FMath::Max(Health.Current - Event.Damage, 0.f);
-
-    // ③ PushToPrev — 다음 Phase(AISystem)에서 HP 0 감지 → Dying 전환
-    Registry.get<CHealthPrev>(Entity).Current = Health.Current;
-}
-DamageQueue.Reset();  // 메모리 해제 없이 카운트만 초기화
+    // ④ PushToPrev                             // ④ PushToPrev
+    CAnimationPrev = CAnimation;                CTransformPrev = CTransform;
+});                                        });
 ```
 
 | 컴포넌트 | 역할 |
