@@ -274,20 +274,43 @@ ParallelFor(Count, [&](int32 Index)        ParallelFor(Count, [&](int32 Index)
 
 ## 핵심 4 — 오브젝트 풀링 (런타임 힙 할당 제로)
 
-### 투사체 Actor 풀링
+런타임에 `SpawnActor`/`new`를 호출하면 힙 할당 + GC 부하로 프레임 히치 발생.
+초기화 시점에 모든 오브젝트를 미리 생성하고, 런타임에는 Get/Return으로 재활용.
 
+**투사체 Actor 풀링:**
+
+```cpp
+// ── 초기화: 2단계 스폰 (프레임 히치 방지) ──
+
+void UTPSProjectilePoolSubsystem::OnWorldBeginPlay(UWorld& InWorld)
+{
+    SpawnProjectileBatch(ConfigAsset->InitialSpawnCount);        // ① 초기 배치 500개 즉시 스폰
+
+    if (TotalSpawnedCount < PoolSize)                            // ② 나머지 → 16ms 주기로 10개씩 분산
+    {
+        InWorld.GetTimerManager().SetTimer(
+            DeferredSpawnTimerHandle, this,
+            &UTPSProjectilePoolSubsystem::DeferredSpawn, 0.016f, true);
+    }
+}
+
+// ── 런타임: Get/Return ──
+
+ATPSProjectileBase* UTPSProjectilePoolSubsystem::GetProjectile()
+{
+    if (Pool.Num() > 0) { return Pool.Pop(); }                   // 풀에서 Pop → 활성화
+
+    // 풀 고갈 시 긴급 스폰 — 게임 중단 없이 Warning 로그
+    return GetWorld()->SpawnActor<ATPSProjectileBase>(LoadedProjectileClass, ...);
+}
+
+void UTPSProjectilePoolSubsystem::ReturnProjectile(ATPSProjectileBase* InProjectile)
+{
+    Pool.Push(InProjectile);                                     // 비활성화 후 풀에 Push → 재활용
+}
 ```
-[초기화] DataAsset에서 PoolSize/BatchSize 로드
- ├─ ① 초기 배치: SpawnBatch(500) — 즉시 사용 가능 보장
- └─ ② 지연 스폰: Timer(16ms 주기) × 10개씩 — 프레임 히치 방지
 
-[런타임] Get/Return
- ├─ Pool.Get() → 비활성 투사체 Pop → 활성화 + 발사
- ├─ Pool.Return() → 비활성화 + Push
- └─ 풀 고갈 시: 긴급 SpawnActor (Warning 로그) — 게임 중단 없음
-```
-
-### ECS 메모리 풀링
+**ECS 메모리 풀링:**
 
 | 기법 | 적용 위치 | 효과 |
 |------|-----------|------|
