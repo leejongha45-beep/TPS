@@ -208,18 +208,29 @@ for (int32 i = 0; i < Swarms.Num(); ++i)
 
 ## 핵심 3 — 더블버퍼링 Lock-Free 패턴
 
-모든 ECS 컴포넌트는 Current/Prev 쌍으로 운용:
+ParallelFor에서 수천 Entity가 동시에 같은 컴포넌트를 읽고 쓰면 레이스 컨디션 발생.
+읽기(Prev)와 쓰기(Current)를 구조적으로 분리하여 **lock 없이 병렬 처리를 보장**.
 
 ```
-① Read     — Prev → const 지역변수 캐싱
-② 계산     — 지역변수만 사용
-③ Write    — 결과 → Current에 쓰기
-④ PushToPrev — Current → Prev 복사
-```
+❌ 단일 버퍼 — 레이스 컨디션:
+  Thread A: Entity[0].Position = 새값        ← 쓰기 중
+  Thread B: Entity[0].Position 읽기          ← half-written 값 읽음 → 정의되지 않은 동작
 
-**왜 필요한가:** ParallelFor에서 Entity A가 Current를 쓰는 동안 Entity B가 같은 Current를 읽으면 레이스 컨디션 발생. Prev(읽기 전용) / Current(쓰기 전용)를 분리하여 **lock 없이 수천 Entity 병렬 처리**.
+✅ 더블버퍼링 — Lock-Free:
+  Thread A: Entity[0].Position(Current) = 새값     ← Current에 쓰기
+  Thread B: Entity[0].PositionPrev 읽기             ← Prev는 이전 프레임 확정값 → 안전
+```
 
 lock 대신 더블버퍼링을 선택한 이유: 수천 Entity에 lock을 걸면 contention이 병렬화 이점을 상쇄함.
+
+모든 시스템이 동일한 R→W→P 패턴을 따름:
+
+```
+① Read       — Prev → const 지역변수 캐싱
+② 계산       — 지역변수만 사용 (View.get 접근 금지)
+③ Write      — 결과 → Current에 쓰기
+④ PushToPrev — Current → Prev 복사 (다음 Phase/프레임의 Read용)
+```
 
 **병렬 실행 시스템 — AISystem (ParallelFor):**
 
