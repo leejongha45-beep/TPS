@@ -60,9 +60,125 @@ OOP(플레이어/무기) + DOD(대량 적 처리) 하이브리드 아키텍처.
 - AI → Attack → Separation: 이동 방향 결정 → 공격 판정 → 겹침 보정 순서
 - LOD Transition → Visualization → Cleanup: ISM 인스턴스 이동 → 렌더링 갱신 → Dead 제거
 
+**스케줄러 코드 (축약):**
+
+```cpp
+void FEnemyScheduler::Tick(float DeltaTime)
+{
+    // Phase 1.5 — LOD 거리 판정 + 틱 빈도 결정
+    LODSystem::Tick(Registry, PlayerPosition, DeltaTime, FrameCounter);          // W: CLOD(.Level .bShouldTick .AccumDT)  R: CTransformPrev.Position
+
+    // Phase 2 — 데미지 큐 일괄 소비
+    FramePlayerKillCount = DamageSystem::Tick(Registry, DamageQueue,              // W: CHealth.Current -= Damage
+                                              InstanceToEntityPerLOD, HitEffects); // R: InstanceToEntityPerLOD[LOD][Index]
+
+    // Phase 3 — AI 상태 결정 + 이동 방향 (ParallelFor)
+    AISystem::Tick(Registry, PlayerPosition, AttackRange,                         // W: CEnemyState, CMovement, CAIMode, CWaypoint
+                   CachedWaypoints, WaypointAcceptRadius, NPCPositions);          // R: CHealthPrev, CTransformPrev, CLODPrev
+
+    // Phase 3.1 — 공격 쿨다운 틱 + 데미지 집계
+    AttackSystem::Tick(Registry, DeltaTime, pCharacterDamageable);                // W: CAttack, CEnemyState  R: CAttackPrev, CAnimationPrev
+
+    // Phase 3.5+4 — TaskGraph 병렬 (Write 대상 분리)
+    FGraphEventRef SepTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+        [&Registry = Registry, &PlayerPosition]() {
+            SeparationSystem::Tick(Registry, PlayerPosition);                     // W: CTransform.Position  R: CTransformPrev (SpatialGrid)
+        }, TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask);
+
+    FGraphEventRef DeathTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+        [&Registry = Registry]() {
+            DeathSystem::Tick(Registry);                                          // W: CEnemyState = Dead  R: CEnemyStatePrev, CAnimationPrev
+        }, TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask);
+
+    FTaskGraphInterface::Get().WaitUntilTasksComplete({SepTask, DeathTask});
+
+    // Phase 5+6 — TaskGraph 병렬 (Write 대상 분리)
+    FGraphEventRef AnimTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+        [&Registry = Registry, DeltaTime]() {
+            AnimationSystem::Tick(Registry, DeltaTime);                           // W: CAnimation(.AnimIndex .AnimTime)  R: CEnemyStatePrev, CLODPrev
+        }, TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask);
+
+    FGraphEventRef MoveTask = FFunctionGraphTask::CreateAndDispatchWhenReady(
+        [&Registry = Registry, DeltaTime]() {
+            MovementSystem::Tick(Registry, DeltaTime);                            // W: CTransform.Position  R: CMovementPrev, CNavTargetPrev
+        }, TStatId{}, nullptr, ENamedThreads::AnyHiPriThreadHiPriTask);
+
+    FTaskGraphInterface::Get().WaitUntilTasksComplete({AnimTask, MoveTask});
+
+    // Phase 7~8 — GameThread 직렬
+    LODSystem::TransitionInstances(Registry, HISMRefs, InstanceToEntityPerLOD);   // W: CRenderProxy (swap-back 보정)
+    VisualizationSystem::Tick(Registry, ...);                                     // R: CTransformPrev, CAnimationPrev → ISM 갱신 (변경 감지)
+    CleanupSystem::Tick(Registry, ...);                                           // 내림차순 삭제 → swap-back → destroy
+}
+```
+
 ---
 
-## 핵심 2 — 더블버퍼링 Lock-Free 패턴
+## 핵심 2 — Swarm Fold/Unfold 시스템
+
+플레이어 거리에 따라 **추상 군집(Folded) ↔ 개별 엔티티(Unfolded)** 를 동적 전환하는 LOD 최적화.
+먼 군집은 정수 연산으로 추상 전투, 가까워지면 개별 ECS 엔티티/NPC로 펼쳐서 전투.
+
+```
+[Folded — 추상 군집]                              [Unfolded — 개별 엔티티]
+
+FSwarm { TroopCount, Position, HP }               ECS Entity × N (CSwarmID로 소속 추적)
+ │  정수 연산으로 추상 전투                          │  개별 AI/Movement/Animation 처리
+ │  웨이포인트 따라 이동                             │  ISM 렌더링 + 풀 파이프라인
+ │                                                 │
+ └──── 플레이어 접근 (< 150m) ──── Unfold ────→    │
+       플레이어 이탈 (> 200m) ──── Fold ──────←    │
+```
+
+**히스테리시스:** Unfold 150m / Fold 200m 분리 → 경계에서 반복 전환 방지
+
+```cpp
+void UTPSSwarmSubsystem::CheckPlayerProximity()
+{
+    for (FSwarm& Swarm : Swarms)
+    {
+        const float DistSq = FVector::DistSquared(Swarm.Position, PlayerPos);
+
+        if (!Swarm.bUnfolded && DistSq < UnfoldRadiusSq)        // 150m 이내 → 펼침
+        {
+            UnfoldSwarm(Swarm);                                  // ECS Entity 스폰 or NPC 풀에서 획득
+        }
+        else if (Swarm.bUnfolded && DistSq > FoldRadiusSq)       // 200m 이탈 → 접음
+        {
+            FoldSwarm(Swarm);                                    // Entity 파괴 or NPC 풀 반환, TroopCount 보존
+        }
+    }
+}
+
+void UTPSSwarmSubsystem::UnfoldSwarm(FSwarm& Swarm)
+{
+    for (int32 i = 0; i < Swarm.TroopCount; ++i)
+    {
+        FEnemySpawnParams Params;
+        Params.Position = Swarm.Position + FVector(FMath::RandRange(-500.f, 500.f), ...);
+        Params.SwarmID  = Swarm.ID;                              // CSwarmID로 소속 추적 → Fold 시 회수
+        EnemyManager->QueueSpawn(Params);
+    }
+    Swarm.bUnfolded = true;
+}
+
+void UTPSSwarmSubsystem::FoldSwarm(FSwarm& Swarm)
+{
+    // CSwarmID == Swarm.ID인 생존 Entity 수 집계 → TroopCount 갱신 (전사자 반영)
+    Swarm.TroopCount = CountLivingEntities(Swarm.ID);
+    MarkEntitiesDead(Swarm.ID);                                  // ECS Entity → Dead 상태 → CleanupSystem에서 파괴
+    Swarm.bUnfolded = false;
+}
+```
+
+**핵심 이점:**
+- 먼 군집은 정수 연산만 → CPU 부하 최소화
+- Fold 시 생존자 수 보존 → 추상 전투 결과와 실제 전투 결과 일관성 유지
+- NPC(아군)도 동일 패턴 → `TPSNPCPoolSubsystem`에서 풀 획득/반환
+
+---
+
+## 핵심 3 — 더블버퍼링 Lock-Free 패턴
 
 모든 ECS 컴포넌트는 Current/Prev 쌍으로 운용:
 
@@ -76,6 +192,53 @@ OOP(플레이어/무기) + DOD(대량 적 처리) 하이브리드 아키텍처.
 **왜 필요한가:** ParallelFor에서 Entity A가 Current를 쓰는 동안 Entity B가 같은 Current를 읽으면 레이스 컨디션 발생. Prev(읽기 전용) / Current(쓰기 전용)를 분리하여 **lock 없이 수천 Entity 병렬 처리**.
 
 lock 대신 더블버퍼링을 선택한 이유: 수천 Entity에 lock을 걸면 contention이 병렬화 이점을 상쇄함.
+
+**병렬 실행 시스템 — AISystem (ParallelFor):**
+
+```cpp
+// 수천 Entity를 워커 스레드에서 병렬 처리 — Prev/Current 분리로 lock 불필요
+ParallelFor(Count, [&](int32 Index)
+{
+    const entt::entity Entity = Entities[Index];
+
+    // ① Read — Prev에서 지역변수로 캐싱 (이번 프레임 Write와 격리)
+    const FVector Pos   = View.get<CTransformPrev>(Entity).Position;
+    const float HP      = View.get<CHealthPrev>(Entity).Current;
+    const float Speed   = View.get<CMovementPrev>(Entity).MaxSpeed;
+
+    // ② 계산 — 지역변수만 사용
+    if (HP <= 0.f) { NewState = Dying;  NewVelocity = FVector::ZeroVector; }
+    else           { NewVelocity = Dir * Speed; NewState = Moving; }
+
+    // ③ Write — Current에 쓰기
+    View.get<CEnemyState>(Entity).State  = NewState;
+    View.get<CMovement>(Entity).Velocity = NewVelocity;
+
+    // ④ PushToPrev — 다음 Phase/프레임의 Read용
+    View.get<CEnemyStatePrev>(Entity).State  = NewState;
+    View.get<CMovementPrev>(Entity).Velocity = NewVelocity;
+});
+```
+
+**직렬 실행 시스템 — DamageSystem (GameThread 단일):**
+
+```cpp
+// DamageQueue는 투사체 OnHit에서 임의 타이밍에 적재 → Phase 2에서 동기적 일괄 소비
+// 단일 스레드: 큐 소비 + Entity 상태 변경이 순서 보장 필요
+for (const FDamageEvent& Event : DamageQueue)
+{
+    // ① Read — InstanceToEntity 룩업으로 O(1) Entity 특정
+    const entt::entity Entity = InstanceToEntityPerLOD[Event.LODLevel][Event.InstanceIndex];
+
+    // ② Write — 체력 감산
+    CHealth& Health = Registry.get<CHealth>(Entity);
+    Health.Current = FMath::Max(Health.Current - Event.Damage, 0.f);
+
+    // ③ PushToPrev — 다음 Phase(AISystem)에서 HP 0 감지 → Dying 전환
+    Registry.get<CHealthPrev>(Entity).Current = Health.Current;
+}
+DamageQueue.Reset();  // 메모리 해제 없이 카운트만 초기화
+```
 
 | 컴포넌트 | 역할 |
 |----------|------|
@@ -91,7 +254,7 @@ lock 대신 더블버퍼링을 선택한 이유: 수천 Entity에 lock을 걸면
 
 ---
 
-## 핵심 3 — 오브젝트 풀링 (런타임 힙 할당 제로)
+## 핵심 4 — 오브젝트 풀링 (런타임 힙 할당 제로)
 
 ### 투사체 Actor 풀링
 
