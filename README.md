@@ -171,9 +171,37 @@ void UTPSSwarmSubsystem::FoldSwarm(FSwarm& Swarm)
 }
 ```
 
+**미니맵 군집 추적 (MinimapViewModel):**
+
+Folded 군집은 개별 엔티티가 없어서 월드에 시각적으로 보이지 않음.
+미니맵에서 추상 군집의 위치와 규모를 실시간 추적하여 플레이어가 전장 상황을 파악할 수 있게 함.
+Unfold되면 개별 엔티티가 월드에 존재하므로 마커를 자동으로 숨김.
+
+```cpp
+// Folded 군집만 미니맵에 마커 표시 — Unfolded되면 개별 엔티티가 보이므로 마커 숨김
+for (int32 i = 0; i < Swarms.Num(); ++i)
+{
+    const FSwarm& Swarm = Swarms[i];
+    FMinimapMarkerData& Marker = SwarmMarkers[i];
+
+    if (Swarm.TroopCount <= 0 || Swarm.bUnfolded)               // 전멸 or 펼쳐진 상태 → 숨김
+    {
+        Marker.bVisible = false;
+        continue;
+    }
+
+    Marker.Position = WorldToNormalized(Swarm.Position);         // 월드 → 정규화 좌표 변환
+    Marker.Color = (Swarm.Team == ESwarmTeam::Enemy)             // 적: 빨강, 아군: 파랑
+        ? FLinearColor(1.f, 0.3f, 0.3f, 0.9f)
+        : FLinearColor(0.3f, 0.5f, 1.f, 0.9f);
+    Marker.Size = FMath::Clamp(6.f + Swarm.TroopCount * 0.03f, 6.f, 20.f);  // 병력 수 비례 크기
+}
+```
+
 **핵심 이점:**
 - 먼 군집은 정수 연산만 → CPU 부하 최소화
 - Fold 시 생존자 수 보존 → 추상 전투 결과와 실제 전투 결과 일관성 유지
+- Folded 군집도 미니맵에서 위치/규모 확인 가능 → Unfold 시 마커 자동 숨김
 - NPC(아군)도 동일 패턴 → `TPSNPCPoolSubsystem`에서 풀 획득/반환
 
 ---
